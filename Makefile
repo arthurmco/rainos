@@ -7,16 +7,18 @@ LDFLAGS= -g
 OUT=rainos.elf
 ISO=rainos.iso
 
-all: start.o main.o vga.o
+all: start.o main.o vga.o terminal.o
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) -lgcc $^ $(LDFLAGS)
 
 iso: $(OUT)
 	cp $(OUT) iso/boot
-	grub-mkrescue -o $(ISO) iso/ 
+	grub-mkrescue -o $(ISO) iso/
 
 start.o: kernel/arch/i386/start.S
 	$(AS) kernel/arch/i386/start.S -o start.o $(ASMFLAGS)
 vga.o: kernel/arch/i386/devices/vga.c kernel/arch/i386/devices/vga.h
 	$(CC) -o vga.o -c kernel/arch/i386/devices/vga.c $(CFLAGS)
+terminal.o: kernel/terminal.c kernel/terminal.h
+	$(CC) -o terminal.o -c kernel/terminal.c $(CFLAGS)
 main.o: kernel/main.c
 	$(CC) -o main.o -c kernel/main.c $(CFLAGS)

@@ -1,6 +1,7 @@
 /* VGA console driver for ArtOS */
 
 #include <stdint.h>
+#include "../../../terminal.h"
 
 #ifndef _VGA_H
 #define _VGA_H
@@ -35,16 +36,16 @@ enum VGA_TM_COLORS {
 };
 
 
-void vga_init();
+void vga_init(terminal_t* term);
 
 void vga_puts(const char* msg);
 void vga_putc(unsigned char c);
 void vga_putentry(uint16_t entry);
 
-void vga_setx(unsigned);
-unsigned vga_getx(void);
-void vga_sety(unsigned);
-unsigned vga_gety(void);
+void vga_setx(uint16_t);
+uint16_t vga_getx(void);
+void vga_sety(uint16_t);
+uint16_t vga_gety(void);
 
 void vga_clear();
 void vga_scrollup();

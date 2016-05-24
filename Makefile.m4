@@ -19,13 +19,14 @@ LDFLAGS= -g
 OUT=rainos.elf
 ISO=rainos.iso
 
-all: start.o main.o vga.o
+all: start.o main.o vga.o terminal.o
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) -lgcc $^ $(LDFLAGS)
 
 iso: $(OUT)
 	cp $(OUT) iso/boot
-	grub-mkrescue -o $(ISO) iso/ 
+	grub-mkrescue -o $(ISO) iso/
 
 ASM_SOURCE(kernel/arch/i386/,start)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,vga)
+C_SOURCE_WITH_H(kernel/,terminal)
 C_SOURCE(kernel/,main)
