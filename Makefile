@@ -2,25 +2,39 @@
    
 CC=i686-elf-gcc
 AS=i686-elf-as
-CFLAGS= -lgcc -std=gnu99 -ffreestanding -nostdlib -nostartfiles -Wall -Wextra
-LDFLAGS= -g
+CFLAGS= -std=gnu99 -ffreestanding -nostdlib -nostartfiles -Wall -Wextra
+CINCLUDES= -I$(CURDIR)/libk/include
+LDFLAGS=-lgcc -g
 OUT=rainos.elf
 ISO=rainos.iso
 
-all: start.o main.o vga.o ioport.o terminal.o
-	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) -lgcc $^ $(LDFLAGS)
+LIBK=kstdio.o kstdlib.o kstring.o
+
+all: start.o main.o vga.o ioport.o terminal.o $(LIBK)
+	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
 iso: $(OUT)
 	cp $(OUT) iso/boot
 	grub-mkrescue -o $(ISO) iso/
 
+clean: *.o
+	rm *.o
+	rm $(OUT)
+
 start.o: kernel/arch/i386/start.S
-	$(AS) kernel/arch/i386/start.S -o start.o $(ASMFLAGS)
+	$(AS) kernel/arch/i386/start.S -o start.o $(ASMFLAGS)  $(LDFLAGS)
 vga.o: kernel/arch/i386/devices/vga.c kernel/arch/i386/devices/vga.h
-	$(CC) -o vga.o -c kernel/arch/i386/devices/vga.c $(CFLAGS)
+	$(CC) -o vga.o -c kernel/arch/i386/devices/vga.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 ioport.o: kernel/arch/i386/devices/ioport.c kernel/arch/i386/devices/ioport.h
-	$(CC) -o ioport.o -c kernel/arch/i386/devices/ioport.c $(CFLAGS)
+	$(CC) -o ioport.o -c kernel/arch/i386/devices/ioport.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 terminal.o: kernel/terminal.c kernel/terminal.h
-	$(CC) -o terminal.o -c kernel/terminal.c $(CFLAGS)
+	$(CC) -o terminal.o -c kernel/terminal.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 main.o: kernel/main.c
-	$(CC) -o main.o -c kernel/main.c $(CFLAGS)
+	$(CC) -o main.o -c kernel/main.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
+
+kstdio.o: libk/kstdio.c
+	$(CC) -o kstdio.o -c libk/kstdio.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
+kstdlib.o: libk/kstdlib.c
+	$(CC) -o kstdlib.o -c libk/kstdlib.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
+kstring.o: libk/kstring.c
+	$(CC) -o kstring.o -c libk/kstring.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
