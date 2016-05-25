@@ -69,3 +69,6 @@ void terminal_setcolor(uint8_t color)
     if (term->term_setcolor_f)
         term->term_setcolor_f(color);
 }
+void terminal_restorecolor() {
+    terminal_setcolor(term->defaultColor);
+}

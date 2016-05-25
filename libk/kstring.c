@@ -67,7 +67,7 @@ void vsprintf(char* str, const char* fmt, va_list vl) {
                     *str = 0;
                     str = strcat(str, s);
                     str++;
-                    
+
                 }
                     break;
 
@@ -86,6 +86,7 @@ void vsprintf(char* str, const char* fmt, va_list vl) {
         }
         fmt++;
     }
+    *str = 0;
 }
 
 char* strcat(char* str, const char* catted)

@@ -50,5 +50,7 @@ uint16_t vga_gety(void);
 void vga_clear();
 void vga_scrollup();
 
+uint8_t vga_getcolor();
+void vga_setcolor(uint8_t color);
 
 #endif

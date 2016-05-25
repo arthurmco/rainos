@@ -22,7 +22,7 @@ ISO=rainos.iso
 
 LIBK=kstdio.o kstdlib.o kstring.o
 
-all: start.o main.o vga.o ioport.o terminal.o $(LIBK)
+all: start.o main.o vga.o ioport.o idt.o idt_asm.o fault.o terminal.o $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
 iso: $(OUT)
@@ -36,6 +36,9 @@ clean: *.o
 ASM_SOURCE(kernel/arch/i386/,start)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,vga)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,ioport)
+C_SOURCE_WITH_H(kernel/arch/i386/,idt)
+ASM_SOURCE(kernel/arch/i386/,idt_asm)
+C_SOURCE_WITH_H(kernel/arch/i386/,fault)
 C_SOURCE_WITH_H(kernel/,terminal)
 C_SOURCE(kernel/,main)
 

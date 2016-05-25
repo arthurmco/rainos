@@ -9,6 +9,7 @@ void vga_init(terminal_t* term) {
     default_color = VGA_COLOR(VGA_BLACK, VGA_LIGHTGREY);
 
     if (term) {
+        term->defaultColor = default_color;
         term->term_putc_f = &vga_putc;
         term->term_puts_f = &vga_puts;
         term->term_clear_f = &vga_clear;
@@ -16,6 +17,8 @@ void vga_init(terminal_t* term) {
         term->term_setx_f = &vga_setx;
         term->term_gety_f = &vga_gety;
         term->term_sety_f = &vga_sety;
+        term->term_getcolor_f = &vga_getcolor;
+        term->term_setcolor_f = &vga_setcolor;
     }
 
 }
@@ -83,3 +86,6 @@ void vga_scrollup() {
     }
 
 }
+
+uint8_t vga_getcolor() {return default_color;}
+void vga_setcolor(uint8_t color) {default_color = color;}

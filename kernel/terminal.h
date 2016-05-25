@@ -13,7 +13,7 @@
     This structure should be opaque */
 typedef struct _Terminal {
     char name[12];
-    uint16_t xPos, yPos;
+    uint8_t defaultColor;
 
     void (*term_putc_f)(unsigned char c);
     void (*term_puts_f)(const char* s);
@@ -38,6 +38,6 @@ void terminal_sety(uint16_t y);
 void terminal_setx(uint16_t x);
 uint8_t terminal_getcolor();
 void terminal_setcolor(uint8_t color);
-
+void terminal_restorecolor();
 
 #endif /* end of include guard: _TERMINAL_H */
