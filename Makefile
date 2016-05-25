@@ -22,7 +22,7 @@ clean: *.o
 	rm $(OUT)
 
 start.o: kernel/arch/i386/start.S
-	$(AS) kernel/arch/i386/start.S -o start.o $(ASMFLAGS)  $(LDFLAGS)
+	$(AS) kernel/arch/i386/start.S -o start.o $(ASMFLAGS)
 vga.o: kernel/arch/i386/devices/vga.c kernel/arch/i386/devices/vga.h
 	$(CC) -o vga.o -c kernel/arch/i386/devices/vga.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 ioport.o: kernel/arch/i386/devices/ioport.c kernel/arch/i386/devices/ioport.h

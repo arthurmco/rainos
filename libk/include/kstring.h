@@ -11,7 +11,9 @@
 
 void strrev(const char* str, char* rev);
 size_t strlen(const char* s);
+char* strcat(char* str, const char* catted);
 
 void sprintf(char* str, const char* fmt, ...);
+void vsprintf(char* str, const char* fmt, va_list vl);
 
 #endif /* end of include guard: _KSTRING_H */

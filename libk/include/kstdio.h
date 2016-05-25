@@ -11,7 +11,8 @@
 
 void putc(char c);
 void puts(const char* s);
-void printf(const char* format, ...);
+void kprintf(const char* format, ...);
+void kerror(const char* format, ...);
 
 
 #endif /* end of include guard: _KSTDIO_H */

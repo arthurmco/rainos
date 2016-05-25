@@ -7,6 +7,7 @@
 #include "terminal.h"
 
 #include <kstdlib.h>
+#include <kstring.h>
 
 void kernel_main(uint32_t mboot) {
     terminal_t term_stdio;
@@ -17,8 +18,7 @@ void kernel_main(uint32_t mboot) {
     terminal_puts("Hello world!\n");
 
     int a = 0xf3096;
-    char s[20];
-    utoa_s(a, s, 16);
-    terminal_puts(s);
+    char s[60];
+    kprintf("Doutor %s e Maestro %s", "Pirrola", "Boquete");
 
 }

@@ -10,7 +10,7 @@ define(`C_SOURCE_WITH_H',
 dnl Macro for creating ASM file source
 define(`ASM_SOURCE',
 `$2.o: $1$2.S
-	`$'(AS) $1$2.S -o $2.o `$'(ASMFLAGS)  `$'(LDFLAGS)') dnl
+	`$'(AS) $1$2.S -o $2.o `$'(ASMFLAGS)') dnl
 
 CC=i686-elf-gcc
 AS=i686-elf-as
