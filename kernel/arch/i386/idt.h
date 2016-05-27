@@ -38,23 +38,6 @@ enum IDT_ATTRIBUTES {
 
 #define IDT_MAX_DESCRIPTORS 64
 
-/*  The exceptions handlers goes
-extern void isr0();     //Divide by zero
-extern void isr1();     //Debug
-extern void isr2();     //Non-maskable interrupts
-extern void isr3();     //Breakpoint
-extern void isr4();     //Overflow
-extern void isr5();     //Bound range exceeded
-extern void isr6();     //Invalid opcode
-extern void isr7();     //FPU not avaliable
-extern void isr8();     //Double fault
-extern void isr9();     //Coprocessor Segment Overrun (deprecated in 486)
-extern void isr10();    //Invalid TSS
-extern void isr11();    //GDT segment not present
-extern void isr12();    //Stack segment fault
-extern void isr13();    //General Protection fault
-extern void isr14();    //Page fault
- */
 /* The IDT functions goes */
 void idt_init();
 void idt_addentry(uint8_t index, uint16_t gdt_selector, uint32_t handler_addr, uint8_t attributes);

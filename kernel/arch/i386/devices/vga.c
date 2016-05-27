@@ -41,8 +41,11 @@ void vga_putentry(uint16_t entry) {
             xPos = 0;
             break;
         case '\t':
-            xPos += 4;
-            xPos = xPos & ~0x4;
+            xPos += 3;
+            if (xPos > 4)
+                xPos = xPos & ~0x3;
+            else
+                xPos = 4;
             break;
         default:
             vga_addr[yPos*VGA_WIDTH+xPos] = entry;

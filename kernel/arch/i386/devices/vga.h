@@ -1,4 +1,7 @@
-/* VGA console driver for ArtOS */
+/* VGA console driver for ArtOS
+
+    Copyright (C) 2016 Arthur M
+ */
 
 #include <stdint.h>
 #include "../../../terminal.h"

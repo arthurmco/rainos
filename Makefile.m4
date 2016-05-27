@@ -22,12 +22,16 @@ ISO=rainos.iso
 
 LIBK=kstdio.o kstdlib.o kstring.o
 
-all: start.o main.o vga.o ioport.o idt.o idt_asm.o fault.o terminal.o $(LIBK)
+all: start.o main.o vga.o ioport.o idt.o idt_asm.o fault.o terminal.o serial.o \
+ $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
 iso: $(OUT)
 	cp $(OUT) iso/boot
 	grub-mkrescue -o $(ISO) iso/
+
+qemu: $(OUT)
+	qemu-system-i386 -kernel $(OUT) -m 8 -monitor stdio
 
 clean: *.o
 	rm *.o
@@ -36,6 +40,7 @@ clean: *.o
 ASM_SOURCE(kernel/arch/i386/,start)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,vga)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,ioport)
+C_SOURCE_WITH_H(kernel/arch/i386/devices/,serial)
 C_SOURCE_WITH_H(kernel/arch/i386/,idt)
 ASM_SOURCE(kernel/arch/i386/,idt_asm)
 C_SOURCE_WITH_H(kernel/arch/i386/,fault)
