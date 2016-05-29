@@ -11,14 +11,14 @@ ISO=rainos.iso
 LIBK=kstdio.o kstdlib.o kstring.o
 
 all: start.o main.o vga.o ioport.o idt.o idt_asm.o fault.o terminal.o serial.o \
- $(LIBK)
+ 8259.o $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
-iso: $(OUT)
+iso: all
 	cp $(OUT) iso/boot
 	grub-mkrescue -o $(ISO) iso/
 
-qemu: $(OUT)
+qemu: all
 	qemu-system-i386 -kernel $(OUT) -m 8 -monitor stdio
 
 clean: *.o
@@ -33,6 +33,8 @@ ioport.o: kernel/arch/i386/devices/ioport.c kernel/arch/i386/devices/ioport.h
 	$(CC) -o ioport.o -c kernel/arch/i386/devices/ioport.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 serial.o: kernel/arch/i386/devices/serial.c kernel/arch/i386/devices/serial.h
 	$(CC) -o serial.o -c kernel/arch/i386/devices/serial.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
+8259.o: kernel/arch/i386/devices/8259.c kernel/arch/i386/devices/8259.h
+	$(CC) -o 8259.o -c kernel/arch/i386/devices/8259.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 idt.o: kernel/arch/i386/idt.c kernel/arch/i386/idt.h
 	$(CC) -o idt.o -c kernel/arch/i386/idt.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 idt_asm.o: kernel/arch/i386/idt_asm.S
