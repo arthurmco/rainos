@@ -21,7 +21,7 @@
 
 void pic_init();
 
-/* Remap the interrupts 0-15 to IDT vectors 0x20-0x3f */
+/* Remap the interrupts 0-15 to IDT vectors 0x20-0x2f */
 void pic_remap();
 
 /* Send the End of Interrupt signal */

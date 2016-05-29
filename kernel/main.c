@@ -5,7 +5,7 @@
 #include "arch/i386/devices/vga.h"
 #include "arch/i386/devices/ioport.h"
 #include "arch/i386/devices/serial.h"
-#include "arch/i386/devices/8259.h"
+#include "arch/i386/irq.h"
 #include "arch/i386/idt.h"
 #include "arch/i386/fault.h"
 #include "terminal.h"
@@ -21,7 +21,7 @@ void kernel_main(uint32_t mboot) {
 
     idt_init();
     fault_init();
-    pic_init();
+    irq_init();
 
     terminal_clear();
     terminal_setcolor(0x09);

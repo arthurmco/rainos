@@ -3,10 +3,10 @@
 void pic_init()
 {
     pic_remap();
-    pic_setmask(0xffff);
+    //pic_setmask(0xffff);
 }
 
-/* Remap the interrupts 0-15 to IDT vectors 0x20-0x3f */
+/* Remap the interrupts 0-15 to IDT vectors 0x20-0x2f */
 void pic_remap()
 {
     //ICW1 - the initialisation command itself
