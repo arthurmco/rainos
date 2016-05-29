@@ -27,6 +27,9 @@ int serial_init(unsigned port)
     if (_portindex > 4)
         return 0;
 
+    if (PORT_COM(_portindex) == 0)
+        return 0;
+
     outb(PORT_COM(_portindex)+SREG_INTENABLEREG, 0x00);  // Disable all interrupts
 
     /* Set baud rate to 9600 */

@@ -29,7 +29,7 @@ void kernel_main(uint32_t mboot) {
     terminal_restorecolor();
     puts(" \tLicensed under GNU GPL 2.0\n\n");
 
-    if (!serial_init()) {
+    if (!serial_init(0)) {
         puts("WARNING: Serial port not avaliable");
     }
 
