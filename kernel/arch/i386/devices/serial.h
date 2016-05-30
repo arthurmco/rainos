@@ -10,7 +10,7 @@
 #define _SERIAL_H
 
 
-int serial_init();
+int serial_init(unsigned comdev);
 int serial_set_baud(unsigned baud);
 
 void serial_set_port(unsigned num);
