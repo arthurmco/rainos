@@ -21,16 +21,3 @@ void kprintf(const char* format, ...)
     va_end(vl);
     puts(str);
 }
-
-void kerror(const char* format, ...) {
-    terminal_setcolor(0x0c);
-    terminal_puts("ERROR: ");
-    terminal_restorecolor();
-
-    char str[256];
-    va_list vl;
-    va_start(vl, format);
-    vsprintf(str, format, vl);
-    va_end(vl);
-    puts(str);
-}

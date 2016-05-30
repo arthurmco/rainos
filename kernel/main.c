@@ -13,16 +13,28 @@
 
 #include <kstdlib.h>
 #include <kstring.h>
+#include <kstdlog.h>
 #include <kstdio.h>
 
 void kernel_main(uint32_t mboot) {
     terminal_t term_stdio;
     term_stdio.defaultColor = 0x07;
     terminal_set(&term_stdio);
-    ttys_init(&term_stdio);
+    vga_init(&term_stdio);
 
+    /* Initialize logging terminal device */
+    terminal_t term_log;
+    term_log.defaultColor = 0x07;
+    ttys_init(&term_log);
+    klog_set_device(&term_log);
+
+    knotice("IDT created");
     idt_init();
+
+    knotice("Fault handlers created");
     fault_init();
+
+    knotice("IRQ handlers created");
     irq_init();
 
     terminal_clear();
@@ -33,17 +45,10 @@ void kernel_main(uint32_t mboot) {
     terminal_restorecolor();
     puts("\tLicensed under GNU GPL 2.0\n\n");
 
-    if (!serial_init(0)) {
-        puts("WARNING: Serial port not avaliable");
-    }
-
-
-    kprintf("\nMask: %x\n", pic_getmask());
-    serial_putc('!');
-
-
     asm("sti");
     puts("=");
+    kwarn("[jc] Wrong TAMPA at address 0xfe300000");
+    kerror("[bambam] Bad TRAPEZERA at address 0x13131313");
 
     for(;;) {
         asm volatile("nop");

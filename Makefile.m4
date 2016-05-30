@@ -20,7 +20,7 @@ LDFLAGS=-lgcc -g
 OUT=rainos.elf
 ISO=rainos.iso
 
-LIBK=kstdio.o kstdlib.o kstring.o
+LIBK=kstdio.o kstdlib.o kstring.o kstdlog.o
 
 all: start.o main.o vga.o ioport.o idt.o idt_asm.o fault.o terminal.o serial.o \
  8259.o irq.o irq_asm.o ttys.o $(LIBK)
@@ -54,3 +54,4 @@ C_SOURCE(kernel/,main)
 C_SOURCE(libk/,kstdio)
 C_SOURCE(libk/,kstdlib)
 C_SOURCE(libk/,kstring)
+C_SOURCE(libk/,kstdlog)

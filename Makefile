@@ -8,7 +8,7 @@ LDFLAGS=-lgcc -g
 OUT=rainos.elf
 ISO=rainos.iso
 
-LIBK=kstdio.o kstdlib.o kstring.o
+LIBK=kstdio.o kstdlib.o kstring.o kstdlog.o
 
 all: start.o main.o vga.o ioport.o idt.o idt_asm.o fault.o terminal.o serial.o \
  8259.o irq.o irq_asm.o ttys.o $(LIBK)
@@ -58,3 +58,5 @@ kstdlib.o: libk/kstdlib.c
 	$(CC) -o kstdlib.o -c libk/kstdlib.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 kstring.o: libk/kstring.c
 	$(CC) -o kstring.o -c libk/kstring.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
+kstdlog.o: libk/kstdlog.c
+	$(CC) -o kstdlog.o -c libk/kstdlog.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
