@@ -1,9 +1,12 @@
 #include "8259.h"
+#include <kstdlog.h>
 
 void pic_init()
 {
     pic_remap();
     //pic_setmask(0xffff);
+
+    knotice("PIC: ready, remapped for 0x20-0x28");
 }
 
 /* Remap the interrupts 0-15 to IDT vectors 0x20-0x2f */
@@ -43,9 +46,11 @@ void pic_remap()
 
 
 /* Send the End of Interrupt signal */
-void pic_eoi()
+void pic_eoi(unsigned irq)
 {
-
+    outb(PIC1_CMD, 0x20);
+    if (irq >= 8)
+        outb(PIC2_CMD, 0x20);
 }
 
 

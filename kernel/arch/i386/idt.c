@@ -1,4 +1,5 @@
 #include "idt.h"
+#include <kstdlog.h>
 
 static struct idt_ptr idt_pointer;
 static struct idt_descriptor idt_descs[IDT_MAX_DESCRIPTORS];
@@ -32,4 +33,6 @@ void idt_register(){
     idt_pointer.size = (sizeof(struct idt_descriptor) * IDT_MAX_DESCRIPTORS) - 1;
 
     idt_flush(&idt_pointer);
+    knotice("IDT: created IDT at 0x%x, limit %d",
+        idt_pointer.addr, idt_pointer.size);
 }

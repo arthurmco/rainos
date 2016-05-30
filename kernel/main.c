@@ -16,6 +16,11 @@
 #include <kstdlog.h>
 #include <kstdio.h>
 
+volatile int _timer = 0;
+void timer(regs_t* regs) {
+    kprintf("Timer: %d\n", _timer++);
+}
+
 void kernel_main(uint32_t mboot) {
     terminal_t term_stdio;
     term_stdio.defaultColor = 0x07;
@@ -27,14 +32,10 @@ void kernel_main(uint32_t mboot) {
     term_log.defaultColor = 0x07;
     ttys_init(&term_log);
     klog_set_device(&term_log);
+    ttys_puts("\033[1mRainOS\033[0m\n");
 
-    knotice("IDT created");
     idt_init();
-
-    knotice("Fault handlers created");
     fault_init();
-
-    knotice("IRQ handlers created");
     irq_init();
 
     terminal_clear();
@@ -46,9 +47,7 @@ void kernel_main(uint32_t mboot) {
     puts("\tLicensed under GNU GPL 2.0\n\n");
 
     asm("sti");
-    puts("=");
-    kwarn("[jc] Wrong TAMPA at address 0xfe300000");
-    kerror("[bambam] Bad TRAPEZERA at address 0x13131313");
+    irq_add_handler(0, &timer);
 
     for(;;) {
         asm volatile("nop");

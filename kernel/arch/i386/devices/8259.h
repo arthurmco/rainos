@@ -25,7 +25,7 @@ void pic_init();
 void pic_remap();
 
 /* Send the End of Interrupt signal */
-void pic_eoi();
+void pic_eoi(unsigned irq);
 
 /* Bitmask to you to mask the IRQ.
     The bit index is the IRQ you want to mask.

@@ -1,5 +1,5 @@
 #include "irq.h"
-
+#include <kstdlog.h>
 
 /* Init IRQ handlers, setup IRQ sources (PIC or APIC) */
 void irq_init() {
@@ -21,6 +21,9 @@ void irq_init() {
     idt_addentry(0x2D, 0x08, (uint32_t)&irq13, IDTA_INTERRUPT);
     idt_addentry(0x2E, 0x08, (uint32_t)&irq14, IDTA_INTERRUPT);
     idt_addentry(0x2F, 0x08, (uint32_t)&irq15, IDTA_INTERRUPT);
+
+    knotice("IRQ: added handler stubs for PIC vectors");
+
 }
 
 #define MAX_IRQS 15
@@ -31,13 +34,14 @@ static int handler_pos[MAX_IRQS] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 /* IRQ general handler. It calls the other handlers you added */
 void irq_handler(regs_t* regs)
 {
-    for (int i = 0; i < MAX_IRQS; i++) {
-        for (int h = 0; h < handler_pos[i]; h++) {
-            irq_handler_f fun = handlers[i][h];
-            if (fun)
-                fun(regs);
-        }
+    unsigned i = regs->int_no;
+    for (int h = 0; h < handler_pos[i]; h++) {
+        irq_handler_f fun = handlers[i][h];
+        if (fun)
+            fun(regs);
     }
+    pic_eoi(i);
+
 }
 
 int irq_add_handler(int irq, irq_handler_f func)
@@ -48,9 +52,11 @@ int irq_add_handler(int irq, irq_handler_f func)
     int h = handler_pos[irq];
     if (h > MAX_HANDLERS) return 0;
 
-    handlers[irq][h] = func;
+    handlers[irq][h++] = func;
+    knotice("IRQ: added handler for IRQ %d at 0x%x",
+        irq, func);
 
-    handler_pos[irq] = ++h;
+    handler_pos[irq] = h;
     return 1;
 }
 
@@ -63,6 +69,8 @@ int irq_remove_handler(irq_handler_f func, int irq)
         if ((uintptr_t)handlers[irq][h] == fptr) {
             handlers[irq][h] = NULL;
             if (h == (handler_pos[irq]-1)) {
+                knotice("IRQ: removed handler for IRQ %d at 0x%x",
+                    irq, func);
                 handler_pos[irq]--;
             }
             return 1;
