@@ -9,7 +9,7 @@ void klog_set_device(terminal_t* term)
 
 void knotice(const char* fmt, ...)
 {
-    char msg[strlen(fmt)+4];
+    char msg[255];
 
     va_list vl;
     va_start(vl, fmt);
@@ -24,7 +24,7 @@ void knotice(const char* fmt, ...)
 
 void kwarn(const char* fmt, ...)
 {
-    char msg[strlen(fmt)+4];
+    char msg[255];
 
     if (logterm->term_setcolor_f) {
         /* Print WARNING in yellow foreground */
@@ -47,7 +47,7 @@ void kwarn(const char* fmt, ...)
 
 void kerror(const char* fmt, ...)
 {
-    char msg[strlen(fmt)+4];
+    char msg[255];
 
     if (logterm->term_setcolor_f) {
         /* Print ERROR in red foreground */
