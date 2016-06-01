@@ -11,6 +11,7 @@
 #include "arch/i386/fault.h"
 #include "terminal.h"
 #include "ttys.h"
+#include "mmap.h"
 
 #include <kstdlib.h>
 #include <kstring.h>
@@ -40,9 +41,9 @@ void kernel_main(multiboot_t* mboot) {
     irq_init();
 
     terminal_clear();
-    terminal_setcolor(0x09);
     terminal_setx(20);
-    puts("Starting RainOS\n");
+    terminal_setcolor(0x9f);
+    puts("RainOS\n");
     terminal_setcolor(0x0f);
     terminal_setx(20);
     puts("Copyright (C) 2016 Arthur M\n");
@@ -57,7 +58,36 @@ void kernel_main(multiboot_t* mboot) {
         (mboot->mem_upper + mboot->mem_lower) / 1024,
         ((mboot->mem_upper + mboot->mem_lower) % 1024) / 10);
 
-    irq_add_handler(0, &timer);
+    //irq_add_handler(0, &timer);
+    knotice("KERNEL: Memory map: ");
+
+    struct mmap_list mml;
+    mml.size = (mboot->mmap_length / sizeof(multiboot_mmap_t))+1;
+
+    mmap_t mm[mml.size];
+
+    const char* map_types[] = {"Unknown", "Free RAM", "Reserved RAM", "\0"};
+    int mmidx = 0;
+    for (multiboot_mmap_t* map = (multiboot_mmap_t*)mboot->mmap_addr;
+            map < (multiboot_mmap_t*)(((uintptr_t)mboot->mmap_addr) + mboot->mmap_length);
+            map++) {
+
+        unsigned type = map->type;
+        if (type >= 3)
+            type = 0;
+
+        knotice("\t 0x%x - 0x%x, %s (code %d)", map->addr_low,
+            map->addr_low+map->len_low-1, map_types[type], map->type);
+
+        mm[mmidx].start = map->addr_low;
+        mm[mmidx].length = map->len_low;
+        mm[mmidx].type = map->type;
+        mmidx++;
+    }
+
+    mml.maps = &mm[0];
+
+
 
     for(;;) {
         asm volatile("nop");
