@@ -11,21 +11,21 @@
 .set MAGIC,     0x1BADB002          #; Multiboot magic number
 .set CHECKSUM,  -(MAGIC + FLAGS)    #; Checksum. The checksum plus magic and flags
                                     #; needs to be zero.
-                                    
+
 #; Plot the Multiboot header in our executable
 .section .multiboot
 .align 4
 .long MAGIC
 .long FLAGS
 .long CHECKSUM
-                                    
+
 .section .stack, "aw", @nobits
     .align 4
 #; The kernel stack
 stack_bottom:
     .skip 1024
 stack_top:
-     
+
 .section .text
 .global _kernel_entry
 .type _kernel_entry, @function
@@ -33,7 +33,7 @@ stack_top:
 
 _kernel_entry:
 
-/* This region will do simple things, like: 
+/* This region will do simple things, like:
      - Save the GRUB pointers
      - Enable GDT
      - TODO: Enable paging
@@ -43,6 +43,9 @@ _kernel_entry:
 #; Setup the stack
 movl $stack_top, %esp
 cld
+
+# Push ebx, where the multiboot info pointer lies
+push %ebx
 
 #; Compare the magic numbers
 cmp $MAGIC_MBOOT, %eax
@@ -59,7 +62,7 @@ jmp $0x08, $.enable_gdt_reload
 .enable_gdt_reload:
 movw $0x10, %ax
 movw %ax, %ds
-movw %ax, %es 
+movw %ax, %es
 movw %ax, %fs
 movw %ax, %gs
 movw %ax, %ss
@@ -146,10 +149,3 @@ dGDTEnd:
 dGDTPtr:
         .word dGDTEnd-dGDT
         .long dGDT
-
-
-
-
-
-
-    

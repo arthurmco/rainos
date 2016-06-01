@@ -5,6 +5,7 @@
 #include "arch/i386/devices/vga.h"
 #include "arch/i386/devices/ioport.h"
 #include "arch/i386/devices/serial.h"
+#include "arch/i386/multiboot.h"
 #include "arch/i386/irq.h"
 #include "arch/i386/idt.h"
 #include "arch/i386/fault.h"
@@ -21,7 +22,7 @@ void timer(regs_t* regs) {
     kprintf("Timer: %d\n", _timer++);
 }
 
-void kernel_main(uint32_t mboot) {
+void kernel_main(multiboot_t* mboot) {
     terminal_t term_stdio;
     term_stdio.defaultColor = 0x07;
     terminal_set(&term_stdio);
@@ -40,13 +41,22 @@ void kernel_main(uint32_t mboot) {
 
     terminal_clear();
     terminal_setcolor(0x09);
+    terminal_setx(20);
     puts("Starting RainOS\n");
     terminal_setcolor(0x0f);
+    terminal_setx(20);
     puts("Copyright (C) 2016 Arthur M\n");
     terminal_restorecolor();
+    terminal_setx(20);
     puts("\tLicensed under GNU GPL 2.0\n\n");
 
     asm("sti");
+
+    kprintf("\t Multiboot structure at 0x%x\n", mboot);
+    kprintf("\t Avaliable memory: %d.%d MB\n",
+        (mboot->mem_upper + mboot->mem_lower) / 1024,
+        ((mboot->mem_upper + mboot->mem_lower) % 1024) / 10);
+
     irq_add_handler(0, &timer);
 
     for(;;) {
