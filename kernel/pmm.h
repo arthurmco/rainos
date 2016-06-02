@@ -19,7 +19,7 @@ typedef uintptr_t physaddr_t;
 
 #define BITSET_SET(bitset, idx, bit) (bitset[idx] |= (1 << bit))
 #define BITSET_ISSET(bitset, idx, bit) (bitset[idx] & (1 << bit))
-#define BITSET_UNSET(bitset, idx, bit) (bitset[idx] ^= (1 << bit))
+#define BITSET_UNSET(bitset, idx, bit) (bitset[idx] &= ~(1 << bit))
 
 /* Memory region types */
 enum MemRegion {
@@ -52,6 +52,6 @@ size_t pmm_get_mem_free(int region);
 
 physaddr_t pmm_alloc(size_t pages, int type);
 physaddr_t pmm_reserve(physaddr_t addr, size_t pages);
-void pmm_free(physaddr_t addr, size_t pages);
+int pmm_free(physaddr_t addr, size_t pages);
 
 #endif /* end of include guard: _PMM_H */

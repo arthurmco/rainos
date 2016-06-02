@@ -136,19 +136,19 @@ size_t pmm_get_mem_free(int region)
 
 }
 
-static physaddr_t _pmm_reserve_addr(physaddr_t addr, size_t pages, struct MMAPRegion* reg,
+static physaddr_t _pmm_set_addr(physaddr_t addr, size_t pages, struct MMAPRegion* reg,
     int force_addr) {
     uint32_t startpage = (addr - reg->start) / PMM_PAGE_SIZE;
     uint32_t limit = startpage + (reg->len / PMM_PAGE_SIZE);
+//    knotice("<<%x>>",addr);
 
-    knotice("<<%x>>",addr);
     while (startpage < limit) {
         if (BITSET_ISSET(reg->region_bitset, startpage/8, startpage%8)) {
             //Occupied
             if (force_addr)
                 return NULL; //Can't allocate at exact address.
 
-            knotice("fuck %d", startpage);
+//            knotice("fuck %d", startpage);
             startpage++;
         } else {
             //Not occupied.
@@ -160,7 +160,7 @@ static physaddr_t _pmm_reserve_addr(physaddr_t addr, size_t pages, struct MMAPRe
                     //One of future pages are occupied.
                     //Reset the outer loop and find some other occupied.
                     startpage += page;
-                    knotice("shit %d", startpage);
+//                    knotice("shit %d", startpage);
                 }
                 page++;
             } while (page < pages);
@@ -179,7 +179,7 @@ static physaddr_t _pmm_reserve_addr(physaddr_t addr, size_t pages, struct MMAPRe
 
     /* all OK, fill the buffer */
     for (size_t p = 0; p < pages; p++) {
-        knotice("%x", addr+(p*PMM_PAGE_SIZE));
+//        knotice("%x", addr+(p*PMM_PAGE_SIZE));
         BITSET_SET(reg->region_bitset, (startpage+p)/8, (startpage+p)%8);
     }
 
@@ -188,6 +188,28 @@ static physaddr_t _pmm_reserve_addr(physaddr_t addr, size_t pages, struct MMAPRe
 
     return addr;
 }
+
+static physaddr_t _pmm_unset_addr(physaddr_t addr, size_t pages, struct MMAPRegion* reg) {
+    uint32_t startpage = (addr - reg->start) / PMM_PAGE_SIZE;
+    uint32_t limit = startpage + (reg->len / PMM_PAGE_SIZE);
+
+    knotice("<<%x>> <<%x>> %d", addr, limit, pages);
+    if ((startpage + pages) > limit)
+        return NULL; //Unset past end of the buffer.
+
+    /* unset the buffer */
+    for (size_t p = 0; p < pages; p++) {
+        knotice("%x", addr+(p*PMM_PAGE_SIZE));
+        knotice("[[%x]]", reg->region_bitset[(startpage+p)/8] );
+        BITSET_UNSET(reg->region_bitset, (startpage+p)/8, (startpage+p)%8);
+    }
+
+
+    reg->first_free_addr = addr;
+
+    return addr;
+}
+
 
 physaddr_t pmm_alloc(size_t pages, int type)
 {
@@ -205,10 +227,13 @@ physaddr_t pmm_alloc(size_t pages, int type)
     }
 
     /* Could not find suitable region */
-    if (!reg) return 0;
+    if (!reg) {
+        kerror("Could not allocate memory!");
+        return NULL;
+    }
 
     physaddr_t addr = reg->first_free_addr;
-    return _pmm_reserve_addr(addr, pages, reg, 0);
+    return _pmm_set_addr(addr, pages, reg, 0);
 }
 
 physaddr_t pmm_reserve(physaddr_t addr, size_t pages)
@@ -233,13 +258,38 @@ physaddr_t pmm_reserve(physaddr_t addr, size_t pages)
 
     }
 
+    if (!reg) {
+        kerror("Could not reserve memory at 0x%x", addr);
+        return NULL;
+    }
+    return _pmm_set_addr(addr, pages, reg, 1);
+}
+
+int pmm_free(physaddr_t addr, size_t pages)
+{
+    struct MMAPRegion* reg = NULL;
+    for (int i = 0; i < regs_count; i++) {
+        if (regs_data[i].region_type == PMM_REG_FAULTY) {
+            return NULL; //Can't reserve faulty RAM.
+        }
+
+        if (addr >= regs_data[i].start &&
+            addr < regs_data[i].start + regs_data[i].len ) {
+
+            if (regs_data[i].first_free_addr + (pages * PMM_PAGE_SIZE) >
+                regs_data[i].start + regs_data[i].len) {
+                    continue; //Region doesn't fit.
+            }
+
+            reg = &regs_data[i];
+            break;
+        }
+
+    }
+
     if (!reg)
         return NULL; //Can't find region
 
-    return _pmm_reserve_addr(addr, pages, reg, 1);
-}
-
-void pmm_free(physaddr_t addr, size_t pages)
-{
+    return (_pmm_unset_addr(addr, pages, reg) > 0x0);
 
 }

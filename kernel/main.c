@@ -147,11 +147,18 @@ void kernel_main(multiboot_t* mboot) {
     kprintf("\n\t test: allocated RAM at 0x%x", addr);
     addr = pmm_alloc(20, PMM_REG_DEFAULT);
     kprintf("\n\t test: allocated RAM at 0x%x", addr);
-    addr = pmm_reserve(0x11a000, 2);
+
+    if (!pmm_free(addr, 20)) {
+        kprintf("\n\t test: error, could not free");
+    } else {
+        kprintf("\n\t test: deallocated RAM at 0x%x", addr);
+    }
+
+    addr = pmm_reserve(addr, 2);
     if (addr)
-        kprintf("\n\t test: this should fail (%x)", addr);
+        kprintf("\n\t test: ok (%x)", addr);
     else
-        kprintf("\n\t test: failed to allocate, this is good.");
+        kprintf("\n\t test: failed, this should succeed now.");
 
     WRITE_SUCCESS();
 

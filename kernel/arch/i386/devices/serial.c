@@ -66,7 +66,7 @@ void serial_putc(unsigned char c)
     /*  Check if we're ready to send.
         If we reach a timeout, do not send anything */
     int write_ok = 0;
-    for (int i = 0; i < 1024; i++) {
+    for (int i = 0; i < 10; i++) {
         /* is the Empty Transmitter Holding Register set? */
         if (inb(PORT_COM(_portindex)+SREG_LINESTATUS) & 0x20) {
             /* yes! we can transfer */
