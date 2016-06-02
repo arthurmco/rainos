@@ -20,4 +20,10 @@ struct mmap_list {
     int size;
 };
 
+enum MMAPTypes {
+    MMAP_UNKNOWN = 0,
+    MMAP_FREE = 1,
+    MMAP_USED = 2,
+};
+
 #endif /* end of include guard: _MMAP_H */

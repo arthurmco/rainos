@@ -2,6 +2,11 @@
 
 #include <stdint.h>
 
+#include <kstdlib.h>
+#include <kstring.h>
+#include <kstdlog.h>
+#include <kstdio.h>
+
 #include "arch/i386/devices/vga.h"
 #include "arch/i386/devices/ioport.h"
 #include "arch/i386/devices/serial.h"
@@ -12,16 +17,41 @@
 #include "terminal.h"
 #include "ttys.h"
 #include "mmap.h"
-
-#include <kstdlib.h>
-#include <kstring.h>
-#include <kstdlog.h>
-#include <kstdio.h>
+#include "pmm.h"
 
 volatile int _timer = 0;
 void timer(regs_t* regs) {
     kprintf("Timer: %d\n", _timer++);
 }
+
+#define WRITE_STATUS(status) do {   \
+    terminal_setcolor(0xf);         \
+    kputs(" o ");                   \
+    terminal_restorecolor();        \
+    kputs(status);                  \
+} while (0)                         \
+
+#define WRITE_FAIL() do {           \
+    terminal_setx(70);              \
+    kputs("[ ");                    \
+    terminal_setcolor(0xc);         \
+    kputs("FAIL");                  \
+    terminal_restorecolor();        \
+    kputs(" ]\n");                  \
+} while (0)                         \
+
+#define WRITE_SUCCESS() do {        \
+    terminal_setx(70);              \
+    kputs("[ ");                    \
+    terminal_setcolor(0xa);         \
+    kputs(" OK ");                  \
+    terminal_restorecolor();        \
+    kputs(" ]\n");                  \
+} while (0)                         \
+
+
+extern uintptr_t _kernel_start[];
+extern uintptr_t _kernel_end[];
 
 void kernel_main(multiboot_t* mboot) {
     terminal_t term_stdio;
@@ -43,13 +73,13 @@ void kernel_main(multiboot_t* mboot) {
     terminal_clear();
     terminal_setx(20);
     terminal_setcolor(0x9f);
-    puts("RainOS\n");
+    kputs("RainOS\n");
     terminal_setcolor(0x0f);
     terminal_setx(20);
-    puts("Copyright (C) 2016 Arthur M\n");
+    kputs("Copyright (C) 2016 Arthur M\n");
     terminal_restorecolor();
     terminal_setx(20);
-    puts("\tLicensed under GNU GPL 2.0\n\n");
+    kputs("\tLicensed under GNU GPL 2.0\n\n");
 
     asm("sti");
 
@@ -57,6 +87,11 @@ void kernel_main(multiboot_t* mboot) {
     kprintf("\t Avaliable memory: %d.%d MB\n",
         (mboot->mem_upper + mboot->mem_lower) / 1024,
         ((mboot->mem_upper + mboot->mem_lower) % 1024) / 10);
+
+    uintptr_t kstart = (uintptr_t)_kernel_start;
+    uintptr_t kend = (uintptr_t)_kernel_end;
+    knotice("KERNEL: starts at 0x%x, ends at 0x%x", kstart, kend);
+
 
     //irq_add_handler(0, &timer);
     knotice("KERNEL: Memory map: ");
@@ -87,7 +122,40 @@ void kernel_main(multiboot_t* mboot) {
 
     mml.maps = &mm[0];
 
+    //Init physical memory manager
+    WRITE_STATUS("Starting memory manager...");
+    if (!pmm_init(&mml, kstart, &kend)) {
+        WRITE_FAIL();
+        kprintf("PANIC: error while starting memory manager");
+        asm("cli");
+        return -1;
+    }
 
+    physaddr_t addr = pmm_alloc(6, PMM_REG_DEFAULT);
+    kprintf("\n\t test: allocated RAM at 0x%x", addr);
+    addr = pmm_alloc(8, PMM_REG_DEFAULT);
+    kprintf("\n\t test: allocated RAM at 0x%x", addr);
+    addr = pmm_alloc(10, PMM_REG_DEFAULT);
+    kprintf("\n\t test: allocated RAM at 0x%x", addr);
+    addr = pmm_alloc(12, PMM_REG_DEFAULT);
+    kprintf("\n\t test: allocated RAM at 0x%x", addr);
+    addr = pmm_alloc(14, PMM_REG_DEFAULT);
+    kprintf("\n\t test: allocated RAM at 0x%x", addr);
+    addr = pmm_alloc(16, PMM_REG_DEFAULT);
+    kprintf("\n\t test: allocated RAM at 0x%x", addr);
+    addr = pmm_alloc(18, PMM_REG_DEFAULT);
+    kprintf("\n\t test: allocated RAM at 0x%x", addr);
+    addr = pmm_alloc(20, PMM_REG_DEFAULT);
+    kprintf("\n\t test: allocated RAM at 0x%x", addr);
+    addr = pmm_reserve(0x11a000, 2);
+    if (addr)
+        kprintf("\n\t test: this should fail (%x)", addr);
+    else
+        kprintf("\n\t test: failed to allocate, this is good.");
+
+    WRITE_SUCCESS();
+
+    knotice("KERNEL: kernel end is now 0x%x", kend);
 
     for(;;) {
         asm volatile("nop");

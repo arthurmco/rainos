@@ -10,7 +10,7 @@
 #include <stdarg.h>
 
 void putc(char c);
-void puts(const char* s);
+void kputs(const char* s);
 void kprintf(const char* format, ...);
 void kerror(const char* format, ...);
 
