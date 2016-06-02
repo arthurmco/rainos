@@ -80,8 +80,7 @@ int pmm_init(struct mmap_list* mm_list, physaddr_t kstart,
         regs_data[i].region_bitset = (uint8_t*)*kend;
         size_t len = 1+(regs_data[i].len / PMM_PAGE_SIZE / 8);
 
-        for (int x = 0; x < len; x++)
-            regs_data[i].region_bitset[x] = 0x0;
+        memset(regs_data[i].region_bitset, 0, len);
 
         /*  Each bit means a page (now its 4 kB)
             C only allocates bytes, then we divide by 8 to get the amount of

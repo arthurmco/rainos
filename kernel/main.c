@@ -148,6 +148,13 @@ void kernel_main(multiboot_t* mboot) {
     addr = pmm_alloc(20, PMM_REG_DEFAULT);
     kprintf("\n\t test: allocated RAM at 0x%x", addr);
 
+    uint32_t* ptr = (uint32_t*)addr;
+    *ptr = 0xbadb00;
+    knotice("Value: 0x%x", *ptr);
+
+    memset(ptr, 0x1, sizeof(uint32_t));
+    knotice("Value: 0x%x", *ptr);
+
     if (!pmm_free(addr, 20)) {
         kprintf("\n\t test: error, could not free");
     } else {
