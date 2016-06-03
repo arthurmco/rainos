@@ -19,8 +19,9 @@ int pmm_init(struct mmap_list* mm_list, physaddr_t kstart,
     }
 
     /* Allocate memory for mmap regions, set kernel end accordingly */
-    regs_data = (struct MMAPRegion*)*kend;
+    regs_data = (struct MMAPRegion*)(*kend);
     *kend = (*kend) + (sizeof(struct MMAPRegion) * regs_count);
+    memset(regs_data, 0, sizeof(struct MMAPRegion)* regs_count);
 
     int ir = 0;
     uint64_t freemem = 0;
@@ -80,7 +81,7 @@ int pmm_init(struct mmap_list* mm_list, physaddr_t kstart,
         regs_data[i].region_bitset = (uint8_t*)*kend;
         size_t len = 1+(regs_data[i].len / PMM_PAGE_SIZE / 8);
 
-        memset(regs_data[i].region_bitset, 0, len);
+        memset(regs_data[i].region_bitset, 0, (len + 3) & ~3);
 
         /*  Each bit means a page (now its 4 kB)
             C only allocates bytes, then we divide by 8 to get the amount of
@@ -89,7 +90,7 @@ int pmm_init(struct mmap_list* mm_list, physaddr_t kstart,
         *kend = (*kend) + len;
 
         /* Pad the bitset to 4 bytes */
-        *kend = (*kend+2) & ~3;
+        *kend = (*kend+3) & ~3;
     }
 
     uint64_t memocc = 0;
