@@ -193,14 +193,14 @@ static physaddr_t _pmm_unset_addr(physaddr_t addr, size_t pages, struct MMAPRegi
     uint32_t startpage = (addr - reg->start) / PMM_PAGE_SIZE;
     uint32_t limit = startpage + (reg->len / PMM_PAGE_SIZE);
 
-    knotice("<<%x>> <<%x>> %d", addr, limit, pages);
+    //knotice("<<%x>> <<%x>> %d", addr, limit, pages);
     if ((startpage + pages) > limit)
         return NULL; //Unset past end of the buffer.
 
     /* unset the buffer */
     for (size_t p = 0; p < pages; p++) {
-        knotice("%x", addr+(p*PMM_PAGE_SIZE));
-        knotice("[[%x]]", reg->region_bitset[(startpage+p)/8] );
+        //knotice("%x", addr+(p*PMM_PAGE_SIZE));
+        //knotice("[[%x]]", reg->region_bitset[(startpage+p)/8] );
         BITSET_UNSET(reg->region_bitset, (startpage+p)/8, (startpage+p)%8);
     }
 

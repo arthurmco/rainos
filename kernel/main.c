@@ -131,6 +131,8 @@ void kernel_main(multiboot_t* mboot) {
         return -1;
     }
 
+/* Test for physica memory manager */
+#if 0
     physaddr_t addr = pmm_alloc(6, PMM_REG_DEFAULT);
     kprintf("\n\t test: allocated RAM at 0x%x", addr);
     addr = pmm_alloc(8, PMM_REG_DEFAULT);
@@ -166,6 +168,21 @@ void kernel_main(multiboot_t* mboot) {
         kprintf("\n\t test: ok (%x)", addr);
     else
         kprintf("\n\t test: failed, this should succeed now.");
+#endif
+    physaddr_t addr = pmm_alloc(6, PMM_REG_DEFAULT);
+    if (!addr) {
+        WRITE_FAIL();
+        kerror("FATAL: initial physical memory allocation failed");
+        asm("cli");
+        return;
+    }
+
+    if (!pmm_free(addr, 6)) {
+        WRITE_FAIL();
+        kerror("FATAL: initial physical memory deallocation failed");
+        asm("cli");
+        return;
+    }
 
     WRITE_SUCCESS();
 
