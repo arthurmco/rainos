@@ -11,7 +11,7 @@ ISO=rainos.iso
 LIBK=kstdio.o kstdlib.o kstring.o kstdlog.o
 
 all: start.o main.o vga.o ioport.o idt.o idt_asm.o fault.o terminal.o serial.o \
- 8259.o irq.o irq_asm.o ttys.o $(LIBK)
+ 8259.o pit.o irq.o irq_asm.o ttys.o $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
 iso: all
@@ -31,6 +31,8 @@ vga.o: kernel/arch/i386/devices/vga.c kernel/arch/i386/devices/vga.h
 	$(CC) -o vga.o -c kernel/arch/i386/devices/vga.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 ioport.o: kernel/arch/i386/devices/ioport.c kernel/arch/i386/devices/ioport.h
 	$(CC) -o ioport.o -c kernel/arch/i386/devices/ioport.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
+pit.o: kernel/arch/i386/devices/pit.c kernel/arch/i386/devices/pit.h
+	$(CC) -o pit.o -c kernel/arch/i386/devices/pit.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 serial.o: kernel/arch/i386/devices/serial.c kernel/arch/i386/devices/serial.h
 	$(CC) -o serial.o -c kernel/arch/i386/devices/serial.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 8259.o: kernel/arch/i386/devices/8259.c kernel/arch/i386/devices/8259.h

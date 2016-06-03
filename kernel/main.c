@@ -5,6 +5,7 @@
 #include "arch/i386/devices/vga.h"
 #include "arch/i386/devices/ioport.h"
 #include "arch/i386/devices/serial.h"
+#include "arch/i386/devices/pit.h"
 #include "arch/i386/multiboot.h"
 #include "arch/i386/irq.h"
 #include "arch/i386/idt.h"
@@ -88,8 +89,18 @@ void kernel_main(multiboot_t* mboot) {
     mml.maps = &mm[0];
 
 
+    /* Init drivers */
+    pit_init();
+
+    sleep(5000);
 
     for(;;) {
         asm volatile("nop");
+
+        uint32_t ctr = (uint32_t)(pit_get_counter() & 0xffffffff);
+
+        if (ctr % 1000 == 0)
+            kprintf("PIT counter: %d s\n", ctr/1000);
+
     }
 }

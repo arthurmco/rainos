@@ -11,6 +11,7 @@
 void itoa_s(int32_t i, char* str, int base);
 void utoa_s(uint32_t i, char* str, int base);
 
+void sleep(unsigned ms);
 
 
 

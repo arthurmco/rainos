@@ -1,6 +1,8 @@
 #include <kstdlib.h>
 #include <kstring.h>
 
+#include "../kernel/arch/i386/devices/pit.h"
+
 static const char num2str[] = "0123456789ABCDEFGHIJ\0\0\0";
 void itoa_s(int32_t i, char* str, int base)
 {
@@ -35,4 +37,16 @@ void utoa_s(uint32_t i, char* str, int base) {
 
     strb[index] = 0;
     strrev(strb, str);
+}
+
+void sleep(unsigned ms)
+{
+    uint64_t ctr_begin = pit_get_counter();
+    uint64_t ctr = ctr_begin;
+
+    while (ctr < (ctr_begin+ms)) {
+        asm("nop");
+        ctr = pit_get_counter();
+    }
+
 }
