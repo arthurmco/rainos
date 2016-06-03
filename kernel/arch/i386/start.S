@@ -19,6 +19,14 @@
 .long FLAGS
 .long CHECKSUM
 
+.section .phys_stack, "aw", @nobits
+    .align 4
+#; The kernel stack
+phys_stack_bottom:
+    .skip 64
+phys_stack_top:
+
+
 .section .stack, "aw", @nobits
     .align 4
 #; The kernel stack
@@ -26,7 +34,22 @@ stack_bottom:
     .skip 1024
 stack_top:
 
-.section .text
+.section .pages, "aw", @nobits
+  .set KERNEL_VADDR, 0xc0000000
+  .align 16
+page_dir_table:
+  # Page directories for the kernel
+  .skip 4096
+page_table_identity:
+  # Reserve for page tables used for identity map the first 4MB of kernel
+  # in 0x0-0x400000
+  .skip 4096
+page_table_kernel:
+  # Reserve for page tables used for identity map the first 4MB of kernel
+  # in KERNEL_VADDR-KERNEL_VADDR+0x400000
+  .skip 4096
+
+.section .phys_text, "ax"
 .global _kernel_entry
 .type _kernel_entry, @function
 .set MAGIC_MBOOT, 0x2BADB002
@@ -41,7 +64,7 @@ _kernel_entry:
 */
 
 #; Setup the stack
-movl $stack_top, %esp
+movl $phys_stack_top, %esp
 cld
 
 # Push ebx, where the multiboot info pointer lies
@@ -66,13 +89,19 @@ movw %ax, %es
 movw %ax, %fs
 movw %ax, %gs
 movw %ax, %ss
+jmp setup_paging
+
+setup_paging:
+mov $page_dir_table, %ebx
+
+#Setup the kernel table
+mov $page_table_kernel, %edx
+orl $0x3, %edx
+mov %edx, (%ebx)
+
+
+
 jmp call_main
-
-call_main:
-
-.extern kernel_main
-call kernel_main
-jmp halt
 
 # Get char pointer on stack
 # (C prototype: void print_error(char* msg) )
@@ -100,13 +129,25 @@ jne .print_char
 
 ret
 
+.section .text
+call_main:
+.extern kernel_main
+
+# Move contents between stack
+pop %ebx
+mov $stack_top, %esp
+
+push %ebx
+
+call kernel_main
+jmp halt
 
 halt:
 hlt
 jmp halt
 .long 0x0
 
-.section .data
+.section .phys_data, "aw", @progbits
 
 cur_x: .word 0
 cur_y: .word 5

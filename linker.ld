@@ -9,18 +9,32 @@ ENTRY(_kernel_entry)
 
 /* File sections */
 SECTIONS {
-    /* 
+    /*
         Begin sections at 1 MiB.
         This is where GRUB loads your code.
-     */
-     . = 1M;
+    */
+        . = 1M;
+
 
     /* Kernel start */
     _kernel_start = .;
 
-    .text : ALIGN(4K) 
+    .phys_text : ALIGN(4K)
     {
         *(.multiboot)
+        *(.phys_text)
+    }
+
+    .phys_data : ALIGN(4K)
+    {
+        *(.pages)
+        *(.phys_data)
+        *(.phys_stack)
+
+    }
+
+    .text : ALIGN(4K)
+    {
         *(.text)
     }
 
@@ -37,11 +51,12 @@ SECTIONS {
     }
 
     /* Read-write data (uninitialized) and stack */
-    .bss : ALIGN(4K) 
+    .bss : ALIGN(4K)
     {
         *(COMMON)
-        *(.bss)
+        *(.pages)
         *(.stack)
+        *(.bss)
         *(.page_dir)
     }
 
