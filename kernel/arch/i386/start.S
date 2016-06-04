@@ -36,7 +36,7 @@ stack_top:
 
 .section .pages, "aw", @nobits
   .set KERNEL_VADDR, 0xc0000000
-  .align 16
+  .align 4096
 page_dir_table:
   # Page directories for the kernel
   .skip 4096
@@ -94,12 +94,51 @@ jmp setup_paging
 setup_paging:
 mov $page_dir_table, %ebx
 
-#Setup the kernel table
-mov $page_table_kernel, %edx
+#Setup the identity directory
+mov $page_table_identity, %edx
 orl $0x3, %edx
 mov %edx, (%ebx)
 
+# Setup the table list
+mov $page_table_identity, %ebx
+xor %ecx, %ecx
+.page_identity_fill:
+mov %ecx, %edx
+imull $4096, %edx
+orl $0x3, %edx    # The page is supervised, present and r/w
+mov %edx, (%ebx,%ecx,4)
 
+inc %ecx
+cmp $1024, %ecx
+jne .page_identity_fill
+
+
+mov $page_dir_table, %ebx
+#Setup the kernel directory
+mov $page_table_kernel, %edx
+orl $0x3, %edx
+mov %edx, 0xc00(%ebx)
+
+# Setup the kernel table list
+mov $page_table_kernel, %ebx
+xor %ecx, %ecx
+.page_kernel_fill:
+mov %ecx, %edx
+imull $4096, %edx
+orl $0x3, %edx    # The page is supervised, present and r/w
+mov %edx, (%ebx,%ecx,4)
+
+inc %ecx
+cmp $1024, %ecx
+jne .page_kernel_fill
+
+# Set CR3 and enable paging
+mov $page_dir_table, %eax
+mov %eax, %cr3
+
+mov %cr0, %eax
+orl $0x80000000, %eax
+mov %eax, %cr0
 
 jmp call_main
 
@@ -137,6 +176,7 @@ call_main:
 pop %ebx
 mov $stack_top, %esp
 
+push $page_dir_table
 push %ebx
 
 call kernel_main

@@ -51,8 +51,17 @@ int pmm_init(struct mmap_list* mm_list, physaddr_t kstart,
 
         /* TODO: Treat overlapping areas */
 
-        knotice("PMM: detected RAM type %x starting at %x, %d bytes",
-            regs_data[ir].region_type, regs_data[ir].start,
+        char* typestr;
+        switch (regs_data[ir].region_type) {
+            case PMM_REG_DEFAULT: typestr = "default";          break;
+            case PMM_REG_LEGACY: typestr = "legacy";            break;
+            case PMM_REG_HARDWARE: typestr = "hardware-used";   break;
+            case PMM_REG_FAULTY: typestr = "faulty";            break;
+            default: typestr = "unknown";                       break;
+        }
+
+        knotice("PMM: detected RAM type %s starting at %x, %d bytes",
+            typestr, regs_data[ir].start,
             regs_data[ir].len);
 
         /* Get area that kernel occups */

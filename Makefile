@@ -11,7 +11,7 @@ ISO=rainos.iso
 LIBK=kstdio.o kstdlib.o kstring.o kstdlog.o
 
 all: start.o main.o vga.o ioport.o idt.o idt_asm.o fault.o terminal.o serial.o \
- 8259.o irq.o irq_asm.o ttys.o pmm.o $(LIBK)
+ 8259.o irq.o irq_asm.o pages.o ttys.o pmm.o $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
 iso: all
@@ -39,6 +39,8 @@ idt.o: kernel/arch/i386/idt.c kernel/arch/i386/idt.h
 	$(CC) -o idt.o -c kernel/arch/i386/idt.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 irq.o: kernel/arch/i386/irq.c kernel/arch/i386/irq.h
 	$(CC) -o irq.o -c kernel/arch/i386/irq.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
+pages.o: kernel/arch/i386/pages.c kernel/arch/i386/pages.h
+	$(CC) -o pages.o -c kernel/arch/i386/pages.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 idt_asm.o: kernel/arch/i386/idt_asm.S
 	$(AS) kernel/arch/i386/idt_asm.S -o idt_asm.o $(ASMFLAGS)
 irq_asm.o: kernel/arch/i386/irq_asm.S

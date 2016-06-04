@@ -13,6 +13,7 @@
 #include "arch/i386/multiboot.h"
 #include "arch/i386/irq.h"
 #include "arch/i386/idt.h"
+#include "arch/i386/pages.h"
 #include "arch/i386/fault.h"
 #include "terminal.h"
 #include "ttys.h"
@@ -53,7 +54,7 @@ void timer(regs_t* regs) {
 extern uintptr_t _kernel_start[];
 extern uintptr_t _kernel_end[];
 
-void kernel_main(multiboot_t* mboot) {
+void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     terminal_t term_stdio;
     term_stdio.defaultColor = 0x07;
     terminal_set(&term_stdio);
@@ -123,7 +124,7 @@ void kernel_main(multiboot_t* mboot) {
     mml.maps = &mm[0];
 
     //Init physical memory manager
-    WRITE_STATUS("Starting memory manager...");
+    WRITE_STATUS("Starting physical memory manager...");
     if (!pmm_init(&mml, kstart, &kend)) {
         WRITE_FAIL();
         kprintf("PANIC: error while starting memory manager");
@@ -187,6 +188,20 @@ void kernel_main(multiboot_t* mboot) {
     WRITE_SUCCESS();
 
     knotice("KERNEL: kernel end is now 0x%x", kend);
+
+    WRITE_STATUS("Starting virtual memory manager");
+    pages_init(page_dir_phys, 0x0);
+
+    pdir_t* dir = page_dir_get(0);
+    ptable_t* table = page_table_get(dir, 20);
+    kprintf("\n\t Addr for dir 0 table 20 is at 0x%x", table->addr);
+
+    pdir_t* ndir = page_dir_create(0x4, 0x3);
+    kprintf("\n\t Addr for table 4 at 0x%x", ndir->addr);
+    for (int i = 0; i < 512; i++) {
+        ptable_t* t = page_table_create(ndir, i, 0x800000+(i*4096), 0x3);
+        knotice("%d: %x", i, t->addr);
+    }
 
     for(;;) {
         asm volatile("nop");

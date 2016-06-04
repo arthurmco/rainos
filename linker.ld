@@ -27,10 +27,9 @@ SECTIONS {
 
     .phys_data : ALIGN(4K)
     {
-        *(.pages)
         *(.phys_data)
         *(.phys_stack)
-
+        *(.pages)
     }
 
     .text : ALIGN(4K)
