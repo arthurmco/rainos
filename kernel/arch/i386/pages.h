@@ -24,7 +24,7 @@ typedef union page_dir {
         unsigned zero:1;
         unsigned dir_4mb:1;
         unsigned global:1;
-        unsigned avail:2;
+        unsigned avail:3;
         unsigned dir_location:20;
     } options;
 } pdir_t;
@@ -41,7 +41,14 @@ typedef union page_table {
         unsigned dirty:1;
         unsigned zero:1;
         unsigned global:1;
-        unsigned avail:2;
+        /*  RainOS specific: if 1, means that this page is part of an allocation
+            chain, and there's more pages after */
+        unsigned chained_next:1;
+
+        /*  RainOS specific: if 1, means that this page is part of an allocation
+            chain, and there's more pages before */
+        unsigned chained_prev:1;
+        unsigned avail:1;
         unsigned dir_location:20;
     } options;
 } ptable_t;

@@ -54,10 +54,10 @@ ptable_t* page_table_create(pdir_t* dir, unsigned table, physaddr_t addr,
 
 physaddr_t page_dir_addr(pdir_t* dir)
 {
-    return (dir->addr & ~0x3ff)
+    return (dir->addr & ~0x3ff);
 }
 physaddr_t page_table_addr(ptable_t* table)
 {
 
-    return (table->addr & ~0x3ff)
+    return (table->addr & ~0x3ff);
 }

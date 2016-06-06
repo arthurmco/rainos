@@ -11,6 +11,7 @@
 #include "arch/i386/devices/ioport.h"
 #include "arch/i386/devices/serial.h"
 #include "arch/i386/multiboot.h"
+#include "arch/i386/vmm.h"
 #include "arch/i386/irq.h"
 #include "arch/i386/idt.h"
 #include "arch/i386/pages.h"
@@ -191,17 +192,19 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     WRITE_STATUS("Starting virtual memory manager");
     pages_init(page_dir_phys, 0x0);
+    vmm_init(kstart, &kend, page_dir_phys);
 
-    pdir_t* dir = page_dir_get(0);
-    ptable_t* table = page_table_get(dir, 20);
-    kprintf("\n\t Addr for dir 0 table 20 is at 0x%x", table->addr);
+    vmm_alloc_page(VMM_AREA_KERNEL, 3);
+    vmm_alloc_page(VMM_AREA_USER, 3);
 
-    pdir_t* ndir = page_dir_create(0x4, 0x3);
-    kprintf("\n\t Addr for table 4 at 0x%x", ndir->addr);
-    for (int i = 0; i < 512; i++) {
-        ptable_t* t = page_table_create(ndir, i, 0x800000+(i*4096), 0x3);
-        knotice("%d: %x", i, t->addr);
-    }
+    virtaddr_t apic = vmm_alloc_physical(VMM_AREA_KERNEL, 0xb8000, 1);
+    volatile uint32_t* apic_addr = (volatile uint32_t*)apic;
+    (*apic_addr) = 0xffaaffaa;
+
+    vmm_alloc_page(VMM_AREA_KERNEL, 1);
+
+
+    WRITE_SUCCESS();
 
     for(;;) {
         asm volatile("nop");
