@@ -2,6 +2,7 @@
 
 /* Stores the maximum address allocated for these areas */
 static virtaddr_t max_virt[VMM_AREA_COUNT];
+static virtaddr_t cur_virt[VMM_AREA_COUNT];
 
 
 void vmm_init(uintptr_t kernel_start, uintptr_t kernel_end,
@@ -13,6 +14,8 @@ void vmm_init(uintptr_t kernel_start, uintptr_t kernel_end,
         max_virt[VMM_AREA_USER] = 0x0;
         max_virt[VMM_AREA_KERNEL] = (kernel_virt_offset + kernel_end);
 
+        cur_virt[VMM_AREA_USER] = max_virt[VMM_AREA_USER];
+        cur_virt[VMM_AREA_KERNEL] == max_virt[VMM_AREA_KERNEL];
     }
 
 /*  Check if some pages are allocated.
@@ -202,13 +205,14 @@ void vmm_dealloc_page(virtaddr_t addr, size_t count)
         }
     }
 
-    int la = 0;
-    for (int a = 0; a < VMM_AREA_COUNT; a++) {
-        if (max_virt[a] > addr)
-            la = a;
-    }
+    int a;
 
-    max_virt[la] = addr;
+    if (addr < max_virt[VMM_AREA_KERNEL])
+        a = VMM_AREA_USER;
+    else
+        a = VMM_AREA_KERNEL;
+
+    max_virt[a] = addr;
 
 }
 
