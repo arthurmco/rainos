@@ -25,18 +25,20 @@ static int vmm_check_if_page_allocated(unsigned int* dir, unsigned int* table,
         int checked = 0;
         size_t checkedPages = 0;
 
+        unsigned startingPage = iTable;
         for (int d = 0; d < MAX_DIR_COUNT-iDir; d++) {
-            pdir_t* dir = page_dir_get(iDir+d);
+            pdir_t* pdir = page_dir_get(iDir+d);
 
-            if (!dir) {
-                dir = page_dir_create(iDir+d, 0x3);
+            if (!pdir || (!pdir->addr)) {
+                pdir = page_dir_create(iDir+d, 0x3);
             }
 
-            for (int t = 0; t < MAX_TABLE_COUNT-iTable; t++) {
+            for (int t = startingPage; t < MAX_TABLE_COUNT-iTable; t++) {
 
-                ptable_t* tbl = page_table_get(dir, iTable+t);
-                knotice("check iDir:%d d:%d iTable:%d t:%d checkedPages:%d",
-                    iDir, d, iTable, t, checkedPages);
+                ptable_t* tbl = page_table_get(pdir, iTable+t);
+                knotice("check iDir:%d d:%d iTable:%d t:%d checkedPages:%d "
+                        "content: 0x%x",
+                    iDir, d, iTable, t, checkedPages, ((tbl) ? tbl->addr : 0));
                 if (!tbl)
                     checkedPages++;
                 else if (!tbl->options.present) {
@@ -48,9 +50,23 @@ static int vmm_check_if_page_allocated(unsigned int* dir, unsigned int* table,
                 }
 
 
-                if (checkedPages >= (pages-1)) {
+                if (checkedPages >= (pages)) {
                     checked = 1;
-                    iTable = (*table) + (t - pages);
+                    t++;
+                    iTable = (t - pages);
+
+                    t -= (pages);
+                    if (t < 0) {
+                        iTable = (1024 + (t));
+                        d--;
+                    }
+                    t += (pages);
+                    t--;
+
+
+                    knotice("Directories %d %d -> %d %d (t:%d p:%d)",
+                        (*dir), (*table), iDir, iTable, t, pages);
+
                     break;
                 }
             }
@@ -60,6 +76,7 @@ static int vmm_check_if_page_allocated(unsigned int* dir, unsigned int* table,
                 break;
             }
             iTable = 0;
+            startingPage = 0;
         }
 
         knotice("Directories %d %d -> %d %d",
@@ -91,6 +108,8 @@ virtaddr_t vmm_alloc_page(unsigned int vmm_area, size_t count)
 
     if (!pdir)
         pdir = page_dir_create(dir, 0x3);
+    else if (!pdir->addr)
+        pdir = page_dir_create(dir, 0x3);
     else if (!pdir->options.present)
         pdir = page_dir_create(dir, 0x3);
     else if (!pdir->options.dir_location)
@@ -115,6 +134,9 @@ virtaddr_t vmm_alloc_page(unsigned int vmm_area, size_t count)
         else if (!ptable->options.dir_location)
             ptable = page_table_create(pdir, page+i,
                 pmm_alloc(1, PMM_REG_DEFAULT), 0x3);
+        else
+            ptable->options.dir_location = (pmm_alloc(1, PMM_REG_DEFAULT) >> 12);
+
 
         if (i >= 0)
             ptable->options.chained_prev = 1;
@@ -208,12 +230,16 @@ virtaddr_t vmm_alloc_physical(unsigned int vmm_area,
 
         pdir_t* pdir = page_dir_get(dir);
 
+
         if (!pdir)
+            pdir = page_dir_create(dir, 0x3);
+        else if (!pdir->addr)
             pdir = page_dir_create(dir, 0x3);
         else if (!pdir->options.present)
             pdir = page_dir_create(dir, 0x3);
         else if (!pdir->options.dir_location)
             pdir = page_dir_create(dir, 0x3);
+
 
         if (vmm_area == VMM_AREA_USER)
             pdir->options.user = 1;
@@ -226,6 +252,8 @@ virtaddr_t vmm_alloc_physical(unsigned int vmm_area,
         for (size_t i = 0; i < count; i++) {
             ptable_t* ptable = page_table_get(pdir, page+i);
 
+            knotice("-- %d pt 0x%x ", i, ptable);
+
             if (!ptable)
                 ptable = page_table_create(pdir, page+i, allocPhys, 0x3);
             else if (!ptable->options.present)
@@ -233,7 +261,7 @@ virtaddr_t vmm_alloc_physical(unsigned int vmm_area,
             else if (!ptable->options.dir_location)
                 ptable = page_table_create(pdir, page+i, allocPhys, 0x3);
             else
-                return NULL;
+                ptable->options.dir_location = (allocPhys >> 12);
 
             if (i >= 0)
                 ptable->options.chained_prev = 1;

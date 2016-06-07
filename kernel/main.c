@@ -198,11 +198,11 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     vmm_alloc_page(VMM_AREA_USER, 3);
 
     virtaddr_t apic = vmm_alloc_physical(VMM_AREA_KERNEL, 0xb8000, 1);
-    volatile uint32_t* apic_addr = (volatile uint32_t*)apic;
-    (*apic_addr) = 0xffaaffaa;
-
+    volatile uint16_t* apic_addr = (volatile uint16_t*)apic;
+    (*apic_addr) = 0xfe42;
+/*
     vmm_alloc_page(VMM_AREA_KERNEL, 1);
-
+*/
 
     WRITE_SUCCESS();
 
