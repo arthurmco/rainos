@@ -104,6 +104,8 @@ virtaddr_t vmm_alloc_page(unsigned int vmm_area, size_t count)
         return NULL; // No more pages.
     }
 
+    addr = ((dir << 22) | (page << 12));
+
     pdir_t* pdir = page_dir_get(dir);
 
     if (!pdir)
@@ -228,6 +230,7 @@ virtaddr_t vmm_alloc_physical(unsigned int vmm_area,
             return NULL; // No more pages.
         }
 
+        addr = ((dir << 22) | (page << 12));
         pdir_t* pdir = page_dir_get(dir);
 
 
