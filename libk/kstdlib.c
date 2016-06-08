@@ -39,6 +39,33 @@ void utoa_s(uint32_t i, char* str, int base) {
     strrev(strb, str);
 }
 
+void memset(void* ptr, uint8_t val, size_t num)
+{
+    /*if ((num % 4) == 0)
+        _memset_32(ptr, val, num);
+    else*/ if ((num % 2) == 0)
+        _memset_16(ptr, val, num);
+    else
+        _memset_8(ptr, val, num);
+}
+
+void _memset_8(void* ptr, uint8_t val, size_t num)
+{
+    asm volatile("rep stosb" :
+                      :"c"(num), "D"(ptr), "aN"(val));
+}
+void _memset_16(void* ptr, uint16_t val, size_t num)
+{
+    asm volatile("rep stosw" :
+                      :"c"(num/2), "D"(ptr), "aN"(val));
+}
+/*
+void _memset_32(void* ptr, uint32_t val, size_t num)
+{
+    asm volatile("rep stosd" :
+                      :"C"(num/4), "D"(ptr), "N"(val));
+} */
+
 void sleep(unsigned ms)
 {
     uint64_t ctr_begin = pit_get_counter();

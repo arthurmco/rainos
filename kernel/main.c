@@ -2,29 +2,62 @@
 
 #include <stdint.h>
 
+#include <kstdlib.h>
+#include <kstring.h>
+#include <kstdlog.h>
+#include <kstdio.h>
+
 #include "arch/i386/devices/vga.h"
 #include "arch/i386/devices/ioport.h"
 #include "arch/i386/devices/serial.h"
 #include "arch/i386/devices/pit.h"
 #include "arch/i386/multiboot.h"
+#include "arch/i386/vmm.h"
 #include "arch/i386/irq.h"
 #include "arch/i386/idt.h"
+#include "arch/i386/pages.h"
 #include "arch/i386/fault.h"
 #include "terminal.h"
 #include "ttys.h"
 #include "mmap.h"
-
-#include <kstdlib.h>
-#include <kstring.h>
-#include <kstdlog.h>
-#include <kstdio.h>
+#include "pmm.h"
+#include "kheap.h"
 
 volatile int _timer = 0;
 void timer(regs_t* regs) {
     kprintf("Timer: %d\n", _timer++);
 }
 
-void kernel_main(multiboot_t* mboot) {
+#define WRITE_STATUS(status) do {   \
+    terminal_setcolor(0xf);         \
+    kputs(" o ");                   \
+    terminal_restorecolor();        \
+    kputs(status);                  \
+} while (0)                         \
+
+#define WRITE_FAIL() do {           \
+    terminal_setx(70);              \
+    kputs("[ ");                    \
+    terminal_setcolor(0xc);         \
+    kputs("FAIL");                  \
+    terminal_restorecolor();        \
+    kputs(" ]\n");                  \
+} while (0)                         \
+
+#define WRITE_SUCCESS() do {        \
+    terminal_setx(70);              \
+    kputs("[ ");                    \
+    terminal_setcolor(0xa);         \
+    kputs(" OK ");                  \
+    terminal_restorecolor();        \
+    kputs(" ]\n");                  \
+} while (0)                         \
+
+
+extern uintptr_t _kernel_start[];
+extern uintptr_t _kernel_end[];
+
+void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     terminal_t term_stdio;
     term_stdio.defaultColor = 0x07;
     terminal_set(&term_stdio);
@@ -44,13 +77,13 @@ void kernel_main(multiboot_t* mboot) {
     terminal_clear();
     terminal_setx(20);
     terminal_setcolor(0x9f);
-    puts("RainOS\n");
+    kputs("RainOS\n");
     terminal_setcolor(0x0f);
     terminal_setx(20);
-    puts("Copyright (C) 2016 Arthur M\n");
+    kputs("Copyright (C) 2016 Arthur M\n");
     terminal_restorecolor();
     terminal_setx(20);
-    puts("\tLicensed under GNU GPL 2.0\n\n");
+    kputs("\tLicensed under GNU GPL 2.0\n\n");
 
     asm("sti");
 
@@ -58,6 +91,11 @@ void kernel_main(multiboot_t* mboot) {
     kprintf("\t Avaliable memory: %d.%d MB\n",
         (mboot->mem_upper + mboot->mem_lower) / 1024,
         ((mboot->mem_upper + mboot->mem_lower) % 1024) / 10);
+
+    uintptr_t kstart = (uintptr_t)_kernel_start;
+    uintptr_t kend = (uintptr_t)_kernel_end;
+    knotice("KERNEL: starts at 0x%x, ends at 0x%x", kstart, kend);
+
 
     //irq_add_handler(0, &timer);
     knotice("KERNEL: Memory map: ");
@@ -88,11 +126,99 @@ void kernel_main(multiboot_t* mboot) {
 
     mml.maps = &mm[0];
 
+    //Init physical memory manager
+    WRITE_STATUS("Starting physical memory manager...");
+    if (!pmm_init(&mml, kstart, &kend)) {
+        WRITE_FAIL();
+        kprintf("PANIC: error while starting memory manager");
+        asm("cli");
+        return -1;
+    }
 
+/* Test for physica memory manager */
+#if 0
+    physaddr_t addr = pmm_alloc(6, PMM_REG_DEFAULT);
+    kprintf("\n\t test: allocated RAM at 0x%x", addr);
+    addr = pmm_alloc(8, PMM_REG_DEFAULT);
+    kprintf("\n\t test: allocated RAM at 0x%x", addr);
+    addr = pmm_alloc(10, PMM_REG_DEFAULT);
+    kprintf("\n\t test: allocated RAM at 0x%x", addr);
+    addr = pmm_alloc(12, PMM_REG_DEFAULT);
+    kprintf("\n\t test: allocated RAM at 0x%x", addr);
+    addr = pmm_alloc(14, PMM_REG_DEFAULT);
+    kprintf("\n\t test: allocated RAM at 0x%x", addr);
+    addr = pmm_alloc(16, PMM_REG_DEFAULT);
+    kprintf("\n\t test: allocated RAM at 0x%x", addr);
+    addr = pmm_alloc(18, PMM_REG_DEFAULT);
+    kprintf("\n\t test: allocated RAM at 0x%x", addr);
+    addr = pmm_alloc(20, PMM_REG_DEFAULT);
+    kprintf("\n\t test: allocated RAM at 0x%x", addr);
+
+    uint32_t* ptr = (uint32_t*)addr;
+    *ptr = 0xbadb00;
+    knotice("Value: 0x%x", *ptr);
+
+    memset(ptr, 0x1, sizeof(uint32_t));
+    knotice("Value: 0x%x", *ptr);
+
+    if (!pmm_free(addr, 20)) {
+        kprintf("\n\t test: error, could not free");
+    } else {
+        kprintf("\n\t test: deallocated RAM at 0x%x", addr);
+    }
+
+    addr = pmm_reserve(addr, 2);
+    if (addr)
+        kprintf("\n\t test: ok (%x)", addr);
+    else
+        kprintf("\n\t test: failed, this should succeed now.");
+#endif
+    physaddr_t addr = pmm_alloc(6, PMM_REG_DEFAULT);
+    if (!addr) {
+        WRITE_FAIL();
+        kerror("FATAL: initial physical memory allocation failed");
+        asm("cli");
+        return;
+    }
+
+    if (!pmm_free(addr, 6)) {
+        WRITE_FAIL();
+        kerror("FATAL: initial physical memory deallocation failed");
+        asm("cli");
+        return;
+    }
+
+    WRITE_SUCCESS();
+
+    knotice("KERNEL: kernel end is now 0x%x", kend);
+
+    WRITE_STATUS("Starting virtual memory manager...");
+    pages_init(page_dir_phys, 0x0);
+    vmm_init(kstart, &kend, page_dir_phys);
+
+    WRITE_SUCCESS();
+
+    WRITE_STATUS("Starting kernel heap...");
+    kheap_init();
+
+    for (unsigned i = 64; i > 2; i /= 2) {
+        virtaddr_t va = kheap_allocate(i);
+        kprintf("\taddr: 0x%x, size: %d\n", va, i);
+    }
+
+    WRITE_SUCCESS();
+
+
+    WRITE_STATUS("Starting devices...");
+
+    kprintf("\tpit");
     /* Init drivers */
     pit_init();
 
+    WRITE_SUCCESS();
     sleep(5000);
+    kprintf("\n\n System ready!");
+    kprintf("\n\n PANIC: init launcher wasn't implemented.");
 
     for(;;) {
         asm volatile("nop");

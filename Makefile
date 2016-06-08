@@ -9,9 +9,10 @@ OUT=rainos.elf
 ISO=rainos.iso
 
 LIBK=kstdio.o kstdlib.o kstring.o kstdlog.o
+ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o pit.o \
+ irq.o irq_asm.o pages.o vmm.o
 
-all: start.o main.o vga.o ioport.o idt.o idt_asm.o fault.o terminal.o serial.o \
- 8259.o pit.o irq.o irq_asm.o ttys.o $(LIBK)
+all: $(ARCH_DEP) main.o  terminal.o ttys.o pmm.o kheap.o $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
 iso: all

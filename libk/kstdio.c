@@ -7,7 +7,7 @@ void putc(char c)
     terminal_putc(c);
 }
 
-void puts(const char* s)
+void kputs(const char* s)
 {
     terminal_puts(s);
 }
@@ -19,5 +19,5 @@ void kprintf(const char* format, ...)
     va_start(vl, format);
     vsprintf(str, format, vl);
     va_end(vl);
-    puts(str);
+    kputs(str);
 }

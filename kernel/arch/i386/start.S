@@ -19,6 +19,14 @@
 .long FLAGS
 .long CHECKSUM
 
+.section .phys_stack, "aw", @nobits
+    .align 4
+#; The kernel stack
+phys_stack_bottom:
+    .skip 64
+phys_stack_top:
+
+
 .section .stack, "aw", @nobits
     .align 4
 #; The kernel stack
@@ -26,7 +34,28 @@ stack_bottom:
     .skip 1024
 stack_top:
 
-.section .text
+.section .pages, "aw", @nobits
+  .set KERNEL_VADDR, 0xc0000000
+  .align 4096
+page_dir_table:
+  # Page directories for the kernel
+  .rept 4096
+    .byte 0
+  .endr
+page_table_identity:
+  # Reserve for page tables used for identity map the first 4MB of kernel
+  # in 0x0-0x400000
+  .rept 4096
+    .byte 0
+  .endr
+page_table_kernel:
+  # Reserve for page tables used for identity map the first 4MB of kernel
+  # in KERNEL_VADDR-KERNEL_VADDR+0x400000
+  .rept 4096
+    .byte 0
+  .endr
+
+.section .phys_text, "ax"
 .global _kernel_entry
 .type _kernel_entry, @function
 .set MAGIC_MBOOT, 0x2BADB002
@@ -41,7 +70,7 @@ _kernel_entry:
 */
 
 #; Setup the stack
-movl $stack_top, %esp
+movl $phys_stack_top, %esp
 cld
 
 # Push ebx, where the multiboot info pointer lies
@@ -66,13 +95,58 @@ movw %ax, %es
 movw %ax, %fs
 movw %ax, %gs
 movw %ax, %ss
+jmp setup_paging
+
+setup_paging:
+mov $page_dir_table, %ebx
+
+#Setup the identity directory
+mov $page_table_identity, %edx
+orl $0x3, %edx
+mov %edx, (%ebx)
+
+# Setup the table list
+mov $page_table_identity, %ebx
+xor %ecx, %ecx
+.page_identity_fill:
+mov %ecx, %edx
+imull $4096, %edx
+orl $0x3, %edx    # The page is supervised, present and r/w
+mov %edx, (%ebx,%ecx,4)
+
+inc %ecx
+cmp $1024, %ecx
+jne .page_identity_fill
+
+
+mov $page_dir_table, %ebx
+#Setup the kernel directory
+mov $page_table_kernel, %edx
+orl $0x3, %edx
+mov %edx, 0xc00(%ebx)
+
+# Setup the kernel table list
+mov $page_table_kernel, %ebx
+xor %ecx, %ecx
+.page_kernel_fill:
+mov %ecx, %edx
+imull $4096, %edx
+orl $0x3, %edx    # The page is supervised, present and r/w
+mov %edx, (%ebx,%ecx,4)
+
+inc %ecx
+cmp $1024, %ecx
+jne .page_kernel_fill
+
+# Set CR3 and enable paging
+mov $page_dir_table, %eax
+mov %eax, %cr3
+
+mov %cr0, %eax
+orl $0x80000000, %eax
+mov %eax, %cr0
+
 jmp call_main
-
-call_main:
-
-.extern kernel_main
-call kernel_main
-jmp halt
 
 # Get char pointer on stack
 # (C prototype: void print_error(char* msg) )
@@ -100,13 +174,26 @@ jne .print_char
 
 ret
 
+.section .text
+call_main:
+.extern kernel_main
+
+# Move contents between stack
+pop %ebx
+mov $stack_top, %esp
+
+push $page_dir_table
+push %ebx
+
+call kernel_main
+jmp halt
 
 halt:
 hlt
 jmp halt
 .long 0x0
 
-.section .data
+.section .phys_data, "aw", @progbits
 
 cur_x: .word 0
 cur_y: .word 5
