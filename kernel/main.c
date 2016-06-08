@@ -11,6 +11,7 @@
 #include "arch/i386/devices/ioport.h"
 #include "arch/i386/devices/serial.h"
 #include "arch/i386/devices/pit.h"
+#include "arch/i386/devices/pci.h"
 #include "arch/i386/multiboot.h"
 #include "arch/i386/vmm.h"
 #include "arch/i386/irq.h"
@@ -62,6 +63,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     term_stdio.defaultColor = 0x07;
     terminal_set(&term_stdio);
     vga_init(&term_stdio);
+//    ttys_init(&term_stdio);
 
     /* Initialize logging terminal device */
     terminal_t term_log;
@@ -211,22 +213,20 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     WRITE_STATUS("Starting devices...");
 
-    kprintf("\tpit");
     /* Init drivers */
+
+    kprintf("\tpit");
     pit_init();
 
+    kprintf("  pci");
+    pci_init();
+
     WRITE_SUCCESS();
-    sleep(5000);
+    //sleep(5000);
     kprintf("\n\n System ready!");
-    kprintf("\n\n PANIC: init launcher wasn't implemented.");
+    kprintf("\nPANIC: init launcher wasn't implemented.\n");
 
     for(;;) {
         asm volatile("nop");
-
-        uint32_t ctr = (uint32_t)(pit_get_counter() & 0xffffffff);
-
-        if (ctr % 1000 == 0)
-            kprintf("PIT counter: %d s\n", ctr/1000);
-
     }
 }
