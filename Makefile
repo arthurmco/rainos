@@ -9,9 +9,10 @@ OUT=rainos.elf
 ISO=rainos.iso
 
 LIBK=kstdio.o kstdlib.o kstring.o kstdlog.o
+ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o irq.o \
+ irq_asm.o pages.o vmm.o
 
-all: start.o main.o vga.o ioport.o idt.o idt_asm.o fault.o terminal.o serial.o \
- 8259.o irq.o irq_asm.o pages.o ttys.o pmm.o vmm.o $(LIBK)
+all: $(ARCH_DEP) main.o  terminal.o ttys.o pmm.o kheap.o $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
 iso: all
@@ -55,6 +56,8 @@ pmm.o: kernel/pmm.c kernel/pmm.h
 	$(CC) -o pmm.o -c kernel/pmm.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 ttys.o: kernel/ttys.c kernel/ttys.h
 	$(CC) -o ttys.o -c kernel/ttys.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
+kheap.o: kernel/kheap.c kernel/kheap.h
+	$(CC) -o kheap.o -c kernel/kheap.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 main.o: kernel/main.c
 	$(CC) -o main.o -c kernel/main.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 

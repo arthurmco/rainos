@@ -20,6 +20,7 @@
 #include "ttys.h"
 #include "mmap.h"
 #include "pmm.h"
+#include "kheap.h"
 
 volatile int _timer = 0;
 void timer(regs_t* regs) {
@@ -190,21 +191,19 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     knotice("KERNEL: kernel end is now 0x%x", kend);
 
-    WRITE_STATUS("Starting virtual memory manager");
+    WRITE_STATUS("Starting virtual memory manager...");
     pages_init(page_dir_phys, 0x0);
     vmm_init(kstart, &kend, page_dir_phys);
 
-    vmm_alloc_page(VMM_AREA_KERNEL, 3);
-    virtaddr_t uaddr = vmm_alloc_page(VMM_AREA_USER, 3);
+    WRITE_SUCCESS();
 
-    virtaddr_t apic = vmm_alloc_physical(VMM_AREA_KERNEL, 0xb8000, 1);
-    volatile uint16_t* apic_addr = (volatile uint16_t*)apic;
-    (*apic_addr) = 0xfe42;
+    WRITE_STATUS("Starting kernel heap...");
+    kheap_init();
 
-    vmm_alloc_page(VMM_AREA_KERNEL, 1);
-    vmm_dealloc_page(uaddr, 3);
-    uaddr = vmm_alloc_page(VMM_AREA_USER, 12);
-    vmm_alloc_page(VMM_AREA_KERNEL, 12);
+    for (unsigned i = 64; i > 2; i /= 2) {
+        virtaddr_t va = kheap_allocate(i);
+        kprintf("\taddr: 0x%x, size: %d\n", va, i);
+    }
 
     WRITE_SUCCESS();
 

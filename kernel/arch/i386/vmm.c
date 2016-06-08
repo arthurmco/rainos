@@ -39,9 +39,9 @@ static int vmm_check_if_page_allocated(unsigned int* dir, unsigned int* table,
             for (int t = startingPage; t < MAX_TABLE_COUNT-iTable; t++) {
 
                 ptable_t* tbl = page_table_get(pdir, iTable+t);
-                knotice("check iDir:%d d:%d iTable:%d t:%d checkedPages:%d "
-                        "content: 0x%x",
-                    iDir, d, iTable, t, checkedPages, ((tbl) ? tbl->addr : 0));
+    //            knotice("check iDir:%d d:%d iTable:%d t:%d checkedPages:%d "
+    //                    "content: 0x%x",
+    //                iDir, d, iTable, t, checkedPages, ((tbl) ? tbl->addr : 0));
                 if (!tbl)
                     checkedPages++;
                 else if (!tbl->options.present) {
@@ -67,8 +67,8 @@ static int vmm_check_if_page_allocated(unsigned int* dir, unsigned int* table,
                     t--;
 
 
-                    knotice("Directories %d %d -> %d %d (t:%d p:%d)",
-                        (*dir), (*table), iDir, iTable, t, pages);
+    //                knotice("Directories %d %d -> %d %d (t:%d p:%d)",
+//                        (*dir), (*table), iDir, iTable, t, pages);
 
                     break;
                 }
@@ -82,8 +82,8 @@ static int vmm_check_if_page_allocated(unsigned int* dir, unsigned int* table,
             startingPage = 0;
         }
 
-        knotice("Directories %d %d -> %d %d",
-            (*dir), (*table), iDir, iTable);
+    //    knotice("Directories %d %d -> %d %d",
+//            (*dir), (*table), iDir, iTable);
 
         (*dir) = iDir;
         (*table) = iTable;
@@ -101,7 +101,7 @@ virtaddr_t vmm_alloc_page(unsigned int vmm_area, size_t count)
     virtaddr_t addr = max_virt[vmm_area];
     unsigned dir = (addr >> 22) & 0x3ff;
     unsigned page = (addr >> 12) & 0x3ff;
-    knotice("actual dir = %x, %x (%x)", dir, page, addr);
+    //knotice("actual dir = %x, %x (%x)", dir, page, addr);
 
     if (!vmm_check_if_page_allocated(&dir, &page, count)) {
         return NULL; // No more pages.
@@ -123,8 +123,8 @@ virtaddr_t vmm_alloc_page(unsigned int vmm_area, size_t count)
     if (vmm_area == VMM_AREA_USER)
         pdir->options.user = 1;
 
-    knotice("pdir %d at 0x%x, addr 0x%x", dir, pdir,
-        pdir->addr);
+    //knotice("pdir %d at 0x%x, addr 0x%x", dir, pdir,
+    //    pdir->addr);
 
     /* Create the pages */
     for (size_t i = 0; i < count; i++) {
@@ -153,7 +153,7 @@ virtaddr_t vmm_alloc_page(unsigned int vmm_area, size_t count)
         if (vmm_area == VMM_AREA_USER)
             ptable->options.user = 1;
 
-        knotice("page %d: 0x%x 0x%x", page+i, ptable, ptable->addr);
+    //    knotice("page %d: 0x%x 0x%x", page+i, ptable, ptable->addr);
 
         if (page+i > MAX_TABLE_COUNT) {
             page = 0;
@@ -173,6 +173,7 @@ virtaddr_t vmm_alloc_page(unsigned int vmm_area, size_t count)
     }
 
     max_virt[vmm_area] += (count * VMM_PAGE_SIZE);
+    knotice("VMM: Allocated %d pages at virtaddr 0x%x", count, addr);
     return addr;
 }
 
@@ -212,6 +213,8 @@ void vmm_dealloc_page(virtaddr_t addr, size_t count)
     else
         a = VMM_AREA_KERNEL;
 
+
+    knotice("VMM: Disallocated %d pages at virtaddr 0x%x", count, addr);
     max_virt[a] = addr;
 
 }
@@ -251,15 +254,15 @@ virtaddr_t vmm_alloc_physical(unsigned int vmm_area,
         if (vmm_area == VMM_AREA_USER)
             pdir->options.user = 1;
 
-        knotice("pdir %d at 0x%x, addr 0x%x", dir, pdir,
-            pdir->addr);
+        //knotice("pdir %d at 0x%x, addr 0x%x", dir, pdir,
+        //pdir->addr);
 
         /* Create the pages */
         physaddr_t allocPhys = phys;
         for (size_t i = 0; i < count; i++) {
             ptable_t* ptable = page_table_get(pdir, page+i);
 
-            knotice("-- %d pt 0x%x ", i, ptable);
+            //knotice("-- %d pt 0x%x ", i, ptable);
 
             if (!ptable)
                 ptable = page_table_create(pdir, page+i, allocPhys, 0x3);
@@ -280,8 +283,8 @@ virtaddr_t vmm_alloc_physical(unsigned int vmm_area,
             if (vmm_area == VMM_AREA_USER)
                 ptable->options.user = 1;
 
-            knotice("page %d\\%d: 0x%x 0x%x paddr 0x%x", page, i, ptable, ptable->addr,
-                allocPhys);
+            //knotice("page %d\\%d: 0x%x 0x%x paddr 0x%x", page, i, ptable, ptable->addr,
+            //allocPhys);
 
             if (page+i > MAX_TABLE_COUNT) {
                 page = 0;
@@ -303,5 +306,8 @@ virtaddr_t vmm_alloc_physical(unsigned int vmm_area,
         }
 
         max_virt[vmm_area] += (count * VMM_PAGE_SIZE);
+
+        knotice("VMM: Allocated %d pages at virtaddr 0x%x, "
+            "mapped to physaddr 0x%x", count, addr, phys);
         return addr;
     }
