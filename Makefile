@@ -44,6 +44,12 @@ idt.o: kernel/arch/i386/idt.c kernel/arch/i386/idt.h
 	$(CC) -o idt.o -c kernel/arch/i386/idt.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 irq.o: kernel/arch/i386/irq.c kernel/arch/i386/irq.h
 	$(CC) -o irq.o -c kernel/arch/i386/irq.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
+vmm.o: kernel/arch/i386/vmm.c kernel/arch/i386/vmm.h
+	$(CC) -o vmm.o -c kernel/arch/i386/vmm.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
+pages.o: kernel/arch/i386/pages.c kernel/arch/i386/pages.h
+	$(CC) -o pages.o -c kernel/arch/i386/pages.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
+pmm.o: kernel/pmm.c kernel/pmm.h
+	$(CC) -o pmm.o -c kernel/pmm.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 idt_asm.o: kernel/arch/i386/idt_asm.S
 	$(AS) kernel/arch/i386/idt_asm.S -o idt_asm.o $(ASMFLAGS)
 irq_asm.o: kernel/arch/i386/irq_asm.S
@@ -52,8 +58,10 @@ fault.o: kernel/arch/i386/fault.c kernel/arch/i386/fault.h
 	$(CC) -o fault.o -c kernel/arch/i386/fault.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 terminal.o: kernel/terminal.c kernel/terminal.h
 	$(CC) -o terminal.o -c kernel/terminal.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
-ttys.o: kernel/ttys.c
+ttys.o: kernel/ttys.c kernel/ttys.h
 	$(CC) -o ttys.o -c kernel/ttys.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
+kheap.o: kernel/kheap.c kernel/kheap.h
+	$(CC) -o kheap.o -c kernel/kheap.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 main.o: kernel/main.c
 	$(CC) -o main.o -c kernel/main.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 
