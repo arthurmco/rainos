@@ -110,6 +110,25 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
             map < (multiboot_mmap_t*)(((uintptr_t)mboot->mmap_addr) + mboot->mmap_length);
             map++) {
 
+        if (map->addr_high > 0) {
+            continue; // We wouldn't use areas higher than 0xffffffff
+        }
+
+        if (map->len_high > 0) {
+            /* Too high */
+            map->len_high = 0;
+            map->len_low = 0xffffffff;
+        }
+
+        if (map->addr_low < mboot->mem_lower * 1024) {
+            /*  Some BIOS make a big fat free area that gets all memory,
+                including BIOS and hardware areas
+                We detect them and take them off */
+            if (map->len_low > 0xA0000) {
+                continue; // This is one of that areas.
+            }
+        }
+
         unsigned type = map->type;
         if (type >= 3)
             type = 0;
@@ -135,7 +154,8 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     }
 
 /* Test for physica memory manager */
-#if 0
+#if 1
+{
     physaddr_t addr = pmm_alloc(6, PMM_REG_DEFAULT);
     kprintf("\n\t test: allocated RAM at 0x%x", addr);
     addr = pmm_alloc(8, PMM_REG_DEFAULT);
@@ -171,6 +191,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         kprintf("\n\t test: ok (%x)", addr);
     else
         kprintf("\n\t test: failed, this should succeed now.");
+}
 #endif
     physaddr_t addr = pmm_alloc(6, PMM_REG_DEFAULT);
     if (!addr) {
