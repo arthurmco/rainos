@@ -19,6 +19,8 @@ uint16_t pci_read_conf_data_word(uint8_t bus, uint8_t dev, uint8_t fun,
         return w;
     }
 
+static struct PciDevice devices_data[MAX_PCI_DEVS];
+static size_t devices_count = 0;
 
 /*  Return device by bus/vendor data. Returns 1 if data is valid, 0
     if isn't */
@@ -46,11 +48,24 @@ int pci_get_device_bus(uint8_t bus, uint8_t dev, uint8_t fun,
 
     }
 
+    pcidevice->bus = bus;
+    pcidevice->dev = dev;
+    pcidevice->func = fun;
+
     return 1;
 }
 int pci_get_device_vendor(uint16_t device, uint16_t vendor,
     struct PciDevice* pcidevice)
 {
+    for (size_t i = 0; i < devices_count; i++) {
+        if (devices_data[i].config.vendor == vendor) {
+            if (devices_data[i].config.device == device) {
+                pcidevice = &devices_data[i];
+                return 1;
+            }
+        }
+    }
+
     return 0;
 }
 
@@ -79,7 +94,8 @@ int pci_init()
                             pcidev.config.int_line, pcidev.config.int_pin);
                     }
 
-                    knotice("\n");
+                    knotice("");
+                    devices_data[devices_count++] = pcidev;
 
                     /* check if multifunction */
                     if (pcidev.config.header_type & 0x80) {
@@ -99,6 +115,8 @@ int pci_init()
             }
         }
     }
+
+    knotice("PCI: %d devices detected", devices_count);
 
     return 1;
 }

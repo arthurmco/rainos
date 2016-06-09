@@ -12,6 +12,8 @@
 #ifndef _PCI_H
 #define _PCI_H
 
+#define MAX_PCI_DEVS 64
+
 union PciConfAddress {
     uint32_t data;
     struct {
