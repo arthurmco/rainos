@@ -5,6 +5,7 @@
 
 #include <stdarg.h>
 #include <stddef.h>
+#include <kstdlib.h>
 #include "arch/i386/vmm.h"
 
 #ifndef _KHEAP_H
@@ -38,7 +39,8 @@ heap_item_t* _kheap_alloc_item(size_t bytes);
 /* Find an item that represents the address 'addr'
     if mode & HFIND_NEAREST_ABOVE, return the nearest item bigger than the address
     if mode & HFIND_NEAREST_BELOW, return the nearest item smaller than the address */
-heap_item_t* _kheap_find_item(virtaddr_t addr, int mode);
+heap_item_t* _kheap_find_item(struct HeapList* const list,
+    virtaddr_t addr, int mode);
 
 enum HeapFlags {
     HFLAGS_FREE = 0,
