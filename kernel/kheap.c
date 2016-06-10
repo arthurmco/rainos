@@ -68,8 +68,8 @@ void kheap_init()
     addr_reserve_bottom = vmm_alloc_page(VMM_AREA_KERNEL, 16);
     addr_reserve_top = addr_reserve_bottom;
 
-    knotice("KHEAP: items starts at 0x%x, addresses starts at 0x%x",
-        item_reserve_bottom, addr_reserve_bottom);
+    //knotice("KHEAP: items starts at 0x%x, addresses starts at 0x%x",
+    //    item_reserve_bottom, addr_reserve_bottom);
 
     hUsed.count = 0;
     hFree.count = 0;
@@ -115,11 +115,11 @@ virtaddr_t kheap_allocate_phys(physaddr_t phys, size_t bytes)
         item->canary = (item->addr) & ~bytes;
         kheap_addItem(item, _kheap_find_item(&hUsed, item->addr,
             HFIND_NEAREST_BELOW), &hUsed);
+
     } else {
         item->flags = HFLAGS_USED;
         item->canary = (item->addr) & ~bytes;
-        kheap_addItem(item,
-            _kheap_find_item(&hUsed, item->addr,
+        kheap_addItem(item, _kheap_find_item(&hUsed, item->addr,
                 HFIND_NEAREST_BELOW), &hUsed);
     }
 
@@ -130,8 +130,8 @@ void kheap_deallocate(virtaddr_t addr)
 {
     /* Remove this from the used list and put them on the free list */
     heap_item_t* item = _kheap_find_item(&hUsed, addr, NULL);
-    knotice("KHEAP: called 0x%x, found 0x%x",
-        addr, (item) ? item->addr : -1);
+    //knotice("KHEAP: called 0x%x, found 0x%x",
+        //addr, (item) ? item->addr : -1);
 
     if (!item)
         return; //No item there
@@ -166,11 +166,11 @@ heap_item_t* _kheap_alloc_item(size_t bytes)
             continue;
         }
 
-        knotice("alloc %d (%d) bytes, trial %d, found %d at 0x%x",
-            bytes, real_bytes, i, it->bytes, it->addr);
+        //knotice("alloc %d (%d) bytes, trial %d, found %d at 0x%x",
+        //    bytes, real_bytes, i, it->bytes, it->addr);
         retry_detect:
         if (it->bytes == real_bytes) {
-            knotice("got 0x%x", it->addr);
+            //knotice("got 0x%x", it->addr);
             kheap_removeItem(it, &hFree);
             return it;
         }
@@ -179,14 +179,13 @@ heap_item_t* _kheap_alloc_item(size_t bytes)
             size_t alloc = it->bytes;
             size_t divide = (it->bytes) / real_bytes;
 
-
-            if (divide < 2)
-                divide = 2;
+            if (divide == 1)
+                return it; //good enough
 
             /* Change them */
-            knotice("dividing item of %d bytes", it->bytes);
-            it->bytes /= divide;
-            knotice("now item has %d bytes", it->bytes);
+            //knotice("dividing item of %d bytes", it->bytes);
+        //    it->bytes /= divide;
+            //knotice("now item has %d bytes", it->bytes);
 
             heap_item_t* previt = it;
             for (int i = 0; i < divide; i++) {
@@ -196,8 +195,8 @@ heap_item_t* _kheap_alloc_item(size_t bytes)
                 newit->addr = (it->addr) + (i*it->bytes);
                 newit->flags = HFLAGS_FREE;
                 kheap_addItem(newit, previt, &hFree);
-                knotice("complimented, addr 0x%x, bytes %d",
-                    newit->addr, newit->bytes);
+                //knotice("complimented, addr 0x%x, bytes %d",
+        //            newit->addr, newit->bytes);
                 previt = newit;
                 goto retry_detect; /* Retry, to see if we can allocate now */
 
@@ -207,12 +206,12 @@ heap_item_t* _kheap_alloc_item(size_t bytes)
         if (it->bytes < real_bytes) {
             /* Join smaller free pieces */
             int complete = 0;
-            knotice("joining pieces");
+            //knotice("joining pieces");
 
             heap_item_t* nextit = it->next;
             while (!complete) {
 
-                knotice("piece of %d at 0x%x", it->bytes, it->addr);
+                //knotice("piece of %d at 0x%x", it->bytes, it->addr);
 
                 if (!nextit) {
                     break;
@@ -225,7 +224,7 @@ heap_item_t* _kheap_alloc_item(size_t bytes)
                 /* if free and valid, join both into one */
                 it->bytes += nextit->bytes;
 
-                knotice("now has %d bytes", it->bytes);
+                ////knotice("now has %d bytes", it->bytes);
                 /* TODO: put the now useless entry into a list,
                     to be reallocated later */
 
