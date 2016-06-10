@@ -65,7 +65,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     term_stdio.defaultColor = 0x07;
     terminal_set(&term_stdio);
     vga_init(&term_stdio);
-//    ttys_init(&term_stdio);
+    //ttys_init(&term_stdio);
 
     /* Initialize logging terminal device */
     terminal_t term_log;

@@ -2,7 +2,7 @@
    
 CC=i686-elf-gcc
 AS=i686-elf-as
-CFLAGS= -std=gnu99 -ffreestanding -nostdlib -nostartfiles -Wall -Wextra
+CFLAGS= -std=gnu99 -ffreestanding -nostdlib -nostartfiles -Wall -Wextra -O
 CINCLUDES= -I$(CURDIR)/libk/include
 LDFLAGS=-lgcc -g
 OUT=rainos.elf

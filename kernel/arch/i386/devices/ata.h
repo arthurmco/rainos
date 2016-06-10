@@ -14,7 +14,7 @@
 #define _ATA_H
 
 struct AtaIdentify {
-    uint16_t data[512];
+    uint16_t data[256];
 };
 
 struct AtaDevice {
@@ -52,6 +52,10 @@ enum AtaRegisters {
 #define IS_DRDY(status) (status & (1 << 6))     // Device Ready?
 #define IS_BSY(status)  (status & (1 << 7))     // Busy?
 
+/* ATA Command Definitions */
+enum AtaCommands {
+    ATACMD_IDENTIFY = 0xEC,
+};
 
 #define MAX_ATA_DEVS 16
 

@@ -49,6 +49,7 @@ void io_wait()
     for (a = 0; a < 100000; a++) {
         a = ~a;
         a = ~a;
-        __asm__("nop");
+
+        asm volatile("nop");
     }
 }
