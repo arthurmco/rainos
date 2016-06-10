@@ -10,7 +10,7 @@ ISO=rainos.iso
 
 LIBK=kstdio.o kstdlib.o kstring.o kstdlog.o
 ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o pit.o \
- pci.o irq.o irq_asm.o pages.o vmm.o
+ pci.o ata.o irq.o irq_asm.o pages.o vmm.o
 
 all: $(ARCH_DEP) main.o  terminal.o ttys.o pmm.o kheap.o dev.o $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
@@ -40,6 +40,8 @@ pci.o: kernel/arch/i386/devices/pci.c kernel/arch/i386/devices/pci.h
 	$(CC) -o pci.o -c kernel/arch/i386/devices/pci.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 8259.o: kernel/arch/i386/devices/8259.c kernel/arch/i386/devices/8259.h
 	$(CC) -o 8259.o -c kernel/arch/i386/devices/8259.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
+ata.o: kernel/arch/i386/devices/ata.c kernel/arch/i386/devices/ata.h
+	$(CC) -o ata.o -c kernel/arch/i386/devices/ata.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 idt.o: kernel/arch/i386/idt.c kernel/arch/i386/idt.h
 	$(CC) -o idt.o -c kernel/arch/i386/idt.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 irq.o: kernel/arch/i386/irq.c kernel/arch/i386/irq.h
