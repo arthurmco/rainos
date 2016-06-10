@@ -221,11 +221,24 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     WRITE_STATUS("Starting kernel heap...");
     kheap_init();
 
-    for (unsigned i = 64; i > 2; i /= 2) {
-        virtaddr_t va = kheap_allocate(i);
-        kprintf("\taddr: 0x%x, size: %d\n", va, i);
-    }
+    for (int j = 0; j < 5; j++) {
+        for (unsigned i = 64; i > 2; i /= 2) {
+            uint32_t* va = kheap_allocate(i);
+            kprintf("\taddr: 0x%x, size: %d ", va, i);
+            if ((*va) != 0x22) {
+                (*va) = 0x22;
+            } else {
+                (*va) = 0xbad;
+            }
 
+            kprintf("val: 0x%x\n", (*va));
+
+            if (i % 16 == 0) {
+                kheap_deallocate(va);
+            }
+        }
+
+    }
     WRITE_SUCCESS();
 
     for(;;) {
