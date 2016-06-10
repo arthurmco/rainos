@@ -12,7 +12,7 @@ LIBK=kstdio.o kstdlib.o kstring.o kstdlog.o
 ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o pit.o \
  pci.o irq.o irq_asm.o pages.o vmm.o
 
-all: $(ARCH_DEP) main.o  terminal.o ttys.o pmm.o kheap.o $(LIBK)
+all: $(ARCH_DEP) main.o  terminal.o ttys.o pmm.o kheap.o dev.o $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
 iso: all
@@ -62,6 +62,8 @@ ttys.o: kernel/ttys.c kernel/ttys.h
 	$(CC) -o ttys.o -c kernel/ttys.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 kheap.o: kernel/kheap.c kernel/kheap.h
 	$(CC) -o kheap.o -c kernel/kheap.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
+dev.o: kernel/dev.c kernel/dev.h
+	$(CC) -o dev.o -c kernel/dev.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 main.o: kernel/main.c
 	$(CC) -o main.o -c kernel/main.c $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
 

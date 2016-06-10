@@ -94,6 +94,8 @@ void* kcalloc(size_t bytes, size_t count)
     void* m = kheap_allocate(bytes*count);
     for (int i = 0; i < count; i++)
         memset(m, 0, bytes);
+
+    return m;
 }
 void kfree(void* addr)
 {

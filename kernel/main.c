@@ -19,6 +19,7 @@
 #include "arch/i386/pages.h"
 #include "arch/i386/fault.h"
 #include "terminal.h"
+#include "dev.h"
 #include "ttys.h"
 #include "mmap.h"
 #include "pmm.h"
