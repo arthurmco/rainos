@@ -223,33 +223,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     WRITE_STATUS("Starting kernel heap...");
     kheap_init();
-
-    for (int i = 0; i < 500; i++) {
-        virtaddr_t a = kheap_allocate(i+1);
-        if (i == 0) {
-            kprintf("a = 0x%x\t\t", a);
-        } else {
-            kerror("%d: 0x%x", i, a);
-        }
-        kheap_deallocate(a);
-    }
-
-    terminal_restorecolor();
-    virtaddr_t a2 = kheap_allocate(512);
-    kprintf("a2 = 0x%x\n", a2);
-    virtaddr_t a3 = kheap_allocate(512);
-    kprintf("a3 = 0x%x\n", a3);
-    virtaddr_t a4 = kheap_allocate(512);
-    kprintf("a4 = 0x%x\n", a4);
-    virtaddr_t a5 = kheap_allocate(512);
-    kprintf("a5 = 0x%x\n", a5);
-    kheap_deallocate(a2);
-    kheap_deallocate(a3);
-    kheap_deallocate(a4);
-    kheap_deallocate(a5);
-
     WRITE_SUCCESS();
-
 
     WRITE_STATUS("Starting devices...");
 

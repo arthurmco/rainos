@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <stdarg.h>
+#include <kstdlib.h>
 
 #ifndef _DEV_H
 #define _DEV_H
@@ -26,7 +27,7 @@ device_t* device_get_by_id(uint64_t devid);
 device_t* device_get_by_name(char* name);
 
 /* Creates a device. Returns pointer */
-device_t* device_create(uint64_t id, char* name,
+device_t* device_create(uint64_t id, const char* name,
     device_t* parent);
 
 /* Destroys a device. */
