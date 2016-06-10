@@ -69,11 +69,24 @@ int pci_get_device_vendor(uint16_t device, uint16_t vendor,
     return 0;
 }
 
+struct PciDevice* pci_get_device_index(unsigned index)
+{
+    if (index < devices_count)
+        return &devices_data[index];
+    else
+        return NULL;
+}
+
+unsigned pci_get_device_count()
+{
+    return devices_count;
+}
+
 /*  Init PCI subsystem
     Detect devices */
 int pci_init()
 {
-    unsigned max_bus = 1;
+    unsigned max_bus = 2;
     for (unsigned bus = 0; bus < max_bus; bus++) {
         for (unsigned dev = 0; dev < 0x20; dev++) {
             for (unsigned fun = 0; fun < 0x8; fun++) {
@@ -81,8 +94,9 @@ int pci_init()
                 if (pci_get_device_bus(bus, dev, fun, &pcidev)) {
 
                     knotice("PCI: found device at %d:%d.%d", bus, dev, fun);
-                    knotice("\t vendor: 0x%x, device: 0x%x, class: 0x%x",
-                        pcidev.config.vendor, pcidev.config.device, pcidev.config.class_code);
+                    knotice("\t vendor: 0x%x, device: 0x%x, class: %x:%x",
+                        pcidev.config.vendor, pcidev.config.device,
+                        pcidev.config.class_code, pcidev.config.subclass);
                     knotice("\t header: 0x%x", pcidev.config.header_type);
 
                     if ((pcidev.config.header_type & 0x7f) == 0) {

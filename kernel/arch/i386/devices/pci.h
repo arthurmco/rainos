@@ -56,7 +56,9 @@ int pci_get_device_bus(uint8_t bus, uint8_t dev, uint8_t fun,
     struct PciDevice* pcidevice);
 int pci_get_device_vendor(uint16_t device, uint16_t vendor,
     struct PciDevice* pcidevice);
+struct PciDevice* pci_get_device_index(unsigned index);
 
+unsigned pci_get_device_count();
 /*  Init PCI subsystem
     Detect devices */
 int pci_init();
