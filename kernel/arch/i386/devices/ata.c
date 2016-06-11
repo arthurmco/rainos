@@ -94,10 +94,38 @@ int ata_identify(struct AtaDevice* atadev)
     status = inb(atadev->iobase + ATAREG_STATUS);
     if (IS_DRDY(status) && !IS_ERR(status)) {
         atadev->ident = kcalloc(sizeof(struct AtaIdentify),1);
-        knotice("<< %x %d >>", atadev->ident, sizeof(struct AtaIdentify));
         uint16_t* store = (uint16_t*)atadev->ident;
-        for (int i = 0; i < 256; i++) {
+        for (unsigned i = 0; i < 256; i++) {
             store[i] = inw(atadev->iobase + ATAREG_DATAPORT);
+            /* swap bytes on texts */
+            if (i*2 >= offsetof(struct AtaIdentify, serial_number) &&
+                i*2 <= offsetof(struct AtaIdentify, serial_number) + 10) {
+                    uint16_t lsb = store[i] & 0xff;
+                    uint16_t msb = store[i] >> 8;
+
+                    store[i] = (lsb << 8) | msb;
+
+            }
+
+            if (i*2 >= offsetof(struct AtaIdentify, firmware_rev) &&
+                i*2 <= offsetof(struct AtaIdentify, firmware_rev) + 4) {
+                    uint16_t lsb = store[i] & 0xff;
+                    uint16_t msb = store[i] >> 8;
+
+                    store[i] = (lsb << 8) | msb;
+
+            }
+
+            if (i*2 >= offsetof(struct AtaIdentify, model) &&
+                i*2 <= offsetof(struct AtaIdentify, model) + 20) {
+                    uint16_t lsb = store[i] & 0xff;
+                    uint16_t msb = store[i] >> 8;
+
+                    store[i] = (lsb << 8) | msb;
+            }
+
+
+
         }
         return 1;
     }
@@ -143,6 +171,23 @@ int ata_initialize(struct PciDevice* dev)
                     (const char *[]){"Pri", "Sec", "Third", "Fourth"}[b],
                     (const char *[]){"Master", "Slave"}[d]);
 
+                char devname[42];
+                memset(devname, 0, 42);
+                memcpy(devices[devcount].ident->model, devname, 40);
+
+                for (unsigned i = 39; i > 0; i--) {
+                    if (devname[i] != ' ') {
+                        devname[i+1] = 0;
+                        break;
+                    }
+                }
+
+                uint64_t disk_size_bytes =
+                    ((uint64_t)devices[devcount].ident->sector_count) * 512;
+
+                knotice("\t %s, %d MB", devname,
+                    ((uint32_t)disk_size_bytes / 1048576) & 0xffffffff);
+
                 /* TODO: print disk info to log */
                 devcount++;
             }
@@ -157,14 +202,151 @@ int ata_initialize(struct PciDevice* dev)
     return 1;
 }
 
+static int ata_wait_ready(struct AtaDevice* atadev)
+{
+    uint8_t status;
+    /* read port 5 times, so we can be sure status is valid */
+    for (unsigned i = 0; i < 5; i++) {
+        status = inb(atadev->iobase + ATAREG_STATUS);
+    }
+
+    status = inb(atadev->iobase + ATAREG_STATUS);
+
+    if (!status) {
+
+        return 0; // No drive
+    }
+
+    unsigned timeout_out = 0;
+    for (unsigned i = 0; i < 16; i++) {
+        status = inb(atadev->iobase + ATAREG_STATUS);
+        if (!IS_BSY(status)) {
+            timeout_out = 1;
+            break;
+        }
+        io_wait();
+    }
+
+    if (!timeout_out) {
+
+        return 0; /* Timeout expired */
+    }
+
+    return 1;
+}
+
 /* Read/write sectors using PIO */
-int ata_read_sector_pio(struct AtaDevice* dev,
+int ata_read_sector_pio(struct AtaDevice* atadev,
     uint64_t lba, size_t count, void* buffer)
     {
+        if (inb(atadev->iobase + ATAREG_STATUS) == 0xff) {
+            return 0; // No device.
+        }
+
+        ata_change_drive(atadev);
+
+        outb(atadev->iobase + ATAREG_SECTORCOUNT,   count);
+        outb(atadev->iobase + ATAREG_LBALOW,        lba & 0xff);
+        outb(atadev->iobase + ATAREG_LBAMID,        (lba >> 8) & 0xff);
+        outb(atadev->iobase + ATAREG_LBAHIGH,       (lba >> 16) & 0xff);
+        outb(atadev->iobase + ATAREG_DRIVESELECT,
+                inb(atadev->iobase + ATAREG_DRIVESELECT) | (lba >> 24) & 0xf | 1 << 6);
+        ata_sendcommand(atadev, ATACMD_READ);
+
+        if (!ata_wait_ready(atadev)) {
+            kwarn("Timeout while waiting for ATA %s %s do a PIO read",
+                (const char *[]){"Pri", "Sec", "Third", "Fourth"}[atadev->number],
+                (const char *[]){"Master", "Slave"}[atadev->slavery]);
+        }
+
+        uint8_t status = inb(atadev->iobase + ATAREG_STATUS);
+        if (IS_ERR(status) || IS_DF(status)) {
+            kerror("Error on ATA %s %s",
+                (const char *[]){"Pri", "Sec", "Third", "Fourth"}[atadev->number],
+                (const char *[]){"Master", "Slave"}[atadev->slavery]);
+
+            uint8_t err = inb(atadev->iobase + ATAREG_ERR);
+            char errs[256];
+
+            if (err & 0x2)  strcat(errs, "No Media, ");
+            if (err & 0x4)  strcat(errs, "Command Aborted, ");
+            if (err & 0x8)  strcat(errs, "Media Change Request, ");
+            if (err & 0x10) strcat(errs, "Sector Beyond Limit, ");
+            if (err & 0x20) strcat(errs, "Media Changed, ");
+            if (err & 0x40) strcat(errs, "Uncorrectable error, ");
+
+            if (IS_DF(status))  strcat(errs, "Drive Fault, ");
+
+            kerror("%s (%x) \n", errs, err);
+
+            return 0;
+        }
+
+        if (IS_DRDY(status)) {
+            uint16_t* buf = (uint16_t*)buffer;
+            for(uint16_t w = 0; w < (count*256); w++) {
+                buf[w] = inw(atadev->iobase + ATAREG_DATAPORT);
+            }
+            return 1;
+        }
+
+        return 0;
 
     }
-int ata_write_sector_pio(struct AtaDevice* dev,
+int ata_write_sector_pio(struct AtaDevice* atadev,
     uint64_t lba, size_t count, void* const buffer )
     {
+        if (inb(atadev->iobase + ATAREG_STATUS) == 0xff) {
+            return 0; // No device.
+        }
+
+        ata_change_drive(atadev);
+
+        outb(atadev->iobase + ATAREG_SECTORCOUNT,   count);
+        outb(atadev->iobase + ATAREG_LBALOW,        lba & 0xff);
+        outb(atadev->iobase + ATAREG_LBAMID,        (lba >> 8) & 0xff);
+        outb(atadev->iobase + ATAREG_LBAHIGH,       (lba >> 16) & 0xff);
+        outb(atadev->iobase + ATAREG_DRIVESELECT,
+                inb(atadev->iobase + ATAREG_DRIVESELECT) | (lba >> 24) & 0xf | 1 << 6);
+        ata_sendcommand(atadev, ATACMD_WRITE);
+
+        if (!ata_wait_ready(atadev)) {
+            kwarn("Timeout while waiting for ATA %s %s do a PIO read",
+                (const char *[]){"Pri", "Sec", "Third", "Fourth"}[atadev->number],
+                (const char *[]){"Master", "Slave"}[atadev->slavery]);
+        }
+
+        uint8_t status = inb(atadev->iobase + ATAREG_STATUS);
+        if (IS_ERR(status) || IS_DF(status)) {
+            kerror("Error on ATA %s %s",
+                (const char *[]){"Pri", "Sec", "Third", "Fourth"}[atadev->number],
+                (const char *[]){"Master", "Slave"}[atadev->slavery]);
+
+            uint8_t err = inb(atadev->iobase + ATAREG_ERR);
+            char errs[256];
+
+            if (err & 0x2)  strcat(errs, "No Media, ");
+            if (err & 0x4)  strcat(errs, "Command Aborted, ");
+            if (err & 0x8)  strcat(errs, "Media Change Request, ");
+            if (err & 0x10) strcat(errs, "Sector Beyond Limit, ");
+            if (err & 0x20) strcat(errs, "Media Changed, ");
+            if (err & 0x40) strcat(errs, "Uncorrectable error, ");
+
+            if (IS_DF(status))  strcat(errs, "Drive Fault, ");
+
+            kerror("%s (%x) \n", errs, err);
+
+            return 0;
+        }
+
+        if (IS_DRDY(status)) {
+            uint16_t* buf = (uint16_t*)buffer;
+            for(uint16_t w = 0; w < (count*256); w++) {
+                outw(atadev->iobase + ATAREG_DATAPORT, buf[w]);
+            }
+            return 1;
+        }
+
+        return 0;
 
     }

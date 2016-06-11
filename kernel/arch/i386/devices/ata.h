@@ -14,8 +14,56 @@
 #define _ATA_H
 
 struct AtaIdentify {
-    uint16_t data[256];
-};
+    uint16_t dev_type;
+
+    uint16_t obsolete1;
+
+    uint16_t specific_config;
+
+    uint16_t unused1[7];
+
+    char serial_number[20];
+
+    uint16_t unused[3];
+
+    char firmware_rev[8];
+    char model[40];
+
+    uint8_t max_sectors_multiple;
+    uint8_t always_80h;
+
+    //word 48
+    uint16_t reserved1;
+
+    /* Support variable for:
+        DMA: bit 8
+        LBA: bit 9
+    */
+    uint16_t capabilities_support;
+
+    uint16_t capabilities_timer;
+
+    uint32_t obsolete2;
+
+    uint16_t validity;
+
+    uint16_t obsolete3[5];
+
+    /*  if bit 8 is set, bits 0-7 informs the current number of sectors
+        transferred in a Read/Write Multiple command */
+    uint16_t multiple_sector_conf;
+
+    uint32_t sector_count;
+
+    uint16_t obsolete4;
+
+    uint16_t dma_support;
+
+    //bit 64
+    uint16_t pio_support;
+
+    uint16_t data[256-65];
+} __attribute__((packed));
 
 struct AtaDevice {
     uint16_t iobase;
@@ -38,6 +86,7 @@ enum AtaRegisters {
     ATAREG_COMMANDPORT  = 7,
     ATAREG_ALTSTATUS    = 0x206,
 
+    #define ATAREG_ERR ATAREG_FEATURES
     #define ATAREG_STATUS ATAREG_COMMANDPORT
     #define ATAREG_SECTORNUMBER ATAREG_LBALOW
     #define ATAREG_CYLINDERLOW ATAREG_LBAMID
@@ -54,6 +103,8 @@ enum AtaRegisters {
 
 /* ATA Command Definitions */
 enum AtaCommands {
+    ATACMD_READ = 0x20,
+    ATACMD_WRITE = 0x30,
     ATACMD_IDENTIFY = 0xEC,
 };
 
