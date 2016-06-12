@@ -41,6 +41,15 @@ int pmm_init(struct mmap_list* mm_list, physaddr_t kstart,
             (regs_data[ir].start + regs_data[ir].len) < 1048576 &&
             regs_data[ir].region_type == PMM_REG_DEFAULT) {
                 regs_data[ir].region_type = PMM_REG_LEGACY;
+                regs_data[ir].first_free_addr = 0x1000; //safe area.
+        }
+
+        /* if start > 0xb0000 and ends below 1m, then map to rom, because
+            this is where the BIOS ROM lies*/
+        if (regs_data[ir].start > 0xb0000 &&
+            (regs_data[ir].start + regs_data[ir].len) < 1048576 &&
+            regs_data[ir].region_type == PMM_REG_HARDWARE) {
+                regs_data[ir].region_type = PMM_REG_ROM;
 
         }
 

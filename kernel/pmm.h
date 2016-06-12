@@ -27,6 +27,7 @@ enum MemRegion {
     PMM_REG_HARDWARE = 1,   //  Hardware used RAM
     PMM_REG_LEGACY = 2,     //  RAM usable by legacy devices (ISA, old DMA),
                             // allocated below 1M
+    PMM_REG_ROM = 3,        // RAM mapped as ROM.
     PMM_REG_FAULTY = -1,    // RAM marked as bad.
 };
 

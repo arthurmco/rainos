@@ -229,6 +229,10 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     kputs(c123);
     kputs("\n");
 
+    physaddr_t phys = 0xfee00000;
+    virtaddr_t virt = vmm_map_physical(VMM_AREA_KERNEL, phys, 3);
+    kprintf("phys: 0x%08x, virt: 0x%08x\n", phys, virt);
+
     for(;;) {
         asm volatile("nop");
     }

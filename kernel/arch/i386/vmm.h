@@ -31,9 +31,14 @@ virtaddr_t vmm_alloc_page(unsigned int vmm_area, size_t count);
     This usually means set the present bit to 0 */
 void vmm_dealloc_page(virtaddr_t addr, size_t count);
 
-/*  Alloc 'count' pages and map these pages to physical address
-    'phys' */
+/*  Alloc 'count' pages and store their physaddr on
+    the 'phys' variable */
 virtaddr_t vmm_alloc_physical(unsigned int vmm_area,
+    physaddr_t* phys, size_t count, int pmm_type);
+
+/*  Map 'count' pages and map these pages to physical address
+        'phys' . You need to allocate these address first!*/
+virtaddr_t vmm_map_physical(unsigned int vmm_area,
     physaddr_t phys, size_t count);
 
 void vmm_init(uintptr_t kernel_start, uintptr_t kernel_end,
