@@ -13,4 +13,6 @@ void knotice(const char* fmt, ...);
 void kwarn(const char* fmt, ...);
 void kerror(const char* fmt, ...);
 
+void panic(const char* fmt, ...);
+
 #endif /* end of include guard: _KSTDLOG_H */

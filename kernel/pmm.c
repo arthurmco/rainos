@@ -237,7 +237,7 @@ physaddr_t pmm_alloc(size_t pages, int type)
 
     /* Could not find suitable region */
     if (!reg) {
-        kerror("Could not allocate memory!");
+        panic("Could not allocate %d pages of memory !", pages);
         return NULL;
     }
 
@@ -268,7 +268,7 @@ physaddr_t pmm_reserve(physaddr_t addr, size_t pages)
     }
 
     if (!reg) {
-        kerror("Could not reserve memory at 0x%x", addr);
+        panic("Could not reserve %d pages of memory at 0x%x", pages, addr);
         return NULL;
     }
     return _pmm_set_addr(addr, pages, reg, 1);
