@@ -10,6 +10,9 @@
 #include "arch/i386/devices/vga.h"
 #include "arch/i386/devices/ioport.h"
 #include "arch/i386/devices/serial.h"
+#include "arch/i386/devices/pit.h"
+#include "arch/i386/devices/pci.h"
+#include "arch/i386/devices/ata.h"
 #include "arch/i386/multiboot.h"
 #include "arch/i386/vmm.h"
 #include "arch/i386/irq.h"
@@ -17,6 +20,7 @@
 #include "arch/i386/pages.h"
 #include "arch/i386/fault.h"
 #include "terminal.h"
+#include "dev.h"
 #include "ttys.h"
 #include "mmap.h"
 #include "pmm.h"
@@ -61,6 +65,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     term_stdio.defaultColor = 0x07;
     terminal_set(&term_stdio);
     vga_init(&term_stdio);
+    //ttys_init(&term_stdio);
 
     /* Initialize logging terminal device */
     terminal_t term_log;
@@ -220,18 +225,34 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     WRITE_STATUS("Starting kernel heap...");
     kheap_init();
-
     WRITE_SUCCESS();
 
-    kputs("\n");
-    char c123[16];
-    utoa_s_pad(0x80fe34, c123, 16, 8, '0');
-    kputs(c123);
-    kputs("\n");
+    WRITE_STATUS("Starting devices...");
 
-    physaddr_t phys = 0xfee00000;
-    virtaddr_t virt = vmm_map_physical(VMM_AREA_KERNEL, phys, 3);
-    kprintf("phys: 0x%08x, virt: 0x%08x\n", phys, virt);
+    /* Init drivers */
+
+    kprintf("\tpit");
+    pit_init();
+
+    kprintf("  pci");
+    pci_init();
+
+    /* Init drivers that depend on PCI */
+    size_t pci_count = pci_get_device_count();
+    for (size_t i = 0; i < pci_count; i++) {
+        struct PciDevice* dev = pci_get_device_index(i);
+
+        if (ata_check_device(dev)) {
+            if (ata_initialize(dev)) {
+                kprintf(" ata");
+            }
+        }
+    }
+
+    WRITE_SUCCESS();
+    //sleep(5000);
+    kprintf("\n\n System ready!");
+    kprintf("\nPANIC: init launcher wasn't implemented.\n");
 
     for(;;) {
         asm volatile("nop");

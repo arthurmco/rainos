@@ -1,9 +1,9 @@
 #include "vga.h"
 
-static uint16_t* vga_addr = (uint16_t*) VGA_BASE;
+static volatile uint16_t* vga_addr = (uint16_t*) VGA_BASE;
 static uint16_t xPos = 0;
 static uint16_t yPos = 0;
-uint8_t default_color;
+static uint8_t default_color;
 
 void vga_init(terminal_t* term) {
     default_color = VGA_COLOR(VGA_BLACK, VGA_LIGHTGREY);
@@ -41,7 +41,7 @@ void vga_putentry(uint16_t entry) {
             xPos = 0;
             break;
         case '\t':
-            xPos += 3;
+            xPos += 4;
             if (xPos > 4)
                 xPos = xPos & ~0x3;
             else

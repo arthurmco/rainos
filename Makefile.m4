@@ -21,10 +21,10 @@ OUT=rainos.elf
 ISO=rainos.iso
 
 LIBK=kstdio.o kstdlib.o kstring.o kstdlog.o
-ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o irq.o \
- irq_asm.o pages.o vmm.o
+ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o pit.o \
+ pci.o ata.o irq.o irq_asm.o pages.o vmm.o
 
-all: $(ARCH_DEP) main.o  terminal.o ttys.o pmm.o kheap.o $(LIBK)
+all: $(ARCH_DEP) main.o  terminal.o ttys.o pmm.o kheap.o dev.o $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
 iso: all
@@ -41,19 +41,23 @@ clean: *.o
 ASM_SOURCE(kernel/arch/i386/,start)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,vga)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,ioport)
+C_SOURCE_WITH_H(kernel/arch/i386/devices/,pit)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,serial)
+C_SOURCE_WITH_H(kernel/arch/i386/devices/,pci)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,8259)
+C_SOURCE_WITH_H(kernel/arch/i386/devices/,ata)
 C_SOURCE_WITH_H(kernel/arch/i386/,idt)
-C_SOURCE_WITH_H(kernel/arch/i386/,vmm)
 C_SOURCE_WITH_H(kernel/arch/i386/,irq)
+C_SOURCE_WITH_H(kernel/arch/i386/,vmm)
 C_SOURCE_WITH_H(kernel/arch/i386/,pages)
+C_SOURCE_WITH_H(kernel/,pmm)
 ASM_SOURCE(kernel/arch/i386/,idt_asm)
 ASM_SOURCE(kernel/arch/i386/,irq_asm)
 C_SOURCE_WITH_H(kernel/arch/i386/,fault)
 C_SOURCE_WITH_H(kernel/,terminal)
-C_SOURCE_WITH_H(kernel/,pmm)
 C_SOURCE_WITH_H(kernel/,ttys)
 C_SOURCE_WITH_H(kernel/,kheap)
+C_SOURCE_WITH_H(kernel/,dev)
 C_SOURCE(kernel/,main)
 
 C_SOURCE(libk/,kstdio)
