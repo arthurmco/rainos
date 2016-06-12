@@ -9,9 +9,10 @@
 #ifndef _KSTDLIB_H
 #define _KSTDLIB_H
 
+int atoi(const char* str, int base);
 void itoa_s(int32_t i, char* str, int base);
 void utoa_s(uint32_t i, char* str, int base);
-
+void utoa_s_pad(uint32_t i, char* str, int base, int pad, char padchar);
 
 void memset(void* ptr, uint8_t val, size_t num);
 

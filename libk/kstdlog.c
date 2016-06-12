@@ -76,9 +76,10 @@ void kerror(const char* fmt, ...)
 
 void panic(const char* fmt, ...)
 {
+    /* Get some of the registers */
     int eax,ebx,ecx,edx,esi,edi;
     asm("nop": "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx), "=S"(esi), "=D"(edi));
-
+    
     char msg[255];
 
     if (logterm->term_setcolor_f) {

@@ -31,6 +31,30 @@ void vsprintf(char* str, const char* fmt, va_list vl) {
     while (*fmt) {
         if (*fmt == '%') {
             fmt++;
+            unsigned padding = 0;
+            char padchar = ' ';
+            char padstr[8];
+            int padstrptr = 0;
+            /* detect padding specifiers */
+            while ( (fmt[padstrptr] >= '0' &&
+                     fmt[padstrptr] <= '9') ) {
+                    if (padstrptr == 0 && fmt[padstrptr] == '0')
+                    {
+                        padchar = '0';
+                        fmt++;
+                        continue;
+                    }
+                    padstr[padstrptr] = fmt[padstrptr];
+                    padstrptr++;
+
+            }
+
+            if (padstrptr > 0) {
+                padstr[padstrptr] = 0;
+                padding = atoi(padstr, 10);
+                fmt += padstrptr;
+            }
+
             //tokens
             switch (*fmt) {
                 //literal %
@@ -54,7 +78,10 @@ void vsprintf(char* str, const char* fmt, va_list vl) {
                 case 'x': {
                     char num[8];
                     uint32_t i = va_arg(vl, uint32_t);
-                    utoa_s(i, num, 16);
+                    if (padding > 0)
+                        utoa_s_pad(i, num, 16, padding, padchar);
+                    else
+                        utoa_s(i, num, 16);
                     *str = 0;
                     str = strcat(str, num);
                     str++;
@@ -67,7 +94,7 @@ void vsprintf(char* str, const char* fmt, va_list vl) {
                     *str = 0;
                     str = strcat(str, s);
                     str++;
-                    
+
                 }
                     break;
 
