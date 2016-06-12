@@ -144,14 +144,15 @@ int ata_initialize(struct PciDevice* dev)
     uint16_t base_second =      (uint16_t)(dev->config.bar[2] & ~3);
     uint16_t base_alt_second =  (uint16_t)(dev->config.bar[3] & ~3);
 
-    knotice("ATA: found controller ports %x %x %x %x",
-        base_first, base_alt_first, base_second, base_alt_second);
+
     /* on problems, default to standard addresses */
     if (base_first == 0)        base_first = 0x1f0;
     if (base_alt_first == 0)    base_alt_first = 0x3f6;
     if (base_second == 0)       base_second = 0x170;
     if (base_alt_second == 0)   base_alt_second = 0x376;
-
+    
+    knotice("ATA: found controller ports %x %x %x %x",
+        base_first, base_alt_first, base_second, base_alt_second);
     /* 4 is the maximum drives an IDE controller supports
         (2 drives, 4 buses)
      */
