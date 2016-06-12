@@ -79,7 +79,7 @@ void panic(const char* fmt, ...)
     /* Get some of the registers */
     int eax,ebx,ecx,edx,esi,edi;
     asm("nop": "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx), "=S"(esi), "=D"(edi));
-    
+
     char msg[255];
 
     if (logterm->term_setcolor_f) {
@@ -106,8 +106,8 @@ void panic(const char* fmt, ...)
     terminal_restorecolor();
     terminal_puts(msg);
 
-    kprintf("\n\teax: 0x%x, ebx: 0x%x, ecx: 0x%x, edx: 0x%x\n\t"
-        "esi: 0x%x, edi: 0x%x\n System halted.",
+    kprintf("\n\teax: 0x%08x, ebx: 0x%08x, ecx: 0x%08x, edx: 0x%08x\n\t"
+        "esi: 0x%08x, edi: 0x%08x\n System halted.",
         eax, ebx, ecx, edx, esi, edi);
     asm("cli; hlt");
 }

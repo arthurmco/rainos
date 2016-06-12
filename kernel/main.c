@@ -229,9 +229,6 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     kputs(c123);
     kputs("\n");
 
-    int atoinum = atoi("2863", 10);
-    kprintf("%08x %d", atoinum, atoinum);
-
     for(;;) {
         asm volatile("nop");
     }

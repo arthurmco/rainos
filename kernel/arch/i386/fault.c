@@ -54,7 +54,7 @@ static const char* fault_names[] =
 void fault_handler(regs_t* r) {
     kputs("\n");
     kerror("Processor Exception: %s\n", fault_names[r->int_no]);
-    kprintf("eax: %x\t ebx: %x\t ecx: %x\t edx:%x\t\n", r->eax, r->ebx, r->ecx, r->edx);
-    kprintf("eip: %x\t esp: %x\t ebp: %x\t \n", r->eip, r->esp, r->ebp);
+    kprintf("eax: %08x\t ebx: %08x\t ecx: %08x\t edx:%08x\t\n", r->eax, r->ebx, r->ecx, r->edx);
+    kprintf("eip: %08x\t esp: %08x\t ebp: %08x\t \n", r->eip, r->esp, r->ebp);
     asm("cli; hlt");
 }
