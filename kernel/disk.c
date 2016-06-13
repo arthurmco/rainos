@@ -34,8 +34,11 @@ static int _disk_dev_read_wrapper(device_t* dev,
 
             int ret = disk_read(disk, off_sector, len_sector, newbuf);
 
-            memcpy(&newbuf[byte_start_spare], buf,
-                (len_sector * disk->b_size) - byte_start_spare);
+            knotice("\t disk: copy %d bytes starting at %d",
+                len, byte_start_spare);
+            memcpy(&newbuf[byte_start_spare], buf, len);
+
+            kfree(newbuf);
 
             return 0;
         }

@@ -87,15 +87,17 @@ virtaddr_t kheap_allocate(size_t bytes)
         item->bytes = ((bytes + 3) & ~3) + sizeof(uint32_t);
 
         item->flags = HFLAGS_USED;
-        item->canary = (item->addr) & ~bytes;
+        item->canary = 0x40404;
         kheap_addItem(item, hUsed.last, &hUsed);
     } else {
         item->flags = HFLAGS_USED;
-        item->canary = (item->addr) & ~bytes;
+        item->canary = 0x80808;
         kheap_addItem(item, _kheap_find_item(&hUsed, item->addr,
             HFIND_NEAREST_BELOW), &hUsed);
     }
 
+    uint32_t* canary = (uint32_t*)(item->addr + item->bytes - sizeof(uint32_t));
+    *canary = item->canary;
     addr_reserve_top += item->bytes;
     return item->addr;
 }
@@ -130,6 +132,7 @@ void kheap_deallocate(virtaddr_t addr)
 {
     /* Remove this from the used list and put them on the free list */
     heap_item_t* item = _kheap_find_item(&hUsed, addr, NULL);
+    //panic("%x (%x) | %x", item, (item) ? item->addr : 0x0, addr);
     //knotice("KHEAP: called 0x%x, found 0x%x",
         //addr, (item) ? item->addr : -1);
 
@@ -271,6 +274,7 @@ heap_item_t* _kheap_find_item(struct HeapList* const list, virtaddr_t addr, int 
     heap_item_t* start = list->first;
     heap_item_t* end = list->last;
     heap_item_t* half = start;
+    //knotice("[[%d]]", list->count);
 
     if (list->count == 0) {
         /* No items, no shit */
@@ -287,7 +291,8 @@ heap_item_t* _kheap_find_item(struct HeapList* const list, virtaddr_t addr, int 
 
     size_t step = list->count/2;
 
-    while (step > 3) {
+    while (step >= 1) {
+        //knotice("-- <<%08x>> %08x %08x %08x", addr, start->addr, half->addr, end->addr);
         HEAP_LIST_WALK(half, step);
         step /= 2;
 

@@ -258,12 +258,13 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         (d) ? d->devname : "<NULL>");
 
     if (d) {
-        uint32_t* read = kmalloc(1024);
-        device_read(d, 254, 768, read);
+        uint32_t* read = kmalloc(512);
+        device_read(d, 256, 512, read);
 
-        kprintf("\n%08x %08x %08x %08x\n",
-            read[0], read[1], read[2], read[3]);
+        kprintf("\n(buffer 0x%x) %08x %08x %08x %08x\n",
+            read, read[0], read[1], read[2], read[3]);
 
+        kfree(read);
     }
 
     for(;;) {
