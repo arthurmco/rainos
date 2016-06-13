@@ -10,6 +10,8 @@
 #include "pci.h"
 #include "ioport.h"
 
+#include "../../../disk.h"
+
 #ifndef _ATA_H
 #define _ATA_H
 

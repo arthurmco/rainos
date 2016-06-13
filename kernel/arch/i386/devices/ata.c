@@ -1,5 +1,4 @@
 #include "ata.h"
-#include "../../../dev.h"
 
 /* Check to see if it's a valid ATA device.
     Returns 1 if valid*/
@@ -190,24 +189,13 @@ int ata_initialize(struct PciDevice* dev)
                 knotice("\t %s, %d MB", devname,
                     ((uint32_t)disk_size_bytes / 1048576) & 0xffffffff);
 
-                char diskname[8];
-
-                char diskuid[24];
-                memset(diskuid, 0, 24);
-                memcpy(devices[devcount].ident->serial_number, diskuid, 24);
-
-                uint64_t uid = 0;
-                for (unsigned i = 0; i < 20; i++)
-                {
-                    uid += (diskuid[i] * i);
-                }
-
-                sprintf(diskname, "disk%d", devcount);
-
-                device_t* dev = device_create(uid, diskname,
-                    DEVTYPE_BLOCK | DEVTYPE_SEEKABLE, NULL);
-                dev->b_size = 512;
-
+                disk_t d;
+                memset(&d, 0, sizeof(disk_t));
+                d.b_count = devices[devcount].ident->sector_count;
+                d.b_size = 512;
+                memcpy(devname, d.disk_name, strlen(devname));
+                disk_add(&d);
+                
                 /* TODO: print disk info to log */
                 devcount++;
             }
