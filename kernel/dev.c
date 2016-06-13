@@ -2,6 +2,7 @@
 
 static device_t* last_dev = NULL;
 
+
 /*  Gets a device by ID or by name.
     Returns NULL if device hasn't been found */
 device_t* device_get_by_id(uint64_t devid)

@@ -1,4 +1,5 @@
 #include "ata.h"
+#include "../../../dev.h"
 
 /* Check to see if it's a valid ATA device.
     Returns 1 if valid*/
@@ -150,7 +151,7 @@ int ata_initialize(struct PciDevice* dev)
     if (base_alt_first == 0)    base_alt_first = 0x3f6;
     if (base_second == 0)       base_second = 0x170;
     if (base_alt_second == 0)   base_alt_second = 0x376;
-    
+
     knotice("ATA: found controller ports %x %x %x %x",
         base_first, base_alt_first, base_second, base_alt_second);
     /* 4 is the maximum drives an IDE controller supports
@@ -188,6 +189,22 @@ int ata_initialize(struct PciDevice* dev)
 
                 knotice("\t %s, %d MB", devname,
                     ((uint32_t)disk_size_bytes / 1048576) & 0xffffffff);
+
+                char diskname[8];
+
+                char diskuid[24];
+                memset(diskuid, 0, 24);
+                memcpy(devices[devcount].ident->serial_number, diskuid, 24);
+
+                uint64_t uid = 0;
+                for (unsigned i = 0; i < 20; i++)
+                {
+                    uid += (diskuid[i] * i);
+                }
+
+                sprintf(diskname, "disk%d", devcount);
+
+                device_t* dev = device_create(uid, diskname, NULL);
 
                 /* TODO: print disk info to log */
                 devcount++;
