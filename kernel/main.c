@@ -229,11 +229,14 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     WRITE_STATUS("Starting devices...\t [");
     pit_init();
-    kprintf("\tpit");
+    kprintf(" pit");
 
     pci_init();
-    kprintf("\tpci");
+    kprintf(" pci");
 
+    // Start serial device in the right way
+    serial_init();
+    kprintf(" serial");
 
     size_t pci_count = pci_get_device_count();
     for (size_t i = 0; i < pci_count; i++) {
@@ -241,7 +244,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
         if (ata_check_device(dev)) {
             if (ata_initialize(dev)) {
-                kprintf("\tata");
+                kprintf(" ata");
             }
         }
     }

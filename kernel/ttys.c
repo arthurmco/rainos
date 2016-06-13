@@ -3,6 +3,7 @@
 static uint8_t* default_color_ptr = 0;
 void ttys_init(terminal_t* term)
 {
+    /* Start serial port in early state */
     if (!serial_early_init(0)) {
         return;
     }

@@ -21,9 +21,8 @@ enum SERIAL_REGISTERS {
 static unsigned _portindex = 0;
 #define PORT_COM(x) (bda_ptr->com_port[x])
 
-int serial_early_init(unsigned port)
+static int serial_dev_init(unsigned port)
 {
-    _portindex = port;
     if (_portindex > 4)
         return 0;
 
@@ -41,9 +40,13 @@ int serial_early_init(unsigned port)
     outb(PORT_COM(_portindex)+SREG_FIFOCONTROL, 0xC7);
     outb(PORT_COM(_portindex)+SREG_MODEMCONTROL, 0x0B); // IRQs enabled, RTS/DSR set
 
-
-
     return 1;
+}
+
+int serial_early_init(unsigned port)
+{
+    _portindex = port;
+    serial_dev_init(port);
 }
 
 /*  Base frequency, that will be divided by the serial controller to
@@ -100,3 +103,24 @@ int serial_isready()
     Ex: to set to COM1, you would write serial_set_port(0) */
 void serial_set_port(unsigned num) {_portindex = num;}
 unsigned serial_get_port() {return _portindex;}
+
+/* True serial setup */
+int serial_init()
+{
+    int ttys_num = 0;
+    char* ttyname = "ttys0";
+
+    while (ttys_num < 4) {
+        if (bda_ptr->com_port[ttys_num] == 0)
+            break;
+
+        serial_dev_init(bda_ptr->com_port[ttys_num]);
+
+        ttyname[4] = '0' + ttys_num;
+        device_t* tty = device_create((0x2 << 8) | ttys_num, ttyname,
+            DEVTYPE_CHAR, NULL);
+
+        ttys_num++;
+    }
+
+}

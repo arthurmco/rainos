@@ -21,5 +21,8 @@ void serial_putc(unsigned char);
 char serial_getc();
 int serial_isready();
 
+#include "../../../dev.h"
+
+int serial_init();
 
 #endif /* end of include guard: _SERIAL_H */
