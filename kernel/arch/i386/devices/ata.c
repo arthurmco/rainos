@@ -204,7 +204,9 @@ int ata_initialize(struct PciDevice* dev)
 
                 sprintf(diskname, "disk%d", devcount);
 
-                device_t* dev = device_create(uid, diskname, NULL);
+                device_t* dev = device_create(uid, diskname,
+                    DEVTYPE_BLOCK | DEVTYPE_SEEKABLE, NULL);
+                dev->b_size = 512;
 
                 /* TODO: print disk info to log */
                 devcount++;

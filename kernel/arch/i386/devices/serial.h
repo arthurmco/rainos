@@ -9,8 +9,9 @@
 #ifndef _SERIAL_H
 #define _SERIAL_H
 
+/* Early serial init, for kernel logging */
+int serial_early_init(unsigned comdev);
 
-int serial_init(unsigned comdev);
 int serial_set_baud(unsigned baud);
 
 void serial_set_port(unsigned num);

@@ -21,7 +21,7 @@ enum SERIAL_REGISTERS {
 static unsigned _portindex = 0;
 #define PORT_COM(x) (bda_ptr->com_port[x])
 
-int serial_init(unsigned port)
+int serial_early_init(unsigned port)
 {
     _portindex = port;
     if (_portindex > 4)

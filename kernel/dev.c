@@ -17,16 +17,17 @@ device_t* device_get_by_name(char* name)
 
 /* Creates a device. Returns pointer */
 device_t* device_create(uint64_t id, const char* name,
-    device_t* parent)
+    uint8_t devtype, device_t* parent)
     {
         device_t* dev = kcalloc(sizeof(device_t), 1);
         dev->devname = kmalloc(strlen(name));
+        dev->devtype = devtype;
         memcpy(name, dev->devname, strlen(name));
         dev->devid = id;
         dev->parent = parent;
-        knotice("DEV: Created device %s (id 0x%x%x), child of %s",
+        knotice("DEV: Created device %s (id 0x%x%x), type 0x%x, child of %s",
             dev->devname, (uint32_t)(id>>32), (uint32_t)(id&0xffffffff),
-            (parent) ? (parent->devname) : "<NULL>");
+            dev->devtype, (parent) ? (parent->devname) : "<NULL>");
 
         if (last_dev && !parent) {
             dev->prev = last_dev;

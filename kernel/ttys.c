@@ -3,7 +3,7 @@
 static uint8_t* default_color_ptr = 0;
 void ttys_init(terminal_t* term)
 {
-    if (!serial_init(0)) {
+    if (!serial_early_init(0)) {
         return;
     }
 
