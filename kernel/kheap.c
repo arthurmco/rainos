@@ -136,6 +136,14 @@ void kheap_deallocate(virtaddr_t addr)
     if (!item)
         return; //No item there
 
+    uint32_t* canary = (uint32_t*)(item->addr + item->bytes - sizeof(uint32_t));
+    if (*canary != item->canary) {
+        panic("Heap corruption at 0x%x (block 0x%x, %d bytes, flags 0x%x)\n"
+            "\tCanary is 0x%x, should be 0x%x",
+            addr, item->addr, item->bytes, item->flags,
+            *canary, item->canary);
+    }
+
     item->flags = HFLAGS_FREE;
     kheap_removeItem(item, &hUsed);
     kheap_addItem(item, _kheap_find_item(&hFree, addr, HFIND_NEAREST_BELOW),
