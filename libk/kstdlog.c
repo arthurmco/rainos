@@ -18,6 +18,12 @@ void knotice(const char* fmt, ...)
 
     strcat(msg, "\n");
 
+#if LOG_TO_SCREEN == 1
+    terminal_setcolor(0x08);
+    kputs(msg);
+    terminal_restorecolor();
+#endif
+
     if (logterm->term_puts_f)
         logterm->term_puts_f(msg);
 }
@@ -40,6 +46,14 @@ void kwarn(const char* fmt, ...)
     va_end(vl);
 
     strcat(msg, "\n");
+
+#if LOG_TO_SCREEN == 1
+    terminal_setcolor(0x0e);
+    kputs("WARNING: ");
+    terminal_setcolor(0x08);
+    kputs(msg);
+    terminal_restorecolor();
+#endif
 
     if (logterm->term_puts_f)
         logterm->term_puts_f(msg);

@@ -8,6 +8,8 @@
 #ifndef _KSTDLOG_H
 #define _KSTDLOG_H
 
+#define LOG_TO_SCREEN 0
+
 void klog_set_device(terminal_t* term);
 void knotice(const char* fmt, ...);
 void kwarn(const char* fmt, ...);
