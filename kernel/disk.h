@@ -17,6 +17,7 @@ typedef struct disk {
     char disk_name[64]; // Disk name, reported by IDENTIFY
 
     int id;
+    int specific; //Used by disk driver to identify the disk.
     size_t b_size; // Disk block size
     size_t b_count; // Block count.
 

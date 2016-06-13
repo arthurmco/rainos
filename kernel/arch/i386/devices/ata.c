@@ -137,6 +137,26 @@ int ata_identify(struct AtaDevice* atadev)
 
 static struct AtaDevice devices[MAX_ATA_DEVS];
 static unsigned devcount = 0;
+
+static int ata_dev_disk_read_wrapper(disk_t* d,
+    uint64_t off, size_t len, void* buf)
+{
+    if (d->specific >= devcount)
+        return 0; // Exceeded the maximum device number
+
+    struct AtaDevice* dev = &devices[d->specific];
+
+    if (!dev)
+        return 0; // Device is null
+
+    if (!dev->iobase || !dev->ioalt || !dev->ident)
+    {
+        return 0; // No disk information
+    }
+
+    return ata_read_sector_pio(dev, off, len, buf);
+}
+
 int ata_initialize(struct PciDevice* dev)
 {
     uint16_t base_first =       (uint16_t)(dev->config.bar[0] & ~3);
@@ -193,9 +213,11 @@ int ata_initialize(struct PciDevice* dev)
                 memset(&d, 0, sizeof(disk_t));
                 d.b_count = devices[devcount].ident->sector_count;
                 d.b_size = 512;
+                d.specific = devcount;
+                d.__disk_read = &ata_dev_disk_read_wrapper;
                 memcpy(devname, d.disk_name, strlen(devname));
                 disk_add(&d);
-                
+
                 /* TODO: print disk info to log */
                 devcount++;
             }

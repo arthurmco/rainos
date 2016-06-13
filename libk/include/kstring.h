@@ -16,4 +16,6 @@ char* strcat(char* str, const char* catted);
 void sprintf(char* str, const char* fmt, ...);
 void vsprintf(char* str, const char* fmt, va_list vl);
 
+int strncmp(const char* s1, const char* s2, size_t len);
+
 #endif /* end of include guard: _KSTRING_H */

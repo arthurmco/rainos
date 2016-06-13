@@ -23,8 +23,9 @@ typedef struct device {
 
     /* fill these if device is DEVTYPE_BLOCK */
     size_t b_size;
-    int (*__dev_read)(struct device*, size_t len, void* buf);
-    int (*__dev_write)(struct device*, size_t len, const void* buf);
+    int (*__dev_read)(struct device*, uint64_t off, size_t len, void* buf);
+    int (*__dev_write)(struct device*, uint64_t off, size_t len,
+        const void* buf);
 
     /* fill these if device is DEVTYPE_CHAR */
     int (*__dev_getc)(struct device*);
@@ -32,8 +33,6 @@ typedef struct device {
 
     /* fill this if device is DEVTYPE_SEEKABLE */
     int (*__dev_seek)(struct device*, uint64_t off);
-
-    uint64_t (*__dev_tell)(struct device*);
 
     struct device* next;
     struct device* prev;
@@ -53,5 +52,6 @@ device_t* device_create(uint64_t id, const char* name,
 /* Destroys a device. */
 void device_destroy(device_t* dev);
 
+int device_read(device_t* dev, uint64_t off, size_t len, void* buf);
 
 #endif /* end of include guard: _DEV_H */

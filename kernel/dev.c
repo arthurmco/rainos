@@ -7,12 +7,36 @@ static device_t* last_dev = NULL;
     Returns NULL if device hasn't been found */
 device_t* device_get_by_id(uint64_t devid)
 {
+    device_t* d = last_dev;
 
+    while (d)
+    {
+        if (d->devid == devid)
+        {
+            return d;
+        }
+
+        d = d->prev;
+    }
+
+    return NULL;
 }
 
 device_t* device_get_by_name(char* name)
 {
+    device_t* d = last_dev;
 
+    while (d)
+    {
+        if (!strncmp(d->devname, name, strlen(name)))
+        {
+            return d;
+        }
+
+        d = d->prev;
+    }
+
+    return NULL;
 }
 
 /* Creates a device. Returns pointer */
@@ -59,4 +83,10 @@ void device_destroy(device_t* dev)
 
     kfree(dev->devname);
     kfree(dev);
+}
+
+int device_read(device_t* dev, uint64_t off, size_t len, void* buf)
+{
+    if (!dev) return 0;
+    return dev->__dev_read(dev, off, len, buf);
 }

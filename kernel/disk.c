@@ -3,6 +3,49 @@
 static disk_t disks[MAX_DISKS];
 int disk_count = 0;
 
+static int _disk_dev_read_wrapper(device_t* dev,
+    uint64_t off, size_t len, void* buf)
+{
+    disk_t* disk = NULL;
+    for (size_t i = 0; i < MAX_DISKS; i++)
+    {
+        disk = &disks[i];
+        if (disk->dev == dev || disk->dev->devid == dev->devid)
+        {
+            knotice("\t disk: found disk %s = %s", disk->dev->devname, dev->devname);
+
+            /*  Here we convert offset and lengths, that are in bytes, in
+                sectors */
+
+            uint64_t off_sector;
+            size_t len_sector;
+            size_t byte_start_spare = off % disk->b_size;
+
+            off_sector = off / disk->b_size;
+            len_sector = 1 + ((len - 1 + byte_start_spare) / disk->b_size);
+
+            knotice("\t disk: converted off=%d, len=%d in bytes "
+                "to off=%d, len=%d in sectors, using %d byte sectors",
+                (uint32_t)(off & 0xffffffff), (uint32_t)(len & 0xffffffff),
+                (uint32_t)(off_sector & 0xffffffff),
+                (uint32_t)(len_sector & 0xffffffff), disk->b_size);
+
+            void* newbuf = kmalloc(len_sector*disk->b_size);
+
+            int ret = disk_read(disk, off_sector, len_sector, newbuf);
+
+            memcpy(&newbuf[byte_start_spare], buf,
+                (len_sector * disk->b_size) - byte_start_spare);
+
+            return 0;
+        }
+    }
+
+    // Not found.
+    return -1;
+}
+
+
 int disk_add(struct disk* d)
 {
     if (disk_count == MAX_DISKS)
@@ -17,7 +60,9 @@ int disk_add(struct disk* d)
         DEVTYPE_BLOCK | DEVTYPE_SEEKABLE, NULL);
     d->dev = dev;
 
-    dev->b_size = (d->b_size == 0) ? 512 : d->b_size;
+    d->b_size = (d->b_size == 0) ? 512 : d->b_size;
+    dev->b_size = d->b_size;
+    dev->__dev_read = &_disk_dev_read_wrapper;
 
     knotice("DISK: Adding disk %s (%d MB) as %s",
         d->disk_name,

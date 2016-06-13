@@ -253,6 +253,19 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     WRITE_SUCCESS();
 
 
+    device_t* d = device_get_by_name("disk0");
+    kprintf("\n 0x%08x -> %s", d,
+        (d) ? d->devname : "<NULL>");
+
+    if (d) {
+        uint32_t* read = kmalloc(1024);
+        device_read(d, 254, 768, read);
+
+        kprintf("\n%08x %08x %08x %08x\n",
+            read[0], read[1], read[2], read[3]);
+
+    }
+
     for(;;) {
         asm volatile("nop");
     }
