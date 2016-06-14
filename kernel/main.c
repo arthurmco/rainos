@@ -158,7 +158,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     }
 
 /* Test for physica memory manager */
-#if 1
+#if 0
 {
     physaddr_t addr = pmm_alloc(6, PMM_REG_DEFAULT);
     kprintf("\n\t test: allocated RAM at 0x%x", addr);
@@ -252,20 +252,44 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     kprintf("\t]");
     WRITE_SUCCESS();
 
+    WRITE_STATUS("Starting VFS...");
+    vfs_init();
 
-    device_t* d = device_get_by_name("disk0");
-    kprintf("\n 0x%08x -> %s", d,
-        (d) ? d->devname : "<NULL>");
+    vfs_node_t* t1 = vfs_create_node(1, "test.001");
+    vfs_node_t* t2 = vfs_create_node(2, "test.002");
+    t1->next = t2;
+    t2->prev = t1;
+    t2->flags = VFS_FLAG_FOLDER;
 
-    if (d) {
-        uint32_t* read = kmalloc(512);
-        device_read(d, 256, 512, read);
+    vfs_node_t* t3 = vfs_create_node(3, "test.003");
+    t3->parent = t2;
+    t2->child = t3;
 
-        kprintf("\n(buffer 0x%x) %08x %08x %08x %08x\n",
-            read, read[0], read[1], read[2], read[3]);
+    kprintf("(%x %x)", t1, t2);
+    vfs_get_root()->child = t1;
+    t1->parent = vfs_get_root();
+    t2->parent = vfs_get_root();
 
-        kfree(read);
+    vfs_node_t* node;
+    if (vfs_readdir(vfs_get_root(), &node) == 1) {
+        kprintf("\n ok");
     }
+
+    kprintf("\t Node %s, id %d, flags 0x%x", vfs_get_root()->name,
+        (uint32_t)vfs_get_root()->inode, vfs_get_root()->flags);
+    while (node) {
+
+        kprintf("\n \t |-- (%08x) Node %s, id %d, flags 0x%x", node,
+            node->name, (uint32_t)node->inode, node->flags);
+        node = node->next;
+    }
+
+    vfs_node_t* n = vfs_find_node("/test.002");
+    kprintf("\n\n\t%s", n->name);
+
+
+
+    WRITE_SUCCESS();
 
     for(;;) {
         asm volatile("nop");

@@ -18,4 +18,5 @@ void vsprintf(char* str, const char* fmt, va_list vl);
 
 int strncmp(const char* s1, const char* s2, size_t len);
 
+char* strtok(const char* s, char tok);
 #endif /* end of include guard: _KSTRING_H */

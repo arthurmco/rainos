@@ -6,6 +6,8 @@
 #ifndef _VFS_H
 #define _VFS_H
 
+#include <kstring.h>
+
 #include "../dev.h"
 
 typedef struct vfs_filesystem {
@@ -15,7 +17,28 @@ typedef struct vfs_filesystem {
     int (*__vfs_mount)(device_t* dev);
 } vfs_filesystem_t ;
 
+enum VfsNodeFlags {
+    VFS_FLAG_HIDDEN = 0x01,     /* Node is hidden */
+
+    /* Node is a link. In this case, 'ptr' is where the link points to */
+    VFS_FLAG_SYMLINK = 0x02,
+
+    /* Node is a folder */
+    VFS_FLAG_FOLDER = 0x04,
+
+    /*  Node is a mountpoint. In this case, 'ptr' is the root dir of
+        the disk you mounted */
+    VFS_FLAG_MOUNTPOINT = 0x08,
+
+};
+
 typedef struct vfs_node {
+    /* File name */
+    char name[64];
+
+    /* Node options */
+    uint32_t flags;
+
     /* Inode number, used as a ID to the fs driver */
     uint64_t inode;
 
@@ -24,9 +47,6 @@ typedef struct vfs_node {
 
     /* Physical file size */
     uint64_t size;
-
-    /* File name */
-    char name[64];
 
     /* A pointer to the mount point.
         Held as void to avoid circular reference errors */
@@ -55,7 +75,7 @@ typedef struct vfs_node {
 
     /* Pointer to the first child */
     struct vfs_node* child;
-
+    struct vfs_node* ptr;
     struct vfs_node* parent;
 
     // I honestly hate this pointer syntax, but it's prettier on this case
@@ -77,6 +97,9 @@ typedef struct vfs_mount {
 
 /* Create the root node */
 void vfs_init();
+vfs_node_t* vfs_get_root();
+
+vfs_node_t* vfs_create_node(uint64_t id, const char* name);
 
 int vfs_register_fs(vfs_filesystem_t* fs);
 vfs_filesystem_t* vfs_get_fs(const char* name);
@@ -87,6 +110,12 @@ int vfs_mount(vfs_node_t* node, device_t* dev, struct vfs_filesystem* fs);
 
 /*  Read the childs and store the first child on
     node->childs member */
-int vfs_readdir(vfs_node_t* node);
+int vfs_readdir(vfs_node_t* node, vfs_node_t** childs);
+
+/* Find a node by its path */
+vfs_node_t* vfs_find_node(const char* path);
+
+/* Find a node from a starting point */
+vfs_node_t* vfs_find_node_relative(vfs_node_t* base, const char* path_rel);
 
 #endif /* end of include guard: _VFS_H */

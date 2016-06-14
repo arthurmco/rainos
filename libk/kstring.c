@@ -144,3 +144,15 @@ int strncmp(const char* s1, const char* s2, size_t len)
 
     return 0;
 }
+
+char* strtok(const char* s, char tok)
+{
+    while (*s) {
+        if (*s == tok)
+            return s;
+
+        s++;
+    }
+
+    return NULL;
+}
