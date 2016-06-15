@@ -32,6 +32,8 @@ void timer(regs_t* regs) {
     kprintf("Timer: %d\n", _timer++);
 }
 
+extern void jump_usermode(uintptr_t stack, uintptr_t usermode_function);
+
 #define WRITE_STATUS(status) do {   \
     terminal_setcolor(0xf);         \
     kputs(" o ");                   \
@@ -259,6 +261,21 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     WRITE_STATUS("Jumping to user mode (will call init on the future)");
     tss_init(page_dir_phys);
+
+    uint8_t* newfunc = vmm_alloc_page(VMM_AREA_USER, 3);
+    void* newstack = vmm_alloc_page(VMM_AREA_USER, 1);
+
+    // Usermode code will run
+    newfunc[0] = 0x66;
+    newfunc[1] = 0xb8;
+    newfunc[2] = 0xff;
+    newfunc[3] = 0xff;   //movw $0xffff, ax
+    newfunc[4] = 0xeb;
+    newfunc[5] = 0xfe;   //jmp -1
+
+    jump_usermode((uintptr_t)newstack, (uintptr_t)newfunc);
+
+
     WRITE_FAIL();
 
     for(;;) {
