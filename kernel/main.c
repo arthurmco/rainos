@@ -15,6 +15,7 @@
 #include "arch/i386/devices/ata.h"
 #include "arch/i386/multiboot.h"
 #include "arch/i386/vmm.h"
+#include "arch/i386/tss.h"
 #include "arch/i386/irq.h"
 #include "arch/i386/idt.h"
 #include "arch/i386/pages.h"
@@ -254,42 +255,11 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     WRITE_STATUS("Starting VFS...");
     vfs_init();
-
-    vfs_node_t* t1 = vfs_create_node(1, "test.001");
-    vfs_node_t* t2 = vfs_create_node(2, "test.002");
-    t1->next = t2;
-    t2->prev = t1;
-    t2->flags = VFS_FLAG_FOLDER;
-
-    vfs_node_t* t3 = vfs_create_node(3, "test.003");
-    t3->parent = t2;
-    t2->child = t3;
-
-    kprintf("(%x %x)", t1, t2);
-    vfs_get_root()->child = t1;
-    t1->parent = vfs_get_root();
-    t2->parent = vfs_get_root();
-
-    vfs_node_t* node;
-    if (vfs_readdir(vfs_get_root(), &node) == 1) {
-        kprintf("\n ok");
-    }
-
-    kprintf("\t Node %s, id %d, flags 0x%x", vfs_get_root()->name,
-        (uint32_t)vfs_get_root()->inode, vfs_get_root()->flags);
-    while (node) {
-
-        kprintf("\n \t |-- (%08x) Node %s, id %d, flags 0x%x", node,
-            node->name, (uint32_t)node->inode, node->flags);
-        node = node->next;
-    }
-
-    vfs_node_t* n = vfs_find_node("/test.002");
-    kprintf("\n\n\t%s", n->name);
-
-
-
     WRITE_SUCCESS();
+
+    WRITE_STATUS("Jumping to user mode (will call init on the future)");
+    tss_init(page_dir_phys);
+    WRITE_FAIL();
 
     for(;;) {
         asm volatile("nop");

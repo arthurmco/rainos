@@ -29,6 +29,7 @@ phys_stack_top:
 
 .section .stack, "aw", @nobits
     .align 4
+.global stack_top
 #; The kernel stack
 stack_bottom:
     .skip 1024
@@ -228,6 +229,34 @@ dGDT:
 .byte 0x92
 .byte 0xcf
 .byte 0x0
+
+# index 3: user code segment
+# base 0x0, limit 0xffff, access 0xfa, flags 0xc
+.word 0xffff
+.word 0x0
+.byte 0x0
+.byte 0xfa
+.byte 0xcf
+.byte 0x0
+
+# index 4: user data segment
+# base 0x0, limit 0xffff, access 0xf2, flags 0xc
+.word 0xffff
+.word 0x0
+.byte 0x0
+.byte 0xf2
+.byte 0xcf
+.byte 0x0
+
+.global dTSS
+dTSS:
+.word 0xffff
+.word 0xffff
+.byte 0xff
+.byte 0xe9
+.byte 0x0f
+.byte 0x0
+
 dGDTEnd:
 .long 0x0
 
