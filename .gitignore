@@ -5,3 +5,4 @@
 *.elf
 *.iso
 Makefile
+bochs_serial.txt

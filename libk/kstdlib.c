@@ -102,30 +102,13 @@ void utoa_s_pad(uint32_t i, char* str, int base, int pad, char padchar)
 
 void memset(void* ptr, uint8_t val, size_t num)
 {
-    /*if ((num % 4) == 0)
+    if ((num % 4) == 0)
         _memset_32(ptr, val, num);
-    else*/ if ((num % 2) == 0)
+    else if ((num % 2) == 0)
         _memset_16(ptr, val, num);
     else
         _memset_8(ptr, val, num);
 }
-
-void _memset_8(void* ptr, uint8_t val, size_t num)
-{
-    asm volatile("rep stosb" :
-                      :"c"(num), "D"(ptr), "aN"(val));
-}
-void _memset_16(void* ptr, uint16_t val, size_t num)
-{
-    asm volatile("rep stosw" :
-                      :"c"(num/2), "D"(ptr), "aN"(val));
-}
-/*
-void _memset_32(void* ptr, uint32_t val, size_t num)
-{
-    asm volatile("rep stosl" :
-                      :"C"(num/4), "D"(ptr), "N"(val));
-} */
 
 void sleep(unsigned ms)
 {
@@ -141,8 +124,12 @@ void sleep(unsigned ms)
 
 void memcpy(void* src, void* dst, size_t bytes)
 {
-    asm volatile("rep movsb" :
-                 :"c"(bytes), "D"(dst), "S"(src));
+    if ((bytes % 4) == 0)
+        _memcpy_32(src, dst, bytes);
+    else if ((bytes % 2) == 0)
+        _memcpy_16(src, dst, bytes);
+    else
+        _memcpy_8(src, dst, bytes);
 }
 
 void* kmalloc(size_t bytes)

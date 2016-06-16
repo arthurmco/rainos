@@ -16,7 +16,7 @@ PMM: detected RAM type hardware-used starting at E8000, 98304 bytes
 PMM: detected RAM type default starting at 100000, 32440320 bytes
 PMM: detected RAM type hardware-used starting at 1FF0000, 65536 bytes
 PMM: detected RAM type unknown starting at FFFC0000, 262144 bytes
-PMM: detected RAM type hardware-used starting at 10F370, 1079825 bytes
+PMM: detected RAM type hardware-used starting at 10F370, 1079853 bytes
 PMM: 32316 kB of usable RAM detected
 PMM: 72 kB of occupied RAM
 KERNEL: kernel end is now 0x11162C
@@ -64,3 +64,5 @@ ATA: found controller ports 1F0 3F6 170 376
 [;1;33mWARNING: [0mATA device Pri Slave is not ATA
 ATA: controller 8086:7010 ready!
 VFS: created root node at 0xC0402048
+VMM: Allocated 3 pages at virtaddr 0x400000
+VMM: Allocated 1 pages at virtaddr 0x403000

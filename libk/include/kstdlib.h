@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "../../kernel/arch/i386/specifics.h"
 
 #ifndef _KSTDLIB_H
 #define _KSTDLIB_H
@@ -17,10 +18,6 @@ void utoa_s_pad(uint32_t i, char* str, int base, int pad, char padchar);
 void sleep(unsigned ms);
 
 void memset(void* ptr, uint8_t val, size_t num);
-
-void _memset_8(void* ptr, uint8_t val, size_t num);
-void _memset_16(void* ptr, uint16_t val, size_t num);
-void _memset_32(void* ptr, uint32_t val, size_t num);
 
 void memcpy(void* src, void* dst, size_t bytes);
 

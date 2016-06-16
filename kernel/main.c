@@ -91,7 +91,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     terminal_setx(20);
     kputs("\tLicensed under GNU GPL 2.0\n\n");
 
-    asm("sti");
+    _sti();
 
     kprintf("\t Multiboot structure at 0x%x\n", mboot);
     kprintf("\t Avaliable memory: %d.%d MB\n",
@@ -156,7 +156,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     if (!pmm_init(&mml, kstart, &kend)) {
         WRITE_FAIL();
         kprintf("PANIC: error while starting memory manager");
-        asm("cli");
+        _cli();
         return -1;
     }
 
@@ -204,14 +204,14 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     if (!addr) {
         WRITE_FAIL();
         kerror("FATAL: initial physical memory allocation failed");
-        asm("cli");
+        _cli();
         return;
     }
 
     if (!pmm_free(addr, 6)) {
         WRITE_FAIL();
         kerror("FATAL: initial physical memory deallocation failed");
-        asm("cli");
+        _cli();
         return;
     }
 
@@ -279,6 +279,6 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     WRITE_FAIL();
 
     for(;;) {
-        asm volatile("nop");
+        _halt();
     }
 }

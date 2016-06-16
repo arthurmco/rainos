@@ -22,7 +22,7 @@ ISO=rainos.iso
 
 LIBK=kstdio.o kstdlib.o kstring.o kstdlog.o
 ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o pit.o \
- pci.o ata.o irq.o irq_asm.o pages.o vmm.o tss.o usermode.o
+ pci.o ata.o irq.o irq_asm.o pages.o vmm.o tss.o usermode.o specifics.o
 
 all: $(ARCH_DEP) main.o terminal.o ttys.o pmm.o kheap.o dev.o disk.o vfs.o \
  $(LIBK)
@@ -48,6 +48,7 @@ C_SOURCE_WITH_H(kernel/arch/i386/devices/,pci)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,8259)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,ata)
 C_SOURCE_WITH_H(kernel/arch/i386/,idt)
+C_SOURCE_WITH_H(kernel/arch/i386/,specifics)
 C_SOURCE_WITH_H(kernel/arch/i386/,tss)
 C_SOURCE_WITH_H(kernel/arch/i386/,irq)
 C_SOURCE_WITH_H(kernel/arch/i386/,vmm)

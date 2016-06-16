@@ -24,7 +24,7 @@ You can also type ```make iso``` to create an ISO with the system or ```make qem
 
 If you want, you can help me with these tasks
 
-- [ ] Jump to usermode and run some basic code
+- [X] Jump to usermode and run some basic code
 - [ ] Improve VFS and create filesystem drivers, like
   - [ ] a FAT driver
   - [ ] a ext driver
@@ -36,7 +36,7 @@ If you want, you can help me with these tasks
 - [ ] Create some syscalls
 - [ ] Support x86-64
 - [ ] Support UEFI
-  - [ ] Add GOP framebuffer support (fbs in UEFI)
+  - [ ] Add GOP framebuffer support (framebuffers in UEFI)
 - [ ] Support, at least, one ARM board, like
   - [ ] Integrator/CP
   - [ ] Beaglebone
