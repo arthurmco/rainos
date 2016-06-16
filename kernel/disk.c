@@ -40,7 +40,7 @@ static int _disk_dev_read_wrapper(device_t* dev,
 
             kfree(newbuf);
 
-            return 0;
+            return len;
         }
     }
 

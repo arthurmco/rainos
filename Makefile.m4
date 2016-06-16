@@ -25,7 +25,7 @@ ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o pit.o \
  pci.o ata.o irq.o irq_asm.o pages.o vmm.o tss.o usermode.o specifics.o
 
 all: $(ARCH_DEP) main.o terminal.o ttys.o pmm.o kheap.o dev.o disk.o vfs.o \
- $(LIBK)
+ partition.o $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
 iso: all
@@ -59,6 +59,7 @@ ASM_SOURCE(kernel/arch/i386/,usermode)
 ASM_SOURCE(kernel/arch/i386/,irq_asm)
 C_SOURCE_WITH_H(kernel/arch/i386/,fault)
 C_SOURCE_WITH_H(kernel/vfs/,vfs)
+C_SOURCE_WITH_H(kernel/vfs/,partition)
 C_SOURCE_WITH_H(kernel/,terminal)
 C_SOURCE_WITH_H(kernel/,ttys)
 C_SOURCE_WITH_H(kernel/,kheap)

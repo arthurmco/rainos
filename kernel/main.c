@@ -26,6 +26,7 @@
 #include "pmm.h"
 #include "kheap.h"
 #include "vfs/vfs.h"
+#include "vfs/partition.h"
 
 volatile int _timer = 0;
 void timer(regs_t* regs) {
@@ -257,7 +258,17 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     WRITE_STATUS("Starting VFS...");
     vfs_init();
+    partitions_init();
+
+    unsigned i = partitions_retrieve(device_get_by_name("disk0"));
+    kprintf("\t%d", i);
+
+    void* buf = kcalloc(512, 1);
+    device_read(device_get_by_name("disk0p1"), 0, 512, buf);
+
     WRITE_SUCCESS();
+
+#if 0
 
     WRITE_STATUS("Jumping to user mode (will call init on the future)");
     tss_init(page_dir_phys);
@@ -277,7 +288,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
 
     WRITE_FAIL();
-
+#endif
     for(;;) {
         _halt();
     }
