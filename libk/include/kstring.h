@@ -16,6 +16,7 @@ char* strcat(char* str, const char* catted);
 void sprintf(char* str, const char* fmt, ...);
 void vsprintf(char* str, const char* fmt, va_list vl);
 
+#define strcmp(s1, s2) strncmp(s1, s2, strlen(s1)+1)
 int strncmp(const char* s1, const char* s2, size_t len);
 
 char* strtok(const char* s, char tok);

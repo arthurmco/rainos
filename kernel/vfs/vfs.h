@@ -10,11 +10,16 @@
 
 #include "../dev.h"
 
+#define MAX_FS_COUNT 16
+#define MAX_MOUNTS 64
+
 typedef struct vfs_filesystem {
     /* Filesystem name */
     char fsname[16];
 
     int (*__vfs_mount)(device_t* dev);
+    int (*__vfs_get_root_dir)(device_t* dev, void** childs);
+
 } vfs_filesystem_t ;
 
 enum VfsNodeFlags {
@@ -92,7 +97,6 @@ typedef struct vfs_mount {
     device_t* dev;
     vfs_node_t* root_dir;
 
-    int (*__vfs_get_root_dir)(struct vfs_mount*);
 } vfs_mount_t;
 
 /* Create the root node */
@@ -103,6 +107,7 @@ vfs_node_t* vfs_create_node(uint64_t id, const char* name);
 
 int vfs_register_fs(vfs_filesystem_t* fs);
 vfs_filesystem_t* vfs_get_fs(const char* name);
+vfs_filesystem_t* vfs_create_fs(const char* name);
 
 /*  Mount the device 'dev' as the filesystem 'fs' in the 'node' node.
     'node' will become the new filesystem root */

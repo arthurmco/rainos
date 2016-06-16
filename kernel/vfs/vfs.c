@@ -21,21 +21,57 @@ vfs_node_t* vfs_create_node(uint64_t id, const char* name)
     return n;
 }
 
+static vfs_filesystem_t filesystems[MAX_FS_COUNT];
+unsigned fs_count = 0;
 int vfs_register_fs(vfs_filesystem_t* fs)
 {
-    return 0;
+    if (fs_count >= MAX_FS_COUNT)
+        return 0;
+
+    knotice("VFS: Registered filesystem %s", fs->fsname);
+    filesystems[fs_count++] = *fs;
+    return 1;
 }
 
 vfs_filesystem_t* vfs_get_fs(const char* name)
 {
-    return 0;
+    for (unsigned i = 0; i < fs_count; i++) {
+        if (!strcmp(name, filesystems[i].fsname)) {
+            return &filesystems[i];
+        }
+    }
+    return NULL;
 }
+
+vfs_filesystem_t* vfs_create_fs(const char* name)
+{
+    vfs_filesystem_t* fs = kcalloc(sizeof(vfs_filesystem_t), 1);
+    memcpy(name, fs->fsname, strlen(name)+1);
+    return fs;
+}
+
+static vfs_mount_t mounts[MAX_MOUNTS];
+static unsigned mount_count = 0;
 
 /*  Mount the device 'dev' as the filesystem 'fs' in the 'node' node.
     'node' will become the new filesystem root */
 int vfs_mount(vfs_node_t* node, device_t* dev, struct vfs_filesystem* fs)
 {
-    return 0;
+    //knotice("%s %x %x", fs->fsname, fs->__vfs_mount, fs->__vfs_get_root_dir);
+    if (!fs->__vfs_mount(dev)) {
+        kerror("VFS: couldn't mount fs %s into dev %s", fs->fsname, dev->devname );
+        return 0;
+    }
+
+    if (!fs->__vfs_get_root_dir(dev, &node->ptr)) {
+        kerror("VFS: couldn't read root dir, fs %s dev %s", fs->fsname, dev->devname );
+        return 0;
+    }
+
+    vfs_mount_t m;
+    m.dev = dev;
+    m.fs = fs;
+    m.root_dir = node;
 }
 
 /*  Read the childs

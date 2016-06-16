@@ -27,6 +27,7 @@
 #include "kheap.h"
 #include "vfs/vfs.h"
 #include "vfs/partition.h"
+#include "vfs/fat.h"
 
 volatile int _timer = 0;
 void timer(regs_t* regs) {
@@ -260,12 +261,17 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     vfs_init();
     partitions_init();
 
+    //init filesystems
+    fat_init();
+
     unsigned i = partitions_retrieve(device_get_by_name("disk0"));
     kprintf("\t%d", i);
 
-    void* buf = kcalloc(512, 1);
-    device_read(device_get_by_name("disk0p1"), 0, 512, buf);
-
+    if (i > 0) {
+        void* buf = kcalloc(512, 1);
+        vfs_mount(vfs_get_root(), device_get_by_name("disk0p1"), vfs_get_fs("fatfs"));
+    }
+    
     WRITE_SUCCESS();
 
 #if 0
