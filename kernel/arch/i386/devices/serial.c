@@ -47,6 +47,7 @@ int serial_early_init(unsigned port)
 {
     _portindex = port;
     serial_dev_init(port);
+    return 1;
 }
 
 /*  Base frequency, that will be divided by the serial controller to
@@ -61,6 +62,7 @@ int serial_set_baud(unsigned baud)
     outb(PORT_COM(_portindex)+SREG_DIVISOR_LSB, divisor & 0xff); //Use 12 as the divisor
     outb(PORT_COM(_portindex)+SREG_DIVISOR_MSB, divisor >> 8); //because 115200 / 12 = 9600
     outb(PORT_COM(_portindex)+SREG_LINECONTROL, 0x00); //Unset the div. latch access bit
+    return 1;
 }
 
 
@@ -120,7 +122,12 @@ int serial_init()
         device_t* tty = device_create((0x2 << 8) | ttys_num, ttyname,
             DEVTYPE_CHAR, NULL);
 
+        tty->__dev_getc = NULL;
+        tty->__dev_putc = NULL;
+
         ttys_num++;
     }
+
+    return 1;
 
 }

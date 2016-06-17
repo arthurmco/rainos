@@ -1,5 +1,7 @@
 #include "pmm.h"
 
+#define NULL 0
+
 static struct MMAPRegion* regs_data;
 static int regs_count;
 
@@ -311,3 +313,5 @@ int pmm_free(physaddr_t addr, size_t pages)
     return (_pmm_unset_addr(addr, pages, reg) > 0x0);
 
 }
+
+#undef NULL

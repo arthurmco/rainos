@@ -143,7 +143,7 @@ virtaddr_t vmm_alloc_page(unsigned int vmm_area, size_t count)
             ptable->options.dir_location = (pmm_alloc(1, PMM_REG_DEFAULT) >> 12);
 
 
-        if (i >= 0)
+        if (i > 0)
             ptable->options.chained_prev = 1;
 
         if (i < (count-1)) {

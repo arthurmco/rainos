@@ -134,17 +134,17 @@ void memcpy(void* src, void* dst, size_t bytes)
 
 void* kmalloc(size_t bytes)
 {
-    return kheap_allocate(bytes);
+    return (void*)kheap_allocate(bytes);
 }
 void* kcalloc(size_t bytes, size_t count)
 {
     void* m = kheap_allocate(bytes*count);
-    for (int i = 0; i < count; i++)
+    for (size_t i = 0; i < count; i++)
         memset(m, 0, bytes);
 
     return m;
 }
 void kfree(void* addr)
 {
-    kheap_deallocate(addr);
+    kheap_deallocate((virtaddr_t)addr);
 }

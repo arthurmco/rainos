@@ -73,9 +73,9 @@ void fat_get_fat_cluster_entry(struct fat_superblock* sb, uint32_t cluster,
         if (fat_size > 12) {
             unsigned f_offset;
             if (fat_size == 32)
-                offset = cluster * 4;
+                f_offset = cluster * 4;
             else
-                offset = cluster * 2;
+                f_offset = cluster * 2;
 
             *sector = sb->rsvd_secs + (f_offset / sb->bytes_sec);
             *offset = f_offset % sb->bytes_sec;

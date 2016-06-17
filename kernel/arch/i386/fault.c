@@ -51,7 +51,30 @@ static const char* fault_names[] =
         "Unknown Interrupt"
     };
 
+void fault_trace(uint32_t ebp) {
+    kprintf("\n\tTrace:\n");
+
+    /* Stack starts at 0x100000 at least, so.... */
+    /*TODO: Get CORRECT stack top */
+    if (ebp < 0x100000) {
+        kprintf("FATAL: stack corrupted!\n");
+        return;
+    }
+
+    uint32_t st = ebp;
+    uint32_t eip = 0;
+    int i = 0;
+    do {
+        uint32_t eip =  ((uint32_t*)st)[1];
+        kprintf("\t\t <%08x> %08x\n", eip, eip);
+        st = ((uint32_t*)st)[0];
+        i++;
+
+    } while (st >= 0x100000 || eip >= 0x100000);
+}
+
 void fault_handler(regs_t* r) {
+    
     kputs("\n");
     kerror("Processor Exception: %s\n", fault_names[r->int_no]);
     kprintf("eax: %08x\t ebx: %08x\t ecx: %08x\t edx:%08x\t\n", r->eax, r->ebx, r->ecx, r->edx);
@@ -68,5 +91,10 @@ void fault_handler(regs_t* r) {
 
     kprintf("\nexception code: %08x", r->err_code);
 
+    /* Do not print a trace in double fault
+        (the other exception might have ben fucked up the stack) */
+    if (r->int_no != 8)
+        fault_trace(r->ebp);
     asm("cli; hlt");
+
 }

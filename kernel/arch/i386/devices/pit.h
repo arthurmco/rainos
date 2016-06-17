@@ -22,8 +22,6 @@
 void pit_init();
 void pit_setspeed(unsigned hz);
 
-static void pit_handler(regs_t* regs);
-
 uint64_t pit_get_counter();
 
 

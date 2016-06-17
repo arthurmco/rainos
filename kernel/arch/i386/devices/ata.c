@@ -141,7 +141,7 @@ static unsigned devcount = 0;
 static int ata_dev_disk_read_wrapper(disk_t* d,
     uint64_t off, size_t len, void* buf)
 {
-    if (d->specific >= devcount)
+    if ((unsigned)d->specific >= devcount)
         return 0; // Exceeded the maximum device number
 
     struct AtaDevice* dev = &devices[d->specific];
@@ -180,7 +180,6 @@ int ata_initialize(struct PciDevice* dev)
     uint16_t bases[2] = {base_first, base_second};
     uint16_t alts[2] = {base_alt_first, base_alt_second};
     for (unsigned b = 0; b < 2; b++) {
-
         for (unsigned d = 0; d < 2; d++ ) {
             devices[devcount].iobase = bases[b];
             devices[devcount].ioalt = alts[b];
@@ -223,6 +222,7 @@ int ata_initialize(struct PciDevice* dev)
             }
 
         }
+
 
     }
 
@@ -280,7 +280,7 @@ int ata_read_sector_pio(struct AtaDevice* atadev,
         outb(atadev->iobase + ATAREG_LBAMID,        (lba >> 8) & 0xff);
         outb(atadev->iobase + ATAREG_LBAHIGH,       (lba >> 16) & 0xff);
         outb(atadev->iobase + ATAREG_DRIVESELECT,
-                inb(atadev->iobase + ATAREG_DRIVESELECT) | (lba >> 24) & 0xf | 1 << 6);
+                inb(atadev->iobase + ATAREG_DRIVESELECT) | ((lba >> 24) & 0xf) | 1 << 6);
         ata_sendcommand(atadev, ATACMD_READ);
 
         if (!ata_wait_ready(atadev)) {
@@ -337,7 +337,7 @@ int ata_write_sector_pio(struct AtaDevice* atadev,
         outb(atadev->iobase + ATAREG_LBAMID,        (lba >> 8) & 0xff);
         outb(atadev->iobase + ATAREG_LBAHIGH,       (lba >> 16) & 0xff);
         outb(atadev->iobase + ATAREG_DRIVESELECT,
-                inb(atadev->iobase + ATAREG_DRIVESELECT) | (lba >> 24) & 0xf | 1 << 6);
+                inb(atadev->iobase + ATAREG_DRIVESELECT) | ((lba >> 24) & 0xf) | 1 << 6);
         ata_sendcommand(atadev, ATACMD_WRITE);
 
         if (!ata_wait_ready(atadev)) {

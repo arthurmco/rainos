@@ -30,13 +30,16 @@ static int _disk_dev_read_wrapper(device_t* dev,
                 (uint32_t)(off_sector & 0xffffffff),
                 (uint32_t)(len_sector & 0xffffffff), disk->b_size);
 
-            void* newbuf = kmalloc(len_sector*disk->b_size);
+            uint8_t* newbuf = kmalloc(len_sector*disk->b_size);
 
             int ret = disk_read(disk, off_sector, len_sector, newbuf);
 
+            if (ret <= 0)
+                return -1;
+
             knotice("\t disk: copy %d bytes starting at %d",
                 len, byte_start_spare);
-            memcpy(&newbuf[byte_start_spare], buf, len);
+            memcpy((uint8_t*)&newbuf[byte_start_spare], buf, len);
 
             kfree(newbuf);
 

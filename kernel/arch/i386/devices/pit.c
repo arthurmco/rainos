@@ -1,11 +1,5 @@
 #include "pit.h"
 
-void pit_init()
-{
-    pit_setspeed(1000);
-
-    irq_add_handler(0, &pit_handler);
-}
 void pit_setspeed(unsigned hz)
 {
     if (hz == 0)
@@ -34,4 +28,12 @@ static void pit_handler(regs_t* regs)
 uint64_t pit_get_counter()
 {
     return pit_counter;
+}
+
+
+void pit_init()
+{
+    pit_setspeed(1000);
+
+    irq_add_handler(0, &pit_handler);
 }
