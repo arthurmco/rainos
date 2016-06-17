@@ -56,7 +56,7 @@ void fault_trace(uint32_t ebp) {
 
     /* Stack starts at 0x100000 at least, so.... */
     /*TODO: Get CORRECT stack top */
-    if (ebp < 0x100000) {
+    if (ebp < 0x100000 || ebp > 0x400000) {
         kprintf("FATAL: stack corrupted!\n");
         return;
     }
@@ -74,7 +74,8 @@ void fault_trace(uint32_t ebp) {
 }
 
 void fault_handler(regs_t* r) {
-    
+
+    asm("cli");
     kputs("\n");
     kerror("Processor Exception: %s\n", fault_names[r->int_no]);
     kprintf("eax: %08x\t ebx: %08x\t ecx: %08x\t edx:%08x\t\n", r->eax, r->ebx, r->ecx, r->edx);
@@ -95,6 +96,7 @@ void fault_handler(regs_t* r) {
         (the other exception might have ben fucked up the stack) */
     if (r->int_no != 8)
         fault_trace(r->ebp);
+
     asm("cli; hlt");
 
 }

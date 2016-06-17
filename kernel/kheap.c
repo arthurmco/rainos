@@ -120,7 +120,12 @@ virtaddr_t kheap_allocate(size_t bytes)
     uint32_t* canary = (uint32_t*)(item->addr + item->bytes - sizeof(uint32_t));
     *canary = item->canary;
 
+    knotice("%x %d", item->addr, item->bytes);
+    __kheap_dump(&hUsed);
+    __kheap_dump(&hFree);
+
     return item->addr;
+
 }
 
 virtaddr_t kheap_allocate_phys(physaddr_t phys, size_t bytes)
@@ -163,6 +168,11 @@ void kheap_deallocate(virtaddr_t addr)
     if (!item)
         return; //No item there
 
+    if (item->addr != addr) {
+        kerror("HEAP: didn't found correct address, doing nothing for safe");
+        return;
+    }
+
     uint32_t* canary = (uint32_t*)(item->addr + item->bytes - sizeof(uint32_t));
     if (*canary != item->canary) {
         panic("Heap corruption at 0x%x (block 0x%x, %d bytes, flags 0x%x)\n"
@@ -196,7 +206,7 @@ heap_item_t* _kheap_alloc_item(size_t bytes)
     for (unsigned i = 1; i < hFree.count; i++) {
 
         if (!it) {
-            continue;
+            break;
         }
 
         if (it->flags != HFLAGS_FREE) {
@@ -213,48 +223,55 @@ heap_item_t* _kheap_alloc_item(size_t bytes)
             return it;
         }
 
-        if (it->bytes > real_bytes) {
-
-            size_t divide = (it->bytes) / real_bytes;
-
-            if (divide == 1) {
-                // knotice("--   %x %d", it->addr, it->bytes);
-                kheap_removeItem(it, &hFree);
-                return it; //good enough
-            }
-
-            if ((it->bytes % real_bytes) > 0) {
-                divide--;
-
-                if (divide == 1) {
-                    // knotice("--   %x %d", it->addr, it->bytes);
-                    kheap_removeItem(it, &hFree);
-                    return it; //good enough
-                }
-
-            }
-
-
-            /* Change them */
-             knotice("dividing item of %d bytes by %d", it->bytes, divide);
-            it->bytes /= divide;
-             knotice("now item has %d bytes", it->bytes);
-
-            heap_item_t* previt = it;
-            for (unsigned int i = 1; i <= divide; i++) {
-                /* Split them into smaller items */
-                heap_item_t* newit = item_reserve_top++;
-                newit->bytes = it->bytes;
-                newit->addr = (it->addr) + (i*it->bytes);
-                newit->flags = HFLAGS_FREE;
-                kheap_addItem(newit, previt, &hFree);
-                // knotice("complimented, addr 0x%x, bytes %d",
-                //     newit->addr, newit->bytes);
-                previt = newit;
-            }
-            goto retry_detect; /* Retry, to see if we can allocate now */
-
-        }
+        // if (it->bytes > real_bytes) {
+        //
+        //     size_t divide = (it->bytes) / real_bytes;
+        //
+        //     if (divide == 1) {
+        //         // knotice("--   %x %d", it->addr, it->bytes);
+        //         kheap_removeItem(it, &hFree);
+        //         return it; //good enough
+        //     }
+        //
+        //     if ((it->bytes % real_bytes) > 0) {
+        //         divide--;
+        //
+        //         if (divide == 1) {
+        //             // knotice("--   %x %d", it->addr, it->bytes);
+        //             kheap_removeItem(it, &hFree);
+        //             return it; //good enough
+        //         }
+        //
+        //     }
+        //
+        //
+        //     /* Change them */
+        //      knotice("dividing item of %d bytes by %d", it->bytes, divide);
+        //     it->bytes /= divide;
+        //      knotice("now item has %d bytes", it->bytes);
+        //
+        //     heap_item_t* first_it = NULL;
+        //     heap_item_t* previt = it;
+        //     for (unsigned int i = 1; i <= divide; i++) {
+        //         /* Split them into smaller items */
+        //         heap_item_t* newit = item_reserve_top++;
+        //         newit->bytes = it->bytes;
+        //         newit->addr = (it->addr) + (i*it->bytes);
+        //         newit->flags = HFLAGS_FREE;
+        //         kheap_addItem(newit, previt, &hFree);
+        //         // knotice("complimented, addr 0x%x, bytes %d",
+        //         //     newit->addr, newit->bytes);
+        //         previt = newit;
+        //
+        //         if (!first_it)
+        //             first_it = newit;
+        //     }
+        //
+        //     kheap_removeItem(it, &hFree);
+        //     it = first_it;
+        //     goto retry_detect; /* Retry, to see if we can allocate now */
+        //
+        // }
 
         if (it->bytes < real_bytes) {
             /* Join smaller free pieces */
@@ -297,7 +314,9 @@ heap_item_t* _kheap_alloc_item(size_t bytes)
 
         }
 
+
         it = it->next;
+        if (!it) break;
     }
 
     /* Last resort */

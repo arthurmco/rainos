@@ -311,7 +311,8 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
     sec = FAT_GET_FIRST_SECTOR_CLUSTER(fs, clus);
 
     void* clus_buf = kcalloc(fs->bytes_sec, fs->sec_clus);
-    knotice("%d", fs->sec_clus*fs->bytes_sec);
+    knotice("%d %d %d", clus, sec, fs->sec_clus*fs->bytes_sec);
+    knotice("%x %s ~~~", d, d->devname);
 
     int r = device_read(d, sec * fs->bytes_sec, fs->sec_clus * fs->bytes_sec,
         clus_buf);
