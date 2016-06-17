@@ -63,10 +63,14 @@ int vfs_mount(vfs_node_t* node, device_t* dev, struct vfs_filesystem* fs)
         return 0;
     }
 
-    if (!fs->__vfs_get_root_dir(dev, &node->ptr)) {
+    vfs_node_t* node_childs;
+    if (!fs->__vfs_get_root_dir(dev, &node_childs)) {
         kerror("VFS: couldn't read root dir, fs %s dev %s", fs->fsname, dev->devname );
         return 0;
     }
+
+    node->ptr = node_childs;
+    node->flags |= VFS_FLAG_MOUNTPOINT;
 
     vfs_mount_t m;
     m.dev = dev;

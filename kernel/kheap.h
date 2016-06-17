@@ -50,7 +50,9 @@ enum HeapFlags {
 
 enum HeapFindMode {
     HFIND_NEAREST_ABOVE = 2,
-    HFIND_NEAREST_BELOW = 3
+    HFIND_NEAREST_BELOW = 4
 };
+
+void __kheap_dump(struct HeapList* const list);
 
 #endif /* end of include guard: _KHEAP_H */

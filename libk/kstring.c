@@ -101,8 +101,8 @@ void vsprintf(char* str, const char* fmt, va_list vl) {
                 //char
                 case 'c': {
                     char c = va_arg(vl, int);
-                    *str = c;
                     str++;
+                    *str = c;
                 }
                     break;
             }

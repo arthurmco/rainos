@@ -131,13 +131,13 @@ FAT_ATTR_LONG_NAME  =
 struct fat_fs {
     device_t* dev;
     struct fat_superblock* sb;
-    uint8_t fat_type; //12, 16 or 32.    
+    uint8_t fat_type; //12, 16 or 32.
 };
 
 void fat_init();
 
 int fat_mount(device_t*);
-int fat_get_root_dir(device_t* dev, vfs_node_t* root);
+int fat_get_root_dir(device_t* dev, vfs_node_t** root_childs);
 
 uint8_t fat_get_type(struct fat_superblock* sb);
 

@@ -56,5 +56,17 @@ void fault_handler(regs_t* r) {
     kerror("Processor Exception: %s\n", fault_names[r->int_no]);
     kprintf("eax: %08x\t ebx: %08x\t ecx: %08x\t edx:%08x\t\n", r->eax, r->ebx, r->ecx, r->edx);
     kprintf("eip: %08x\t esp: %08x\t ebp: %08x\t \n", r->eip, r->esp, r->ebp);
+
+    if (r->int_no == 14) {
+        /* if page fault, get CR2 */
+        uint32_t _cr2 = 0x0, _cr3 = 0x0;
+        asm volatile("mov %%cr2, %%eax" : "=a"(_cr2));
+        asm volatile("mov %%cr3, %%eax" : "=a"(_cr3));
+
+        kprintf("cr2: %08x\t cr3: %08x\n", _cr2, _cr3);
+    }
+
+    kprintf("\nexception code: %02x", r->err_code);
+
     asm("cli; hlt");
 }

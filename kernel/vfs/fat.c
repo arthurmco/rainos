@@ -114,8 +114,108 @@ int fat_get_next_cluster(void* fat_sec_buffer, uint32_t offset,
 
 }
 
+static void _fat_read_directories(void* clusterbuf, unsigned int rootdir_secs,
+    vfs_node_t** childs)
+{
+    struct fat_dir* rootdir = (struct fat_dir*)clusterbuf;
+    /* 1 dir = 32 bytes, 8 dirs = 512 bytes */
 
-int fat_get_root_dir(device_t* dev, vfs_node_t* root)
+    vfs_node_t* node = NULL;
+    int next_inode = 1;
+    for (unsigned i = 0; i < rootdir_secs*8; i++) {
+        if (next_inode) {
+            vfs_node_t* old_node = node;
+
+            node = kcalloc(sizeof(vfs_node_t), 1);
+            knotice("%x %x", node, node->inode);
+
+            if (!old_node) {
+                //node was null, this means that this is the first node
+                *childs = node;
+
+            } else {
+                old_node->next = node;
+            }
+
+            node->prev = old_node;
+            next_inode = 0;
+        }
+
+        knotice("%x %x", node, node->inode);
+
+        char dirname[16];
+        memset(dirname, 0, 16);
+
+        if (rootdir[i].name[0] == 0xe5) /* free directory, but can be more */
+            continue;
+
+        if (rootdir[i].name[0] == 0x0) /* free directory, no more */
+            break;
+
+        if (rootdir[i].attr & FAT_ATTR_LONG_NAME) {
+            kwarn("fat: long file names is not yet supported");
+            continue;
+        }
+
+        memcpy(rootdir[i].name, dirname, 11);
+
+        if (dirname[0] == 0x05)
+            dirname[0] = 0xe5; //Kanji lead byte things
+
+        /* Work with easy fields first */
+        node->size = rootdir[i].size;
+        node->block = (rootdir[i].cluster_high << 16) | rootdir[i].cluster_low;
+
+        if (rootdir[i].attr & FAT_ATTR_HIDDEN)
+            node->flags |= VFS_FLAG_HIDDEN;
+
+        if (rootdir[i].attr & FAT_ATTR_DIRECTORY)
+            node->flags |= VFS_FLAG_FOLDER;
+
+        if (node->flags & VFS_FLAG_FOLDER) {
+            /* Trim the spaces on folder name */
+            for (int i = 11; i > 1; i--) {
+                if (dirname[i] != ' ') {
+                    dirname[i+1] = 0;
+                    break;
+                }
+            }
+
+        } else {
+            unsigned int namelen;
+            /* Retrieve name and extension, separated */
+
+            for (int i = 7; i > 1; i--) {
+                if (dirname[i] != ' ') {
+                    dirname[i+1] = '.';
+                    namelen = i+1;
+                }
+            }
+
+            knotice("12345678");
+
+            for (int i = 8; i < 11; i++) {
+                if (dirname[i] == ' ') {
+                    dirname[i] = 0;
+                    break;
+                }
+
+                dirname[namelen+(i-7)] = dirname[i];
+            }
+
+        }
+        /* And copy it */
+        memcpy(dirname, node->name, strlen(dirname)+1);
+        knotice("%s, cluster %d, %d bytes", dirname,
+            rootdir[i].cluster_low, rootdir[i].size);
+
+
+        next_inode = 1;
+    }
+
+}
+
+int fat_get_root_dir(device_t* dev, vfs_node_t** root_childs)
 {
     struct fat_fs* fat = NULL;
 
@@ -155,33 +255,8 @@ int fat_get_root_dir(device_t* dev, vfs_node_t* root)
     }
 
     knotice("Directories... ");
-    struct fat_dir* rootdir = (struct fat_dir*)rootdir_sec;
-    /* 1 dir = 32 bytes, 8 dirs = 512 bytes */
-    for (unsigned i = 0; i < rootdir_sec_count*8; i++) {
 
-        char dirname[16];
-        memset(dirname, 0, 16);
-
-        if (rootdir[i].name[0] == 0xe5) /* free directory, but can be more */
-            continue;
-
-        if (rootdir[i].name[0] == 0x0) /* free directory, no more */
-            break;
-
-        if (rootdir[i].attr & FAT_ATTR_LONG_NAME) {
-            kwarn("fat: long file names is not yet supported");
-            continue;
-        }
-
-        memcpy(rootdir[i].name, dirname, 11);
-        knotice("%s, cluster %d, %d bytes", dirname,
-            rootdir[i].cluster_low, rootdir[i].size);
-
-        if (dirname[0] == 0x05)
-            dirname[0] = 0xe5; //Kanji lead byte things
-
-
-    }
+    _fat_read_directories(rootdir_sec, rootdir_sec_count, root_childs);
 
     return 1;
 }
