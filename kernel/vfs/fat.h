@@ -150,7 +150,6 @@ void fat_get_fat_cluster_entry(struct fat_superblock* sb, uint32_t cluster,
 int fat_get_next_cluster(void* fat_sec_buffer, uint32_t offset,
     uint8_t fat_type);
 
-int fat_readdir(vfs_node_t* parent, vfs_node_t** childs);
 
 
 

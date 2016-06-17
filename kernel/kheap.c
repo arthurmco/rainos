@@ -67,7 +67,7 @@ void kheap_init()
     item_reserve_top = item_reserve_bottom;
 
     // Allocate 16 pages for the data reserve
-    addr_reserve_bottom = vmm_alloc_page(VMM_AREA_KERNEL, 16);
+    addr_reserve_bottom = vmm_alloc_page(VMM_AREA_KERNEL, DEFAULT_ALLOC_SIZE);
     addr_reserve_top = addr_reserve_bottom;
 
     //knotice("KHEAP: items starts at 0x%x, addresses starts at 0x%x",
@@ -91,6 +91,23 @@ virtaddr_t kheap_allocate(size_t bytes)
         item->flags = HFLAGS_USED;
         item->canary = 0x40404;
         kheap_addItem(item, hUsed.last, &hUsed);
+
+        /* Check if we need more pages */
+        if ((addr_reserve_top + item->bytes ) >
+            (addr_reserve_bottom + (DEFAULT_ALLOC_SIZE*VMM_PAGE_SIZE))) {
+            knotice("HEAP: more space needed.");
+            /* We will need */
+            /*  Allocate the needed amount of pages to fill this space and
+                request more */
+
+            size_t needed = addr_reserve_bottom + (DEFAULT_ALLOC_SIZE*VMM_PAGE_SIZE) - addr_reserve_top;
+
+            /* needed - 8 for canary and worst-case alignment */
+            kheap_deallocate(kheap_allocate(needed - 8));
+
+            kheap_get_more_pages(item->bytes);
+        }
+
         addr_reserve_top += item->bytes;
 
     } else {
@@ -208,6 +225,13 @@ heap_item_t* _kheap_alloc_item(size_t bytes)
 
             if ((it->bytes % real_bytes) > 0) {
                 divide--;
+
+                if (divide == 1) {
+                    // knotice("--   %x %d", it->addr, it->bytes);
+                    kheap_removeItem(it, &hFree);
+                    return it; //good enough
+                }
+
             }
 
 
@@ -397,5 +421,22 @@ void __kheap_dump(struct HeapList* const list)
         it->prev, it->next);
         it = it->next;
     }
+
+}
+
+
+
+/* Allocate a fixed size of pages for the heap */
+void kheap_get_more_pages(size_t asked_size)
+{
+    size_t asked_pages = (asked_size / VMM_PAGE_SIZE) + 1;
+    size_t allocation = ((asked_pages > DEFAULT_ALLOC_SIZE) ?
+        (asked_pages + 1) : (DEFAULT_ALLOC_SIZE));
+
+
+    knotice("HEAP: allocating more %d pages", allocation);
+
+    addr_reserve_bottom = vmm_alloc_page(VMM_AREA_KERNEL, allocation);
+    addr_reserve_top = addr_reserve_bottom;
 
 }

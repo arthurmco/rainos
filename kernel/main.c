@@ -264,20 +264,44 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     //init filesystems
     fat_init();
 
-    unsigned i = partitions_retrieve(device_get_by_name("disk0"));
-    kprintf("\t%d", i);
+    int i = partitions_retrieve(device_get_by_name("disk0"));
+    int is_mount = 0;
 
     if (i > 0) {
         void* buf = kcalloc(512, 1);
-        vfs_mount(vfs_get_root(), device_get_by_name("disk0p1"), vfs_get_fs("fatfs"));
+        device_t* p1 =  device_get_by_name("disk0p1");
+
+
+        if (p1) {
+            vfs_mount(vfs_get_root(), p1, vfs_get_fs("fatfs"));
+            is_mount = 1;
+        }
+        else
+            kerror("FAT partition not found for test case");
     }
 
-    vfs_node_t* n;
-    vfs_readdir(vfs_get_root(), &n);
+    vfs_node_t* n = NULL;
 
-    while (n) {
-        kprintf("\n%s %s", n->name, (n->flags & VFS_FLAG_FOLDER) ? "[DIR]" : "");
-        n = n->next;
+    if (is_mount) {
+        vfs_readdir(vfs_get_root(), &n);
+
+        while (n) {
+            kprintf("\n%s %s", n->name, (n->flags & VFS_FLAG_FOLDER) ? "[DIR]" : "");
+
+            if (n->flags & VFS_FLAG_FOLDER) {
+                vfs_node_t* n_child = NULL;
+
+                vfs_readdir(n, &n_child);
+
+                while (n_child) {
+                    kprintf("\n\t%s %s", n_child->name,
+                        (n_child->flags & VFS_FLAG_FOLDER) ? "[DIR]" : "");
+                    n_child = n_child->next;
+                }
+            }
+
+            n = n->next;
+        }
     }
 
     WRITE_SUCCESS();

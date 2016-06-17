@@ -66,7 +66,7 @@ void fault_handler(regs_t* r) {
         kprintf("cr2: %08x\t cr3: %08x\n", _cr2, _cr3);
     }
 
-    kprintf("\nexception code: %02x", r->err_code);
+    kprintf("\nexception code: %08x", r->err_code);
 
     asm("cli; hlt");
 }

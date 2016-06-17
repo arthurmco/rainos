@@ -57,17 +57,24 @@ static unsigned mount_count = 0;
     'node' will become the new filesystem root */
 int vfs_mount(vfs_node_t* node, device_t* dev, struct vfs_filesystem* fs)
 {
+    if (!dev || !fs) {
+        kerror("VFS: Invalid device or filesystem");
+        return 0;
+    }
+
     //knotice("%s %x %x", fs->fsname, fs->__vfs_mount, fs->__vfs_get_root_dir);
     if (!fs->__vfs_mount(dev)) {
         kerror("VFS: couldn't mount fs %s into dev %s", fs->fsname, dev->devname );
         return 0;
     }
 
-    vfs_node_t* node_childs;
+
+    vfs_node_t* node_childs = NULL;
     if (!fs->__vfs_get_root_dir(dev, &node_childs)) {
         kerror("VFS: couldn't read root dir, fs %s dev %s", fs->fsname, dev->devname );
         return 0;
     }
+    kprintf("||%s", dev->devname);
 
     node->ptr = node_childs;
     node->flags |= VFS_FLAG_MOUNTPOINT;
@@ -76,6 +83,17 @@ int vfs_mount(vfs_node_t* node, device_t* dev, struct vfs_filesystem* fs)
     m.dev = dev;
     m.fs = fs;
     m.root_dir = node;
+
+    unsigned mountid = mount_count++;
+    mounts[mountid] = m;
+    while (node_childs) {
+        node_childs->mount = (void*)&mounts[mountid];
+        node_childs = node_childs->next;
+    }
+
+    knotice("VFS: mounted filesystem %s at device %s on %s",
+        fs->fsname, dev->devname, node->name);
+    return 1;
 }
 
 /*  Read the childs

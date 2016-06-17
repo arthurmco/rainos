@@ -47,7 +47,8 @@ typedef struct vfs_node {
     /* Inode number, used as a ID to the fs driver */
     uint64_t inode;
 
-    /* Physical location, in fs-specific unit, of the file */
+    /*  Physical location, in fs-specific unit, of the file, or a pointer
+        to that location*/
     uint64_t block;
 
     /* Physical file size */

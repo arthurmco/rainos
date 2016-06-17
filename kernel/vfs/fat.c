@@ -3,6 +3,8 @@
 static struct fat_fs fats[MAX_MOUNTS];
 static unsigned fat_count = 0;
 
+static int fat_readdir(vfs_node_t* parent, vfs_node_t** childs);
+
 void fat_init()
 {
     vfs_filesystem_t* fs = vfs_create_fs("fatfs");
@@ -117,12 +119,37 @@ int fat_get_next_cluster(void* fat_sec_buffer, uint32_t offset,
 static void _fat_read_directories(void* clusterbuf, unsigned int rootdir_secs,
     vfs_node_t** childs)
 {
+    if (rootdir_secs == 0) {
+        /* TODO: Read clusters on demand */
+        rootdir_secs = 2;
+    }
+
     struct fat_dir* rootdir = (struct fat_dir*)clusterbuf;
     /* 1 dir = 32 bytes, 8 dirs = 512 bytes */
 
     vfs_node_t* node = NULL;
     int next_inode = 1;
     for (unsigned i = 0; i < rootdir_secs*8; i++) {
+        if (((unsigned char)rootdir[i].name[0]) == 0xe5) /* free directory, but can be more */
+            continue;
+
+        knotice("%x", *(uint32_t*)&rootdir[i]);
+
+        /* Illegal chars on a directory entry */
+        if (((unsigned char)rootdir[i].name[0]) < 0x20 &&
+            rootdir[i].name[0] != 0x05) {
+                continue;
+            }
+
+        if (rootdir[i].name[0] >= 0x2a &&
+            rootdir[i].name[0] <= 0x2f) {
+                continue;
+            }
+
+        if (rootdir[i].name[0] == 0x0) /* free directory, no more */
+            break;
+
+
         if (next_inode) {
             vfs_node_t* old_node = node;
 
@@ -142,12 +169,6 @@ static void _fat_read_directories(void* clusterbuf, unsigned int rootdir_secs,
 
         char dirname[16];
         memset(dirname, 0, 16);
-
-        if (rootdir[i].name[0] == 0xe5) /* free directory, but can be more */
-            continue;
-
-        if (rootdir[i].name[0] == 0x0) /* free directory, no more */
-            break;
 
         if (rootdir[i].attr & FAT_ATTR_LONG_NAME) {
             kwarn("fat: long file names is not yet supported");
@@ -204,15 +225,13 @@ static void _fat_read_directories(void* clusterbuf, unsigned int rootdir_secs,
             }
 
             dirname[namelen+extlen+1] = 0;
-
+            knotice("%s", node->name);
 
         }
         /* And copy it */
         memcpy(dirname, node->name, strlen(dirname)+1);
-        knotice("%s, cluster %d, %d bytes", dirname,
-            rootdir[i].cluster_low, rootdir[i].size);
 
-
+        node->__vfs_readdir = &fat_readdir;
         next_inode = 1;
     }
 
@@ -249,6 +268,7 @@ int fat_get_root_dir(device_t* dev, vfs_node_t** root_childs)
     void* rootdir_sec = kcalloc(fat->sb->bytes_sec, rootdir_sec_count);
     int r = device_read(fat->dev, rootdir_sec_num * fat->sb->bytes_sec,
         rootdir_sec_count * fat->sb->bytes_sec, rootdir_sec);
+
     if (r < 0) {
         kerror("fat: couldn't read root directory from device %s", dev->devname);
         return 0;
@@ -261,11 +281,53 @@ int fat_get_root_dir(device_t* dev, vfs_node_t** root_childs)
 
     _fat_read_directories(rootdir_sec, rootdir_sec_count, root_childs);
 
+    kfree(rootdir_sec);
+
     return 1;
 }
 
 
 int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
 {
-    return 0;
+    knotice("readdir(): %x %s", parent, parent->name);
+    uint32_t clus = (uint32_t)parent->block & 0xffffffff;
+    uint32_t sec;
+
+    device_t* d = ((vfs_mount_t*)parent->mount)->dev;
+    struct fat_superblock* fs = NULL;
+
+    for (unsigned i = 0; i < fat_count; i++) {
+        if (fats[i].dev->devid == d->devid) {
+            fs = fats[i].sb;
+        }
+    }
+
+    if (!fs) {
+        kerror("%s node wasn't mounted as a FAT filesystem", parent->name);
+        return 0;
+    }
+
+    /* Get cluster number and offset */
+    sec = FAT_GET_FIRST_SECTOR_CLUSTER(fs, clus);
+
+    void* clus_buf = kcalloc(fs->bytes_sec, fs->sec_clus);
+    knotice("%d", fs->sec_clus*fs->bytes_sec);
+
+    int r = device_read(d, sec * fs->bytes_sec, fs->sec_clus * fs->bytes_sec,
+        clus_buf);
+
+    if (r < 0) {
+        kerror("fat: couldn't read dir %s directory from device %s",
+            parent->name, d->devname);
+        return 0;
+    } else if (r == 0) {
+        kerror("fat: empty directory %s from device %s",
+            parent->name, d->devname);
+        return 0;
+    }
+
+    knotice("NOTICE ME SENPAI %x %x", ((uint32_t*)clus_buf)[0], ((uint32_t*)clus_buf)[64]);
+    _fat_read_directories(clus_buf, 2, childs);
+
+    return 1;
 }

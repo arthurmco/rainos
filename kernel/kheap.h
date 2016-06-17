@@ -11,6 +11,8 @@
 #ifndef _KHEAP_H
 #define _KHEAP_H
 
+#define DEFAULT_ALLOC_SIZE 16
+
 typedef struct _HeapItem {
     virtaddr_t addr;
     size_t bytes;
@@ -31,6 +33,11 @@ void kheap_init();
 virtaddr_t kheap_allocate(size_t bytes);
 virtaddr_t kheap_allocate_phys(physaddr_t phys, size_t bytes);
 void kheap_deallocate(virtaddr_t addr);
+
+/* Allocate a fixed size of pages for the heap
+    asked_size is the last memory amount requested before the end of heap space
+ */
+void kheap_get_more_pages(size_t asked_size);
 
 /* Allocate an item.
     This can mean create a new item or finding an existant item */
