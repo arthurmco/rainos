@@ -114,6 +114,7 @@ int fat_get_next_cluster(void* fat_sec_buffer, uint32_t offset,
         return -1;
     }
 
+    return -1;
 }
 
 static void _fat_read_directories(void* clusterbuf, unsigned int rootdir_secs,
@@ -132,8 +133,6 @@ static void _fat_read_directories(void* clusterbuf, unsigned int rootdir_secs,
     for (unsigned i = 0; i < rootdir_secs*8; i++) {
         if (((unsigned char)rootdir[i].name[0]) == 0xe5) /* free directory, but can be more */
             continue;
-
-        knotice("%x", *(uint32_t*)&rootdir[i]);
 
         /* Illegal chars on a directory entry */
         if (((unsigned char)rootdir[i].name[0]) < 0x20 &&

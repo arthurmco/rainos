@@ -79,7 +79,7 @@ void kheap_init()
 
 virtaddr_t kheap_allocate(size_t bytes)
 {
-    heap_item_t* item = _kheap_alloc_item(bytes);
+    heap_item_t* item = _kheap_alloc_item((bytes + 3) & ~3);
 
     if (!item->addr) {
         item->addr = addr_reserve_top;
