@@ -271,7 +271,15 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         void* buf = kcalloc(512, 1);
         vfs_mount(vfs_get_root(), device_get_by_name("disk0p1"), vfs_get_fs("fatfs"));
     }
-    
+
+    vfs_node_t* n;
+    vfs_readdir(vfs_get_root(), &n);
+
+    while (n) {
+        kprintf("\n%s %s", n->name, (n->flags & VFS_FLAG_FOLDER) ? "[DIR]" : "");
+        n = n->next;
+    }
+
     WRITE_SUCCESS();
 
 #if 0

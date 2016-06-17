@@ -311,8 +311,8 @@ heap_item_t* _kheap_find_item(struct HeapList* const list, virtaddr_t addr, int 
     HEAP_LIST_WALK(half, step);
 
     while (step > 1) {
-        knotice("-- %d ~ %d (%x) <<%08x>> %08x %08x %08x", step, list->count, mode,
-            addr, start->addr, half->addr, end->addr);
+        // knotice("-- %d ~ %d (%x) <<%08x>> %08x %08x %08x", step, list->count, mode,
+        //     addr, start->addr, half->addr, end->addr);
 
         /* Detect exactly equal addresses */
         if (start->addr == addr && !mode) {

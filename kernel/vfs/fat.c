@@ -127,7 +127,6 @@ static void _fat_read_directories(void* clusterbuf, unsigned int rootdir_secs,
             vfs_node_t* old_node = node;
 
             node = kcalloc(sizeof(vfs_node_t), 1);
-            knotice("%x %x", node, node->inode);
 
             if (!old_node) {
                 //node was null, this means that this is the first node
@@ -140,8 +139,6 @@ static void _fat_read_directories(void* clusterbuf, unsigned int rootdir_secs,
             node->prev = old_node;
             next_inode = 0;
         }
-
-        knotice("%x %x", node, node->inode);
 
         char dirname[16];
         memset(dirname, 0, 16);
@@ -182,26 +179,32 @@ static void _fat_read_directories(void* clusterbuf, unsigned int rootdir_secs,
             }
 
         } else {
-            unsigned int namelen;
+            unsigned int namelen = 8, extlen = 3;
             /* Retrieve name and extension, separated */
 
-            for (int i = 7; i > 1; i--) {
-                if (dirname[i] != ' ') {
-                    dirname[i+1] = '.';
-                    namelen = i+1;
-                }
-            }
-
-            knotice("12345678");
-
-            for (int i = 8; i < 11; i++) {
-                if (dirname[i] == ' ') {
-                    dirname[i] = 0;
+            for (int j = 0; j < 8; j++) {
+                if (rootdir[i].name[j] == ' ') {
+                    namelen = j;
                     break;
                 }
 
-                dirname[namelen+(i-7)] = dirname[i];
+                dirname[j] = rootdir[i].name[j];
             }
+
+            dirname[namelen] = '.';
+
+            for (int j = 0; j < 3; j++) {
+                if (rootdir[i].name[8+j] == ' ') {
+                    dirname[namelen+j] = 0;
+                    extlen = j;
+                    break;
+                }
+
+                dirname[namelen+j+1] = rootdir[i].name[8+j];
+            }
+
+            dirname[namelen+extlen+1] = 0;
+
 
         }
         /* And copy it */
