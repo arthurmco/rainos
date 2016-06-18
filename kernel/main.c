@@ -286,7 +286,9 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         vfs_readdir(vfs_get_root(), &n);
 
         while (n) {
-            kprintf("\n%s %s", n->name, (n->flags & VFS_FLAG_FOLDER) ? "[DIR]" : "");
+            kprintf("\n%s %s \t%d bytes \t cluster %d", n->name,
+                (n->flags & VFS_FLAG_FOLDER) ? "[DIR]" : "",
+                (uint32_t)n->size, (uint32_t)n->block);
 
             if (n->flags & VFS_FLAG_FOLDER) {
                 vfs_node_t* n_child = NULL;

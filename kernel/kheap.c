@@ -121,8 +121,7 @@ virtaddr_t kheap_allocate(size_t bytes)
     *canary = item->canary;
 
     knotice("%x %d", item->addr, item->bytes);
-    __kheap_dump(&hUsed);
-    __kheap_dump(&hFree);
+    
 
     return item->addr;
 

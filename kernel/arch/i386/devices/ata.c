@@ -155,6 +155,7 @@ static int ata_dev_disk_read_wrapper(disk_t* d,
     }
 
     return ata_read_sector_pio(dev, off, len, buf);
+
 }
 
 int ata_initialize(struct PciDevice* dev)
@@ -291,6 +292,7 @@ int ata_read_sector_pio(struct AtaDevice* atadev,
 
         uint8_t status = inb(atadev->iobase + ATAREG_STATUS);
         if (IS_ERR(status) || IS_DF(status)) {
+            drive_error:
             kerror("Error on ATA %s %s",
                 (const char *[]){"Pri", "Sec", "Third", "Fourth"}[atadev->number],
                 (const char *[]){"Master", "Slave"}[atadev->slavery]);
@@ -315,6 +317,16 @@ int ata_read_sector_pio(struct AtaDevice* atadev,
         if (IS_DRDY(status)) {
             uint16_t* buf = (uint16_t*)buffer;
             for(uint16_t w = 0; w < (count*256); w++) {
+
+                status = inb(atadev->iobase+ATAREG_STATUS);
+                do {
+                    status = inb(atadev->iobase+ATAREG_STATUS);
+                } while (!IS_DRQ(status));
+
+                if (IS_ERR(status)){
+                    goto drive_error;
+                }
+
                 buf[w] = inw(atadev->iobase + ATAREG_DATAPORT);
             }
             return 1;

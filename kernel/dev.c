@@ -44,9 +44,9 @@ device_t* device_create(uint64_t id, const char* name,
     uint8_t devtype, device_t* parent)
     {
         device_t* dev = kcalloc(sizeof(device_t), 1);
-        dev->devname = kmalloc(strlen(name));
+        dev->devname = kmalloc(strlen(name)+1);
         dev->devtype = devtype;
-        memcpy(name, dev->devname, strlen(name));
+        memcpy(name, dev->devname, strlen(name)+1);
         dev->devid = id;
         dev->parent = parent;
         knotice("DEV: Created device %s (id 0x%x%x), type 0x%x, child of %s",

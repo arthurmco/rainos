@@ -1,8 +1,8 @@
 [1mRainOS[0m
-IDT: created IDT at 0x10F440, limit 511
+IDT: created IDT at 0x111440, limit 511
 PIC: ready, remapped for 0x20-0x28
 IRQ: added handler stubs for PIC vectors
-KERNEL: starts at 0x100000, ends at 0x111B84
+KERNEL: starts at 0x100000, ends at 0x113E84
 KERNEL: Memory map: 
 	 0x0 - 0x9EFFF, Free RAM (code 1)
 	 0x9F000 - 0x9FFFF, Reserved RAM (code 2)
@@ -16,15 +16,15 @@ PMM: detected RAM type hardware-used starting at E8000, 98304 bytes
 PMM: detected RAM type default starting at 100000, 32440320 bytes
 PMM: detected RAM type hardware-used starting at 1FF0000, 65536 bytes
 PMM: detected RAM type unknown starting at FFFC0000, 262144 bytes
-PMM: detected RAM type hardware-used starting at 10F370, 1080034 bytes
+PMM: detected RAM type hardware-used starting at 111370, 1080194 bytes
 PMM: 32316 kB of usable RAM detected
-PMM: 76 kB of occupied RAM
-KERNEL: kernel end is now 0x112040
+PMM: 84 kB of occupied RAM
+KERNEL: kernel end is now 0x114340
 PAGES: directory table is at 0x102000
 VMM: Allocated 2 pages at virtaddr 0xC0400000
 VMM: Allocated 16 pages at virtaddr 0xC0402000
 8253 PIT: frequency set to 1000, divisor 1193
-IRQ: added handler for IRQ 0 at 0x10599B
+IRQ: added handler for IRQ 0 at 0x105A37
 PCI: found device at 0:0.0
 	 vendor: 0x8086, device: 0x1237, class: 6:0
 	 header: 0x0
@@ -59,12 +59,83 @@ PCI: found device at 0:1.1
 	 Interrupt 0, pin 0
 
 PCI: 3 devices detected
-DEV: Created device ttys0z (id 0x0200), type 0x1, child of <NULL>
+C0402000 60
+C040203C 12
+DEV: Created device ttys0 (id 0x0200), type 0x1, child of <NULL>
 ATA: found controller ports 1F0 3F6 170 376
+C0402048 516
+ATA: Found device on ATA Pri Master
+	 Bambam BIRR 37, 512 MB
+C040224C 60
+C0402288 12
+DEV: Created device disk0 (id 0x08000), type 0x2, child of <NULL>
+DISK: Adding disk Bambam BIRR 37 (512 MB) as disk0
 [;1;33mWARNING: [0mATA device Pri Slave is not ATA
 ATA: controller 8086:7010 ready!
-VFS: created root node at 0xC0402048
+C0402294 136
+VFS: created root node at 0xC0402294
 PARTITIONS: partition support started
+C040231C 28
 VFS: Registered filesystem fatfs
-[;1;31mERROR: [0m[;1;31mERROR: [0mProcessor Exception: Page fault
+C0402338 516
+	 disk: found disk disk0 = disk0
+	 disk: converted off=0, len=512 in bytes to off=0, len=1 in sectors, using 512 byte sectors
+C040253C 516
+	 disk: copy 512 bytes starting at 0
+PARTITIONS: Discovered partition disk0p1
+	lba 63, 1048513 sectors, type 0x06
+C0402740 60
+C040277C 12
+DEV: Created device disk0p1 (id 0x0800000), type 0x0, child of <NULL>
+PARTITIONS: 1 partitions on disk0
+C0402788 516
+C040298C 516
+partition: off=0 turned into off=0
+	 disk: found disk disk0 = disk0
+	 disk: converted off=32256, len=512 in bytes to off=63, len=1 in sectors, using 512 byte sectors
+C0402B90 516
+	 disk: copy 512 bytes starting at 0
+FAT: 16 sectors/cluster, 65497 clusters, 
+	Type is FAT16
+	Volume name: 'NO NAME    '
 
+fat: reading root dir at sector 513, 32 secs
+C0402D94 16388
+partition: off=262656 turned into off=0
+	 disk: found disk disk0 = disk0
+	 disk: converted off=294912, len=16384 in bytes to off=576, len=32 in sectors, using 512 byte sectors
+C0406D98 16388
+	 disk: copy 16384 bytes starting at 0
+Directories... 
+C040AD9C 136
+[;1;33mWARNING: [0mfat: long file names is not yet supported
+TEST.TXT 4
+C040AE24 136
+[;1;33mWARNING: [0mfat: long file names is not yet supported
+DIRECT~1    5
+VFS: mounted filesystem fatfs at device disk0p1 on /
+readdir(): C040AE24 DIRECT~1   
+C040AEAC 8196
+5 593 8192
+C0402740 disk0p1 ~~~
+partition: off=303616 turned into off=0
+	 disk: found disk disk0 = disk0
+	 disk: converted off=335872, len=8192 in bytes to off=656, len=16 in sectors, using 512 byte sectors
+C040CEB0 8196
+	 disk: copy 8192 bytes starting at 0
+NOTICE ME SENPAI 2020202E 4D454553
+C040EEB4 136
+[;1;33mWARNING: [0mfat: long file names is not yet supported
+SEEME.TXT 7
+C040EF3C 136
+[;1;33mWARNING: [0mfat: long file names is not yet supported
+BIG.TXT 13
+C040EFC4 136
+[;1;33mWARNING: [0mfat: long file names is not yet supported
+SEEMETOO.TXT 9
+C040F04C 136
+[;1;33mWARNING: [0mfat: long file names is not yet supported
+BIGFILE.PY 12
+C040F0D4 136
+[;1;33mWARNING: [0mfat: long file names is not yet supported
+INNER       56

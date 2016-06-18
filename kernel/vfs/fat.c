@@ -181,7 +181,7 @@ static void _fat_read_directories(void* clusterbuf, unsigned int rootdir_secs,
 
         /* Work with easy fields first */
         node->size = rootdir[i].size;
-        node->block = (rootdir[i].cluster_high << 16) | rootdir[i].cluster_low;
+        node->block = ((uint32_t)rootdir[i].cluster_high << 16) | (uint32_t)rootdir[i].cluster_low;
 
         if (rootdir[i].attr & FAT_ATTR_HIDDEN)
             node->flags |= VFS_FLAG_HIDDEN;
@@ -215,7 +215,7 @@ static void _fat_read_directories(void* clusterbuf, unsigned int rootdir_secs,
 
             for (int j = 0; j < 3; j++) {
                 if (rootdir[i].name[8+j] == ' ') {
-                    dirname[namelen+j] = 0;
+                    dirname[namelen+j+1] = 0;
                     extlen = j;
                     break;
                 }
@@ -224,10 +224,10 @@ static void _fat_read_directories(void* clusterbuf, unsigned int rootdir_secs,
             }
 
             dirname[namelen+extlen+1] = 0;
-            knotice("%s", node->name);
-
         }
         /* And copy it */
+
+        knotice("%s %d", dirname, rootdir[i].cluster_low);
         memcpy(dirname, node->name, strlen(dirname)+1);
 
         node->__vfs_readdir = &fat_readdir;
@@ -313,7 +313,9 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
     knotice("%d %d %d", clus, sec, fs->sec_clus*fs->bytes_sec);
     knotice("%x %s ~~~", d, d->devname);
 
-    int r = device_read(d, sec * fs->bytes_sec, fs->sec_clus * fs->bytes_sec,
+    ((uint32_t*)clus_buf)[0] = 0xdeadbeef;
+    ((uint32_t*)clus_buf)[64] = 0xdadecafe;
+     int r = device_read(d, sec * fs->bytes_sec, fs->sec_clus * fs->bytes_sec,
         clus_buf);
 
     if (r < 0) {
