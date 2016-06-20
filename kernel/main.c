@@ -286,7 +286,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         vfs_readdir(vfs_get_root(), &n);
 
         while (n) {
-            kprintf("\n%s %s \t%d bytes \t cluster %d", n->name,
+            kprintf("\n'%s' %s \t%d bytes \t cluster %d", n->name,
                 (n->flags & VFS_FLAG_FOLDER) ? "[DIR]" : "     ",
                 (uint32_t)n->size, (uint32_t)n->block);
 
@@ -296,7 +296,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
                 vfs_readdir(n, &n_child);
 
                 while (n_child) {
-                    kprintf("\n\t%s %s \t%d bytes \t cluster %d", n_child->name,
+                    kprintf("\n\t'%s' %s \t%d bytes \t cluster %d", n_child->name,
                         (n_child->flags & VFS_FLAG_FOLDER) ? "[DIR]" : "     ",
                         (uint32_t)n_child->size, (uint32_t)n_child->block);
                     n_child = n_child->next;
@@ -306,16 +306,24 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
             n = n->next;
         }
 
-        vfs_node_t* tst = vfs_find_node("/TEST.TXT");
-        kprintf("\n%x %s", tst, (tst) ? tst->name : "<null>");
+        vfs_node_t* tst = vfs_find_node("/DIRECT~1/BIGFILE.PY");
+        kprintf("\n%x %s ", tst, (tst) ? tst->name : "<null>");
 
-        char buf[512];
-        int r = vfs_read(tst, 0, -1, buf);
-        kprintf(", returned %d\n\n", r);
+        if (tst) {
+            kprintf("%d %d", (uint32_t)tst->size, (uint32_t)tst->block);
 
-        buf[r] = 0;
-        kprintf("Data: %s", buf);
+            char buf[2048];
+            int r = vfs_read(tst, 0, -1, buf);
 
+            kprintf(", returned %d\n\n", r);
+
+            buf[r] = 0;
+            kprintf("Data: ");
+            terminal_setcolor(0x0f);
+            kputs(buf);
+            terminal_restorecolor();
+
+        }
     }
 
     WRITE_SUCCESS();
