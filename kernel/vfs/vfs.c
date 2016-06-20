@@ -221,3 +221,29 @@ vfs_node_t* vfs_find_node_relative(vfs_node_t* base, const char* path_rel)
 
     return NULL;
 }
+
+/* Read the file content at buffer 'buf' from off to off+len.
+    Returns the length read, or -1 if error.*/
+int vfs_read(struct vfs_node* node, uint64_t off, size_t len,
+    void* buffer)
+    {
+        if (node) {
+            if (!(node->flags & VFS_FLAG_FOLDER)) {
+                if (!node->__vfs_read) {
+                    kerror("You can't read a file");
+                    return -1;
+                }
+
+                return node->__vfs_read(node, off, len, buffer);
+            } else {
+                kerror("%s is a folder, you can't read a folder this way",
+                    node->name);
+
+                if (!node->__vfs_read) {
+                    kerror("You can't read a file");
+                }
+            }
+        }
+
+        return -1;
+    }

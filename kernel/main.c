@@ -287,7 +287,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
         while (n) {
             kprintf("\n%s %s \t%d bytes \t cluster %d", n->name,
-                (n->flags & VFS_FLAG_FOLDER) ? "[DIR]" : "",
+                (n->flags & VFS_FLAG_FOLDER) ? "[DIR]" : "     ",
                 (uint32_t)n->size, (uint32_t)n->block);
 
             if (n->flags & VFS_FLAG_FOLDER) {
@@ -296,14 +296,26 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
                 vfs_readdir(n, &n_child);
 
                 while (n_child) {
-                    kprintf("\n\t%s %s", n_child->name,
-                        (n_child->flags & VFS_FLAG_FOLDER) ? "[DIR]" : "");
+                    kprintf("\n\t%s %s \t%d bytes \t cluster %d", n_child->name,
+                        (n_child->flags & VFS_FLAG_FOLDER) ? "[DIR]" : "     ",
+                        (uint32_t)n_child->size, (uint32_t)n_child->block);
                     n_child = n_child->next;
                 }
             }
 
             n = n->next;
         }
+
+        vfs_node_t* tst = vfs_find_node("/TEST.TXT");
+        kprintf("\n%x %s", tst, (tst) ? tst->name : "<null>");
+
+        char buf[512];
+        int r = vfs_read(tst, 0, -1, buf);
+        kprintf(", returned %d\n\n", r);
+
+        buf[r] = 0;
+        kprintf("Data: %s", buf);
+
     }
 
     WRITE_SUCCESS();

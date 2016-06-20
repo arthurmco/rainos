@@ -150,6 +150,14 @@ void fat_get_fat_cluster_entry(struct fat_superblock* sb, uint32_t cluster,
 int fat_get_next_cluster(void* fat_sec_buffer, uint32_t offset,
     uint8_t fat_type);
 
+#define FAT_GET_DEVICE(fs, d) do {                  \
+    for (unsigned i = 0; i < fat_count; i++) {      \
+        if (fats[i].dev->devid == d->devid) {       \
+            fs = &fats[i];                          \
+        }                                           \
+    }                                               \
+} while (0)                                         \
+
 
 
 

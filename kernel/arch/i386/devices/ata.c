@@ -293,12 +293,13 @@ int ata_read_sector_pio(struct AtaDevice* atadev,
         uint8_t status = inb(atadev->iobase + ATAREG_STATUS);
         if (IS_ERR(status) || IS_DF(status)) {
             drive_error:
-            kerror("Error on ATA %s %s",
+            kerror("Error on ATA %s %s ",
                 (const char *[]){"Pri", "Sec", "Third", "Fourth"}[atadev->number],
                 (const char *[]){"Master", "Slave"}[atadev->slavery]);
 
             uint8_t err = inb(atadev->iobase + ATAREG_ERR);
-            char errs[256];
+
+            char errs[256] = "";
 
             if (err & 0x2)  strcat(errs, "No Media, ");
             if (err & 0x4)  strcat(errs, "Command Aborted, ");
@@ -308,6 +309,8 @@ int ata_read_sector_pio(struct AtaDevice* atadev,
             if (err & 0x40) strcat(errs, "Uncorrectable error, ");
 
             if (IS_DF(status))  strcat(errs, "Drive Fault, ");
+
+            errs[strlen(errs)-2] = '.';
 
             kerror("%s (%x) \n", errs, err);
 

@@ -121,7 +121,10 @@ virtaddr_t kheap_allocate(size_t bytes)
     *canary = item->canary;
 
     knotice("%x %d", item->addr, item->bytes);
-    
+
+    // kerror("t: 0x%x, s: 0x%x, b: 0x%x",
+    // addr_reserve_top, addr_reserve_bottom+(VMM_PAGE_SIZE*DEFAULT_ALLOC_SIZE),
+    // addr_reserve_bottom);
 
     return item->addr;
 

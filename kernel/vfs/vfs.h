@@ -114,6 +114,12 @@ vfs_filesystem_t* vfs_create_fs(const char* name);
     'node' will become the new filesystem root */
 int vfs_mount(vfs_node_t* node, device_t* dev, struct vfs_filesystem* fs);
 
+/* Read the file content at buffer 'buf' from off to off+len.
+    Returns the length read, or -1 if error.*/
+int vfs_read(struct vfs_node* node, uint64_t off, size_t len,
+    void* buffer);
+
+
 /*  Read the childs and store the first child on
     node->childs member */
 int vfs_readdir(vfs_node_t* node, vfs_node_t** childs);
