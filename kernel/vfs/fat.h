@@ -147,7 +147,7 @@ void fat_get_fat_cluster_entry(struct fat_superblock* sb, uint32_t cluster,
 
 /* Get the next cluster in the cluster chain, -1 if bad cluster
     or -2 if no more clusters */
-int fat_get_next_cluster(void* fat_sec_buffer, uint32_t offset,
+int fat_get_next_cluster(char* fat_sec_buffer, uint32_t offset,
     uint8_t fat_type);
 
 #define FAT_GET_DEVICE(fs, d) do {                  \

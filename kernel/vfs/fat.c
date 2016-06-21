@@ -98,23 +98,21 @@ void fat_get_fat_cluster_entry(struct fat_superblock* sb, uint32_t cluster,
     }
 
 /* Get the next cluster in the cluster chain, -1 if bad cluster or -2 if no more clusters */
-int fat_get_next_cluster(void* fat_sec_buffer, uint32_t offset,
+int fat_get_next_cluster(char* fat_sec_buffer, uint32_t offset,
     uint8_t fat_type)
 {
     if (fat_type > 12) {
 
-        unsigned fat_cluster_content;
+        int fat_cluster_content;
 
         if (fat_type == 16) {
-            uint16_t* fat_sec_buf16 = (uint16_t*)fat_sec_buffer;
-            fat_cluster_content = fat_sec_buf16[offset];
+            fat_cluster_content = *(uint16_t*)&fat_sec_buffer[offset];
 
             if (fat_cluster_content == 0xfff7) return -1;
 
             return ((fat_cluster_content >= 0xfff8) ? -2 : fat_cluster_content);
         } else if (fat_type == 32) {
-            uint32_t* fat_sec_buf32 = (uint32_t*)fat_sec_buffer;
-            fat_cluster_content = (fat_sec_buf32[offset] & 0x0fffffff);
+            fat_cluster_content = (*(uint32_t*)fat_sec_buffer[offset] & 0x0fffffff);
 
             if (fat_cluster_content == 0x0ffffff7) return -1;
 
@@ -451,7 +449,7 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
 
     /* Get cluster number and offset */
     sec = FAT_GET_FIRST_SECTOR_CLUSTER(fs->sb, clus);
-    knotice("read at sec %d", sec);
+    knotice("read at sec %d from cluster %d", sec, clus);
 
     char* clus_buf = kcalloc(fs->sb->bytes_sec, fs->sb->sec_clus);
 
@@ -474,28 +472,49 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
         return 0;
     }
 
-    len = (node->size > (off+len)) ? (off+len) : node->size;
+    if (len == -1)
+        len = node->size;
+
+    unsigned int limit = (uint32_t)(node->size > (off+len)) ? (off+len) : node->size;
     unsigned int len_read = 0;
+    const unsigned int bytes_per_clus = fs->sb->bytes_sec * fs->sb->sec_clus;
+    unsigned int clus_off = (uint32_t)off;
 
     do {
 
-        unsigned data_read = ((fs->sb->bytes_sec * fs->sb->sec_clus) > (len-off)) ? len - off
-            : (fs->sb->bytes_sec, fs->sb->sec_clus);
+        unsigned int data_read = (bytes_per_clus > (limit-off)) ? (limit - off)
+            : bytes_per_clus;
 
-        knotice("off %d copying %d of %d copied %d", (uint32_t)off, data_read, len, len_read);
 
-        char* c_buf = (char*)buf;
-        memcpy(&clus_buf[off], &c_buf[len_read], data_read);
+        /* Check if we've gone through a cluster boundary */
+        if ((clus_off+len) > bytes_per_clus) {
+            /* Align it */
+            data_read = bytes_per_clus - clus_off;
+        }
+
+        knotice("off %d (%d) copying %d of %d copied %d", (uint32_t)off,
+            (uint32_t)clus_off, data_read, limit, len_read);
+
+        /* If there's data in this cluster */
+        if (data_read > 0) {
+            char* c_buf = (char*)buf;
+            memcpy(&clus_buf[clus_off], &c_buf[len_read], data_read);
+        }
+
         len_read += data_read;
         off += len_read;
 
-        if (len_read >= (len-off)) {
+        if (off > limit) {
+
             /* already ended, no need to access disk */
             break;
         }
+        kwarn("%c %c %c", clus_buf[0], clus_buf[1], clus_buf[2]);
 
+        /* Tries to read the next cluster */
         uint32_t next_clus_sec, next_clus_off;
         fat_get_fat_cluster_entry(fs->sb, clus, &next_clus_sec, &next_clus_off);
+        knotice("next: %d.%d", next_clus_sec, next_clus_off);
 
         /* Don't mind reusing buffers */
         r = device_read(d, next_clus_sec * fs->sb->bytes_sec, fs->sb->bytes_sec,
@@ -507,6 +526,7 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
         }
 
         r = fat_get_next_cluster(clus_buf, next_clus_off, fs->fat_type);
+        knotice("fat: next cluster is %d", r);
 
         switch (r) {
             case -1:
@@ -517,25 +537,31 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
             case 0:
             case -2:
                 /* End of all */
-                len_read = (len);
+                len_read = (limit);
                 break;
 
             default:
                 clus = r;
                 knotice("next cluster is %d", clus);
-                off = 0;
                 break;
         }
 
         sec = FAT_GET_FIRST_SECTOR_CLUSTER(fs->sb, clus);
         knotice("read at sec %d", sec);
 
-        r = device_read(d, sec * fs->sb->bytes_sec, fs->sb->sec_clus * fs->sb->bytes_sec,
-            clus_buf);
+        r = device_read(d, sec * fs->sb->bytes_sec, bytes_per_clus, clus_buf);
+        if (r <= 0) {
+            kerror("fat: error while reading cluster %d", clus);
+            return r;
+        }
+        kwarn("%c %c %c", clus_buf[0], clus_buf[1], clus_buf[2]);
+
+
+        clus_off = 0;
 
     } while (len_read < (len-off));
 
-
     kfree(clus_buf);
+
     return len_read;
 }
