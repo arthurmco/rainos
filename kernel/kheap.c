@@ -57,6 +57,7 @@ static heap_item_t* item_reserve_top;
 
 static uintptr_t addr_reserve_bottom;
 static uintptr_t addr_reserve_top;
+static uintptr_t addr_alloc;
 
 void kheap_init()
 {
@@ -68,6 +69,7 @@ void kheap_init()
 
     // Allocate 16 pages for the data reserve
     addr_reserve_bottom = vmm_alloc_page(VMM_AREA_KERNEL, DEFAULT_ALLOC_SIZE);
+    addr_alloc = addr_reserve_bottom + (DEFAULT_ALLOC_SIZE * VMM_PAGE_SIZE);
     addr_reserve_top = addr_reserve_bottom;
 
     //knotice("KHEAP: items starts at 0x%x, addresses starts at 0x%x",
@@ -82,31 +84,31 @@ virtaddr_t kheap_allocate(size_t bytes)
     heap_item_t* item = _kheap_alloc_item((bytes + 3) & ~3);
 
     if (!item->addr) {
-        item->addr = addr_reserve_top;
 
         // Round to the next multiple of 4.
         // and reserve space to store the canary
         item->bytes = ((bytes + 3) & ~3) + sizeof(uint32_t);
 
-        item->flags = HFLAGS_USED;
-        item->canary = 0x40404;
-        kheap_addItem(item, hUsed.last, &hUsed);
-
         /* Check if we need more pages */
-        if ((addr_reserve_top + item->bytes ) >
-            (addr_reserve_bottom + (DEFAULT_ALLOC_SIZE*VMM_PAGE_SIZE))) {
-            knotice("HEAP: more space needed.");
+        if (addr_reserve_top + item->bytes > addr_alloc) {
+            knotice("HEAP: more space needed. %x %x %d", addr_reserve_bottom, addr_reserve_top,
+                bytes);
             /* We will need */
             /*  Allocate the needed amount of pages to fill this space and
                 request more */
 
-            size_t needed = addr_reserve_bottom + (DEFAULT_ALLOC_SIZE*VMM_PAGE_SIZE) - addr_reserve_top;
+            size_t needed = (addr_alloc - addr_reserve_top);
 
             /* needed - 8 for canary and worst-case alignment */
-            kheap_deallocate(kheap_allocate(needed - 8));
+            kheap_deallocate(kheap_allocate(needed - 16));
 
             kheap_get_more_pages(item->bytes);
         }
+
+        item->addr = addr_reserve_top;
+        item->flags = HFLAGS_USED;
+        item->canary = 0x40404;
+        kheap_addItem(item, hUsed.last, &hUsed);
 
         addr_reserve_top += item->bytes;
 
@@ -499,14 +501,18 @@ void __kheap_dump(struct HeapList* const list)
 /* Allocate a fixed size of pages for the heap */
 void kheap_get_more_pages(size_t asked_size)
 {
-    size_t asked_pages = (asked_size / VMM_PAGE_SIZE) + 1;
+    size_t asked_pages = (asked_size / VMM_PAGE_SIZE) + 2;
     size_t allocation = ((asked_pages > DEFAULT_ALLOC_SIZE) ?
-        (asked_pages + 1) : (DEFAULT_ALLOC_SIZE));
+        (asked_pages) : (DEFAULT_ALLOC_SIZE));
 
 
     knotice("HEAP: allocating more %d pages", allocation);
 
     addr_reserve_bottom = vmm_alloc_page(VMM_AREA_KERNEL, allocation);
     addr_reserve_top = addr_reserve_bottom;
+    addr_alloc += (allocation * VMM_PAGE_SIZE);
+
+    knotice("pointers: 0x%x 0x%x 0x%x",
+        addr_reserve_bottom, addr_reserve_top, addr_alloc);
 
 }
