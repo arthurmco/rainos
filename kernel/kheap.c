@@ -326,6 +326,37 @@ heap_item_t* _kheap_alloc_item(size_t bytes)
 
 }
 
+void _kheap_fix_list(struct HeapList* list)
+{
+    /* Tries to fix a damaged heap list */
+    heap_item_t* first_broke = list->first;
+    heap_item_t* last_broke = list->last;
+
+    int i = 0;
+    while (first_broke->next) {
+        first_broke = first_broke->next;
+        i++;
+    }
+
+    if (i == list->count) {
+        kwarn("KHEAP: trying to fix a perfect list");
+        return;
+    }
+
+    i = 0;
+    while (last_broke->prev) {
+        if (last_broke->prev == first_broke) {
+            break;
+        }
+
+        last_broke = last_broke->prev;
+        i++;
+    }
+
+    last_broke->prev = first_broke;
+    first_broke->next = last_broke;
+}
+
 #define HEAP_LIST_WALK(item, count) \
     for (unsigned i = 0; i < (count); i++) { item = item->next; }
 
@@ -339,6 +370,7 @@ heap_item_t* _kheap_find_item(struct HeapList* const list, virtaddr_t addr, int 
     heap_item_t* half = start;
     //knotice("[[%d]]", list->count);
 
+    restart_list:
     if (list->count <= 0) {
         /* No items, no shit */
         return NULL;
@@ -354,21 +386,38 @@ heap_item_t* _kheap_find_item(struct HeapList* const list, virtaddr_t addr, int 
 
     size_t step = list->count/2;
     HEAP_LIST_WALK(half, step);
+    knotice("s: 0x%x (%x), e: 0x%x (%x), m: 0x%x (%x)", start->addr, start,
+        end->addr, end, half->addr, half);
 
-    while (step > 1) {
+
+    while (step >= 2) {
         // knotice("-- %d ~ %d (%x) <<%08x>> %08x %08x %08x", step, list->count, mode,
         //     addr, start->addr, half->addr, end->addr);
 
-        /* Detect exactly equal addresses */
-        if (start->addr == addr && !mode) {
-            /* Is at start */
-            return start;
-        } else if (half->addr == addr && !mode) {
-            /* Is at half */
-            return half;
-        } else if (end->addr == addr && !mode) {
-            /* Is at end */
-            return end;
+        if (!mode) {
+            /* Detect exactly equal addresses */
+            if (start->addr == addr) {
+                /* Is at start */
+                return start;
+            } else if (half->addr == addr) {
+                /* Is at half */
+                return half;
+            } else if (end->addr == addr) {
+                /* Is at end */
+                return end;
+            }
+        } else {
+            if (!half) {
+                kerror("kheap: detected damaged linked list, attempting to fix");
+                /* FIXME: move this to another function */
+
+                _kheap_fix_list(list);
+                start = list->first;
+                end = list->last;
+                half = start;
+                goto restart_list;
+
+            }
         }
 
         /* Split the memory */

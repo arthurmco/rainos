@@ -306,14 +306,14 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
             n = n->next;
         }
 
-        vfs_node_t* tst = vfs_find_node("/DIRECT~1/BIG.TXT");
+        vfs_node_t* tst = vfs_find_node("/TEST.TXT");
         kprintf("\n%x %s ", tst, (tst) ? tst->name : "<null>");
 
         if (tst) {
             kprintf("%d %d", (uint32_t)tst->size, (uint32_t)tst->block);
 
             char buf[2048];
-            int r = vfs_read(tst, 7900, 500, buf);
+            int r = vfs_read(tst, 0, -1, buf);
 
             kprintf(", returned %d\n\n", r);
 

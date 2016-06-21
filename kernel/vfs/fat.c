@@ -323,7 +323,6 @@ int fat_get_root_dir(device_t* dev, vfs_node_t** root_childs)
 
 int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
 {
-    knotice("readdir(): %x %s", parent, parent->name);
     uint32_t clus = (uint32_t)parent->block & 0xffffffff;
     uint32_t sec;
 
@@ -369,6 +368,7 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
 
         if (!last_child) {
             last_child = *childs;
+
         }
         knotice("fat: more one cluster");
 
@@ -376,6 +376,7 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
             uint32_t next_clus_sec, next_clus_off;
             fat_get_fat_cluster_entry(fs->sb, clus, &next_clus_sec, &next_clus_off);
 
+            knotice(">>> clus %d, nextsec: %d, nextoff: %d", clus, next_clus_sec, next_clus_off);
             /* Don't mind reusing buffers */
             r = device_read(d, next_clus_sec * fs->sb->bytes_sec, fs->sb->bytes_sec,
                 clus_buf);
@@ -390,8 +391,8 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
                 return 0;
             }
 
-
             r = fat_get_next_cluster(clus_buf, next_clus_off, fs->fat_type);
+            knotice("nextclus: %d", r);
 
             switch (r) {
                 case -1:
@@ -403,6 +404,7 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
                 case -2:
                     /* End of all */
                     not_over = 0;
+                    goto read_end;
                     break;
 
                 default:
@@ -418,23 +420,25 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
 
             knotice("read at sec %d", sec);
 
+
             while (!last_child || !last_child->next) {
                 last_child = last_child->next;
             }
+
         }
 
     } while (not_over);
 
-
+read_end:
+    knotice("é 13 porha");
     kfree(clus_buf);
-
+    knotice("BIRR");
     return 1;
 }
 
 /* Read a file. */
 static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
 {
-    knotice("read(): %x %s %d", node, node->name, (uint32_t)node->block);
     uint32_t clus = (uint32_t)node->block & 0xffffffff;
     uint32_t sec;
 
@@ -449,7 +453,6 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
 
     /* Get cluster number and offset */
     sec = FAT_GET_FIRST_SECTOR_CLUSTER(fs->sb, clus);
-    knotice("read at sec %d from cluster %d", sec, clus);
 
     char* clus_buf = kcalloc(fs->sb->bytes_sec, fs->sb->sec_clus);
 
@@ -492,9 +495,6 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
             data_read = bytes_per_clus - clus_off;
         }
 
-        knotice("off %d (%d) copying %d of %d copied %d", (uint32_t)off,
-            (uint32_t)clus_off, data_read, limit, len_read);
-
         /* If there's data in this cluster */
         if (data_read > 0) {
             char* c_buf = (char*)buf;
@@ -509,12 +509,10 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
             /* already ended, no need to access disk */
             break;
         }
-        kwarn("%c %c %c", clus_buf[0], clus_buf[1], clus_buf[2]);
 
         /* Tries to read the next cluster */
         uint32_t next_clus_sec, next_clus_off;
         fat_get_fat_cluster_entry(fs->sb, clus, &next_clus_sec, &next_clus_off);
-        knotice("next: %d.%d", next_clus_sec, next_clus_off);
 
         /* Don't mind reusing buffers */
         r = device_read(d, next_clus_sec * fs->sb->bytes_sec, fs->sb->bytes_sec,
@@ -547,15 +545,12 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
         }
 
         sec = FAT_GET_FIRST_SECTOR_CLUSTER(fs->sb, clus);
-        knotice("read at sec %d", sec);
 
         r = device_read(d, sec * fs->sb->bytes_sec, bytes_per_clus, clus_buf);
         if (r <= 0) {
             kerror("fat: error while reading cluster %d", clus);
             return r;
         }
-        kwarn("%c %c %c", clus_buf[0], clus_buf[1], clus_buf[2]);
-
 
         clus_off = 0;
 
