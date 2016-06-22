@@ -14,7 +14,7 @@ define(`ASM_SOURCE',
 
 CC=i686-elf-gcc
 AS=i686-elf-as
-CFLAGS= -std=gnu99 -ffreestanding -nostdlib -nostartfiles -Wall -Wextra -O1
+CFLAGS= -std=gnu99 -ffreestanding -fstack-protector -nostdlib -nostartfiles -Wall -Wextra -O1
 CINCLUDES= -I$(CURDIR)/libk/include
 LDFLAGS=-lgcc -g
 OUT=rainos.elf
@@ -24,8 +24,8 @@ LIBK=kstdio.o kstdlib.o kstring.o kstdlog.o
 ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o pit.o \
  pci.o ata.o irq.o irq_asm.o pages.o vmm.o tss.o usermode.o specifics.o
 
-all: $(ARCH_DEP) main.o terminal.o ttys.o pmm.o kheap.o dev.o disk.o vfs.o \
- partition.o fat.o $(LIBK)
+all: $(ARCH_DEP) stackguard.o main.o terminal.o ttys.o pmm.o kheap.o dev.o \
+ disk.o vfs.o partition.o fat.o $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
 iso: all
@@ -67,6 +67,7 @@ C_SOURCE_WITH_H(kernel/,kheap)
 C_SOURCE_WITH_H(kernel/,dev)
 C_SOURCE_WITH_H(kernel/,disk)
 C_SOURCE(kernel/,main)
+C_SOURCE(kernel/,stackguard)
 
 C_SOURCE(libk/,kstdio)
 C_SOURCE(libk/,kstdlib)
