@@ -6,3 +6,5 @@
 Makefile
 bochs_serial.txt
 initrd.rain
+
+iso/boot/initrd.rain
