@@ -1,5 +1,6 @@
 #include <kstdlog.h>
 #include <kstring.h>
+#include <kstdio.h>
 
 terminal_t* logterm = NULL;
 void klog_set_device(terminal_t* term)

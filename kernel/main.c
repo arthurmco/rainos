@@ -66,13 +66,13 @@ extern uintptr_t _kernel_start[];
 extern uintptr_t _kernel_end[];
 
 void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
-    terminal_t term_stdio;
+    static terminal_t term_stdio;
     term_stdio.defaultColor = 0x07;
     terminal_set(&term_stdio);
     vga_init(&term_stdio);
 
     /* Initialize logging terminal device */
-    terminal_t term_log;
+    static terminal_t term_log;
     term_log.defaultColor = 0x07;
     ttys_init(&term_log);
     klog_set_device(&term_log);
@@ -113,7 +113,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     mmap_t mm[mml.size];
 
-    const char* map_types[] = {"Unknown", "Free RAM", "Reserved RAM", "\0"};
+    static const char* map_types[] = {"Unknown", "Free RAM", "Reserved RAM", "\0"};
     int mmidx = 0;
     for (multiboot_mmap_t* map = (multiboot_mmap_t*)mboot->mmap_addr;
             map < (multiboot_mmap_t*)(((uintptr_t)mboot->mmap_addr) + mboot->mmap_length);
@@ -152,6 +152,23 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     }
 
     mml.maps = &mm[0];
+
+    multiboot_mod_t* mod = (multiboot_mod_t*)mboot->modules_addr;
+    /* Get modules */
+
+    for (int i = 0; i < mboot->modules_count; i++) {
+        char* mname = (mboot->modules_addr) ?
+            (char*)(mboot->modules_addr) : "<NULL>";
+        kprintf("\n module '%s' [start: 0x%x, end: 0x%x]", mname,
+                mod->mod_start, mod->mod_end);
+        kend = (kend > mod->mod_end) ? kend : mod->mod_end;
+        mod++;
+    }
+
+    /* Page-align the address */
+    kend = (kend + 0x1000) & ~0xfff;
+
+    kprintf("\nnew: 0x%08x", kend);
 
     //Init physical memory manager
     WRITE_STATUS("Starting physical memory manager...");

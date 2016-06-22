@@ -28,7 +28,10 @@ all: $(ARCH_DEP) main.o terminal.o ttys.o pmm.o kheap.o dev.o disk.o vfs.o \
  partition.o fat.o $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
-iso: all
+initrd: initrd.rain
+	cp initrd.rain iso/boot
+
+iso: all initrd
 	cp $(OUT) iso/boot
 	grub-mkrescue -o $(ISO) iso/
 
