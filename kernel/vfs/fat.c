@@ -212,7 +212,7 @@ static int _fat_read_directories(void* clusterbuf, unsigned int dir_sec_count,
 
         if (node->flags & VFS_FLAG_FOLDER) {
             /* Trim the spaces on folder name */
-            for (int i = 11; i > 1; i--) {
+            for (int i = 10; i > 1; i--) {
                 if (dirname[i] != ' ') {
                     dirname[i+1] = 0;
                     break;
@@ -230,6 +230,7 @@ static int _fat_read_directories(void* clusterbuf, unsigned int dir_sec_count,
                 }
 
                 dirname[j] = rootdir[i].name[j];
+
             }
 
             dirname[namelen] = '.';
@@ -339,8 +340,8 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
     sec = FAT_GET_FIRST_SECTOR_CLUSTER(fs->sb, clus);
 
     void* clus_buf = kcalloc(fs->sb->bytes_sec, fs->sb->sec_clus);
-    knotice("%d %d %d", clus, sec, fs->sb->sec_clus*fs->sb->bytes_sec);
-    knotice("%x %s ~~~", d, d->devname);
+    // knotice("%d %d %d", clus, sec, fs->sb->sec_clus*fs->sb->bytes_sec);
+    // knotice("%x %s ~~~", d, d->devname);
 
     int r = device_read(d, sec * fs->sb->bytes_sec, fs->sb->sec_clus * fs->sb->bytes_sec,
         clus_buf);
@@ -369,13 +370,13 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
             last_child = *childs;
 
         }
-        knotice("fat: more one cluster");
+        // knotice("fat: more one cluster");
 
         if (not_over) {
             uint32_t next_clus_sec, next_clus_off;
             fat_get_fat_cluster_entry(fs->sb, clus, &next_clus_sec, &next_clus_off);
 
-            knotice(">>> clus %d, nextsec: %d, nextoff: %d", clus, next_clus_sec, next_clus_off);
+            // knotice(">>> clus %d, nextsec: %d, nextoff: %d", clus, next_clus_sec, next_clus_off);
             /* Don't mind reusing buffers */
             r = device_read(d, next_clus_sec * fs->sb->bytes_sec, fs->sb->bytes_sec,
                 clus_buf);
@@ -391,7 +392,7 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
             }
 
             r = fat_get_next_cluster(clus_buf, next_clus_off, fs->fat_type);
-            knotice("nextclus: %d", r);
+            // knotice("nextclus: %d", r);
 
             switch (r) {
                 case -1:
@@ -429,9 +430,9 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
     } while (not_over);
 
 read_end:
-    knotice("é 13 porha");
+//    knotice("é 13 porha");
     kfree(clus_buf);
-    knotice("BIRR");
+//    knotice("BIRR");
     return 1;
 }
 
