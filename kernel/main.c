@@ -156,10 +156,13 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     multiboot_mod_t* mod = (multiboot_mod_t*)mboot->modules_addr;
     /* Get modules */
 
+    multiboot_mod_t* initrd;
+
     for (int i = 0; i < mboot->modules_count; i++) {
         char* mname = (mboot->modules_addr) ?
             (char*)(mboot->modules_addr) : "<NULL>";
-        kprintf("\n module '%s' [start: 0x%x, end: 0x%x]", mname,
+        knotice("KERNEL: discovered mboot module '%s' "
+                "[start: 0x%08x, end: 0x%08x]", mname,
                 mod->mod_start, mod->mod_end);
         kend = (kend > mod->mod_end) ? kend : mod->mod_end;
         mod++;
@@ -167,9 +170,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     /* Page-align the address */
     kend = (kend + 0x1000) & ~0xfff;
-
-    kprintf("\nnew: 0x%08x", kend);
-
+    knotice("KERNEL: new kend is at 0x%08x", kend);
     //Init physical memory manager
     WRITE_STATUS("Starting physical memory manager...");
     if (!pmm_init(&mml, kstart, &kend)) {

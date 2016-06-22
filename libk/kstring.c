@@ -113,6 +113,7 @@ void vsprintf(char* str, const char* fmt, va_list vl) {
         }
         fmt++;
     }
+    *str++ = 0;
     *str = 0;
 }
 
