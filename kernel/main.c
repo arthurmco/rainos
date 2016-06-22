@@ -104,7 +104,6 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     uintptr_t kend = (uintptr_t)_kernel_end;
     knotice("KERNEL: starts at 0x%x, ends at 0x%x", kstart, kend);
 
-
     //irq_add_handler(0, &timer);
     knotice("KERNEL: Memory map: ");
 
