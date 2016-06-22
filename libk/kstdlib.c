@@ -6,6 +6,7 @@
 
 static const char num2str[] = "0123456789ABCDEFGHIJ\0\0\0";
 
+/* TODO: this atoi looks like a strtou* function. Refactor! */
 int atoi(const char* str, int base)
 {
     size_t len = strlen(str);

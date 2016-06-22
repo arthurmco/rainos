@@ -157,19 +157,26 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     multiboot_mod_t* mod = (multiboot_mod_t*)mboot->modules_addr;
     /* Get modules */
 
-    //multiboot_mod_t* initrd;
+    multiboot_mod_t* initrd = NULL;
 
     for (int i = 0; i < mboot->modules_count; i++) {
-        char* mname = (mboot->modules_addr) ?
-            (char*)(mboot->modules_addr) : "<NULL>";
+        const char* mname = mod->string_ptr ?
+            (const char*)(mod->string_ptr) : "<NULL>";
         knotice("KERNEL: discovered mboot module '%s' "
                 "[start: 0x%08x, end: 0x%08x]", mname,
                 mod->mod_start, mod->mod_end);
         kend = (kend > mod->mod_end) ? kend : mod->mod_end;
-        //initrd = mod;
+
+        if (!strncmp("initrd", mname, 6))
+            initrd = mod;
 
         mod++;
     }
+
+    if (!initrd) {
+        kerror("initrd not found! This may cause problems");
+    }
+
 
     /* Page-align the address */
     kend = (kend + 0x1000) & ~0xfff;
@@ -310,9 +317,13 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         }
     }
 
-
-    //initrd_init(initrd->mod_start, initrd->mod_end);
-
+    if (initrd) {
+        WRITE_STATUS("Starting initrd");
+        if (initrd_init(initrd->mod_start, initrd->mod_end))
+            WRITE_SUCCESS();
+        else
+            WRITE_FAIL();
+    }
 #if 0
 
     WRITE_STATUS("Jumping to user mode (will call init on the future)");

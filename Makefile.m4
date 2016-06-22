@@ -31,6 +31,9 @@ all: $(ARCH_DEP) stackguard.o main.o terminal.o ttys.o pmm.o kheap.o dev.o \
 initrd: initrd.rain
 	cp initrd.rain iso/boot
 
+initrd.rain: initrd/*
+	tar -cf initrd.rain initrd/ 
+
 iso: all initrd
 	cp $(OUT) iso/boot
 	grub-mkrescue -o $(ISO) iso/
@@ -40,6 +43,7 @@ qemu: all
 
 clean: *.o
 	rm *.o
+	rm initrd.rain
 	rm $(OUT)
 
 ASM_SOURCE(kernel/arch/i386/,start)
