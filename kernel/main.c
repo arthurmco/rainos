@@ -213,29 +213,32 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     WRITE_SUCCESS();
 
-    WRITE_STATUS("Starting devices...\t [");
+    WRITE_STATUS("Starting devices...\t ");
+    kprintf(" \n  pit");
     pit_init();
-    kprintf(" pit");
-
-    pci_init();
-    kprintf(" pci");
+    kprintf("\tok!");
 
     // Start serial device in the right way
+    kprintf(" \n  serial");
     serial_init();
-    kprintf(" serial");
+    kprintf("\tok!");
+
+    kprintf(" \n  pci");
+    pci_init();
+    kprintf("\tok!");
 
     size_t pci_count = pci_get_device_count();
     for (size_t i = 0; i < pci_count; i++) {
         struct PciDevice* dev = pci_get_device_index(i);
 
         if (ata_check_device(dev)) {
+            kprintf("\n  ata");
             if (ata_initialize(dev)) {
-                kprintf(" ata");
+                kprintf("\tok!");
             }
         }
     }
 
-    kprintf("\t]");
     WRITE_SUCCESS();
 
     WRITE_STATUS("Starting VFS...");

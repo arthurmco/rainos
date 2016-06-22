@@ -72,6 +72,7 @@ int disk_add(struct disk* d)
     dev->__dev_read = &_disk_dev_read_wrapper;
 
     uint32_t diskmb = (uint32_t)(d->b_size * d->b_count / 1048576) & 0xffffffff;
+
     knotice("DISK: Adding disk %s (%d MB) as %s",
         d->disk_name, diskmb, d->sysname);
     kprintf("\n %s: %s (%d MB)", d->sysname, d->disk_name, diskmb);
