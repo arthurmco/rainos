@@ -25,7 +25,7 @@ ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o pit.o \
  pci.o ata.o irq.o irq_asm.o pages.o vmm.o tss.o usermode.o specifics.o
 
 all: $(ARCH_DEP) main.o terminal.o ttys.o pmm.o kheap.o dev.o disk.o vfs.o \
- partition.o fat.o $(LIBK)
+ partition.o fat.o initrd.o $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
 initrd: initrd.rain
@@ -69,6 +69,7 @@ C_SOURCE_WITH_H(kernel/,ttys)
 C_SOURCE_WITH_H(kernel/,kheap)
 C_SOURCE_WITH_H(kernel/,dev)
 C_SOURCE_WITH_H(kernel/,disk)
+C_SOURCE_WITH_H(kernel/,initrd)
 C_SOURCE(kernel/,main)
 
 C_SOURCE(libk/,kstdio)

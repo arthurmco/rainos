@@ -1,4 +1,5 @@
 #include "vfs.h"
+#include <kstdlog.h>
 
 static vfs_node_t* root;
 #define ROOT_INODE 0

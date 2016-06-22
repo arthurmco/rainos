@@ -25,6 +25,7 @@
 #include "mmap.h"
 #include "pmm.h"
 #include "kheap.h"
+#include "initrd.h"
 #include "vfs/vfs.h"
 #include "vfs/partition.h"
 #include "vfs/fat.h"
@@ -156,7 +157,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     multiboot_mod_t* mod = (multiboot_mod_t*)mboot->modules_addr;
     /* Get modules */
 
-    multiboot_mod_t* initrd;
+    //multiboot_mod_t* initrd;
 
     for (int i = 0; i < mboot->modules_count; i++) {
         char* mname = (mboot->modules_addr) ?
@@ -165,6 +166,8 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
                 "[start: 0x%08x, end: 0x%08x]", mname,
                 mod->mod_start, mod->mod_end);
         kend = (kend > mod->mod_end) ? kend : mod->mod_end;
+        //initrd = mod;
+
         mod++;
     }
 
@@ -177,49 +180,9 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         WRITE_FAIL();
         kprintf("PANIC: error while starting memory manager");
         _cli();
-        return -1;
+        return;
     }
 
-/* Test for physica memory manager */
-#if 0
-{
-    physaddr_t addr = pmm_alloc(6, PMM_REG_DEFAULT);
-    kprintf("\n\t test: allocated RAM at 0x%x", addr);
-    addr = pmm_alloc(8, PMM_REG_DEFAULT);
-    kprintf("\n\t test: allocated RAM at 0x%x", addr);
-    addr = pmm_alloc(10, PMM_REG_DEFAULT);
-    kprintf("\n\t test: allocated RAM at 0x%x", addr);
-    addr = pmm_alloc(12, PMM_REG_DEFAULT);
-    kprintf("\n\t test: allocated RAM at 0x%x", addr);
-    addr = pmm_alloc(14, PMM_REG_DEFAULT);
-    kprintf("\n\t test: allocated RAM at 0x%x", addr);
-    addr = pmm_alloc(16, PMM_REG_DEFAULT);
-    kprintf("\n\t test: allocated RAM at 0x%x", addr);
-    addr = pmm_alloc(18, PMM_REG_DEFAULT);
-    kprintf("\n\t test: allocated RAM at 0x%x", addr);
-    addr = pmm_alloc(20, PMM_REG_DEFAULT);
-    kprintf("\n\t test: allocated RAM at 0x%x", addr);
-
-    uint32_t* ptr = (uint32_t*)addr;
-    *ptr = 0xbadb00;
-    knotice("Value: 0x%x", *ptr);
-
-    memset(ptr, 0x1, sizeof(uint32_t));
-    knotice("Value: 0x%x", *ptr);
-
-    if (!pmm_free(addr, 20)) {
-        kprintf("\n\t test: error, could not free");
-    } else {
-        kprintf("\n\t test: deallocated RAM at 0x%x", addr);
-    }
-
-    addr = pmm_reserve(addr, 2);
-    if (addr)
-        kprintf("\n\t test: ok (%x)", addr);
-    else
-        kprintf("\n\t test: failed, this should succeed now.");
-}
-#endif
     physaddr_t addr = pmm_alloc(6, PMM_REG_DEFAULT);
     if (!addr) {
         WRITE_FAIL();
@@ -241,7 +204,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     WRITE_STATUS("Starting virtual memory manager...");
     pages_init(page_dir_phys, 0x0);
-    vmm_init(kstart, &kend, page_dir_phys);
+    vmm_init(kstart, kend, page_dir_phys);
 
     WRITE_SUCCESS();
 
@@ -282,17 +245,17 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     //init filesystems
     fat_init();
 
+    WRITE_SUCCESS();
+
     int i = partitions_retrieve(device_get_by_name("disk0"));
     int is_mount = 0;
 
     if (i > 0) {
-        void* buf = kcalloc(512, 1);
         device_t* p1 =  device_get_by_name("disk0p1");
 
-
         if (p1) {
-            vfs_mount(vfs_get_root(), p1, vfs_get_fs("fatfs"));
-            is_mount = 1;
+            is_mount = vfs_mount(vfs_get_root(), p1, vfs_get_fs("fatfs"));
+
         }
         else
             kerror("FAT partition not found for test case");
@@ -344,7 +307,8 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         }
     }
 
-    WRITE_SUCCESS();
+
+    //initrd_init(initrd->mod_start, initrd->mod_end);
 
 #if 0
 

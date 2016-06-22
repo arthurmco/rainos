@@ -7,6 +7,7 @@
 #define _VFS_H
 
 #include <kstring.h>
+#include <kstdlog.h>
 
 #include "../dev.h"
 

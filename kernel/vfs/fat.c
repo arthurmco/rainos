@@ -32,9 +32,9 @@ int fat_mount(device_t* dev)
     if (r < 0)
         return 0;
 
-    if (strncmp("FAT", fat->fattype.f16.fstype, 3) &&
-        strncmp("FAT", fat->fattype.f32.fstype, 3)) {
-            kerror("Invalid FAT superblock at %s", dev->devname);
+    if (strncmp("FAT\0", fat->fattype.f16.fstype, 3) &&
+        strncmp("FAT\0", fat->fattype.f32.fstype, 3)) {
+            kerror("Invalid FAT superblock at %s ", dev->devname);
             return 0;
     }
 
@@ -112,7 +112,7 @@ int fat_get_next_cluster(char* fat_sec_buffer, uint32_t offset,
 
             return ((fat_cluster_content >= 0xfff8) ? -2 : fat_cluster_content);
         } else if (fat_type == 32) {
-            fat_cluster_content = (*(uint32_t*)fat_sec_buffer[offset] & 0x0fffffff);
+            fat_cluster_content = ((*(uint32_t*)&fat_sec_buffer[offset]) & 0x0fffffff);
 
             if (fat_cluster_content == 0x0ffffff7) return -1;
 
@@ -139,7 +139,6 @@ static int _fat_read_directories(void* clusterbuf, unsigned int dir_sec_count,
 {
     vfs_node_t* node = last_sibling;
 
-    query_dir:
     if (dir_sec_count == 0) {
         /* TODO: Read clusters on demand */
         dir_sec_count = 2;
@@ -475,7 +474,7 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
         return 0;
     }
 
-    if (len == -1)
+    if (len == (unsigned int)-1)
         len = node->size;
 
     unsigned int limit = (uint32_t)(node->size > (off+len)) ? (off+len) : node->size;
