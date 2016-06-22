@@ -32,7 +32,7 @@ initrd: initrd.rain
 	cp initrd.rain iso/boot
 
 initrd.rain: initrd/*
-	tar -cf initrd.rain initrd/ 
+	tar -cf initrd.rain initrd/
 
 iso: all initrd
 	cp $(OUT) iso/boot
@@ -43,8 +43,11 @@ qemu: all
 
 clean: *.o
 	rm *.o
-	rm initrd.rain
-	rm $(OUT)
+	rm *.iso
+	rm -f initrd.rain
+	rm -f iso/boot/initrd.rain
+	rm -f iso/boot/$(OUT)
+	rm -f $(OUT)
 
 ASM_SOURCE(kernel/arch/i386/,start)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,vga)
