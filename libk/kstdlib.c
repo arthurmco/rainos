@@ -114,9 +114,10 @@ void sleep(unsigned ms)
 {
     uint64_t ctr_begin = pit_get_counter();
     uint64_t ctr = ctr_begin;
+    uint64_t tick = ms*TICKS_PER_MS;
 
-    while (ctr < (ctr_begin+ms)) {
-        asm("nop");
+    while (ctr < (ctr_begin+tick)) {
+        asm("pause");
         ctr = pit_get_counter();
     }
 

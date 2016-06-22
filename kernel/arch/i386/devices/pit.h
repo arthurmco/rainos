@@ -19,6 +19,7 @@
 #define PIT_CHANNEL(x) (0x40+x)
 #define PIT_COMMAND_REGISTER 0x43
 
+#define TICKS_PER_MS 10
 void pit_init();
 void pit_setspeed(unsigned hz);
 
