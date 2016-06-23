@@ -257,73 +257,25 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     WRITE_SUCCESS();
 
-    int i = partitions_retrieve(device_get_by_name("disk0"));
-    int is_mount = 0;
-
-    if (i > 0) {
-        device_t* p1 =  device_get_by_name("disk0p1");
-
-        if (p1) {
-            is_mount = vfs_mount(vfs_get_root(), p1, vfs_get_fs("fatfs"));
-
-        }
-        else
-            kerror("FAT partition not found for test case");
-    }
-
-    vfs_node_t* n = NULL;
-
-    if (is_mount) {
-        vfs_readdir(vfs_get_root(), &n);
-
-        while (n) {
-            kprintf("\n'%s' %s \t%d bytes \t cluster %d", n->name,
-                (n->flags & VFS_FLAG_FOLDER) ? "[DIR]" : "     ",
-                (uint32_t)n->size, (uint32_t)n->block);
-
-            if (n->flags & VFS_FLAG_FOLDER) {
-                vfs_node_t* n_child = NULL;
-
-                vfs_readdir(n, &n_child);
-
-                while (n_child) {
-                    kprintf("\n\t'%s' %s \t%d bytes \t cluster %d", n_child->name,
-                        (n_child->flags & VFS_FLAG_FOLDER) ? "[DIR]" : "     ",
-                        (uint32_t)n_child->size, (uint32_t)n_child->block);
-                    n_child = n_child->next;
-                }
-            }
-
-            n = n->next;
-        }
-
-        vfs_node_t* tst = vfs_find_node("/TEST.TXT");
-        kprintf("\n%x %s ", tst, (tst) ? tst->name : "<null>");
-
-        if (tst) {
-            kprintf("%d %d", (uint32_t)tst->size, (uint32_t)tst->block);
-
-            char buf[2048];
-            int r = vfs_read(tst, 0, -1, buf);
-
-            kprintf(", returned %d\n\n", r);
-
-            buf[r] = 0;
-            kprintf("Data: ");
-            terminal_setcolor(0x0f);
-            kputs(buf);
-            terminal_restorecolor();
-
-        }
-    }
-
     if (initrd) {
         WRITE_STATUS("Starting initrd");
-        if (initrd_init(initrd->mod_start, initrd->mod_end))
-            WRITE_SUCCESS();
-        else
+        if (!initrd_init(initrd->mod_start, initrd->mod_end)) {
             WRITE_FAIL();
+            goto next3;
+        }
+
+        if (!initrd_mount()) {
+            kprintf("\n");
+            kerror("Failed to mount initrd");
+            WRITE_FAIL();
+            goto next3;
+        }
+
+        WRITE_SUCCESS();
     }
+
+    next3:
+        kprintf("\n\n Nothing to do. System halted.");
 #if 0
 
     WRITE_STATUS("Jumping to user mode (will call init on the future)");

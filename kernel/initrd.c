@@ -9,9 +9,85 @@ static initrd_t ramdisk;
 static int initrd_readdir(vfs_node_t* parent, vfs_node_t** childs);
 static int initrd_read(vfs_node_t* node, uint64_t off, size_t len, void* buf);
 
+static struct initrd_file* root;
+
 /* Mount initrd direcly over root */
 int initrd_mount() {
 
+    struct initrd_file* file = root->child;
+
+    vfs_node_t* vfsroot = vfs_get_root();
+
+    if (!root) return 0;
+    if (!vfsroot) return 0;
+
+    vfsroot->flags |= VFS_FLAG_MOUNTPOINT;
+
+    vfs_node_t *prev = NULL, *parent = vfsroot, *child = NULL;
+
+    int end = 0, child_end = 0;
+    while (!end) {
+        if (!file) {
+            end = 1;
+            break;
+        }
+
+        vfs_node_t* node = kcalloc(sizeof(vfs_node_t), 1);
+        memcpy(file->name, node->name, strlen(file->name)+1);
+        node->size = file->size;
+        node->block = file->addr;
+        node->inode = (uintptr_t)file;
+        node->flags = file->flags;
+
+        node->prev = prev;
+        if (prev) {
+            prev->next = node;
+        }
+
+        node->parent = parent;
+        if (parent) {
+            if (parent == vfsroot) {
+                /* If root, you are mounted in root */
+                if (!parent->ptr) {
+                    parent->ptr = node;
+                }
+            } else {
+                if (!parent->child) {
+                    parent->child = node;
+                }
+            }
+        }
+
+        prev = node;
+        knotice("\t file: %s, inode: 0x%x, size: %d. [pr: 0x%x, ne: 0x%x, pa: 0x%x]",
+            node->name, (uint32_t)node->inode, (uint32_t)node->size,
+            node->prev, node->next, node->parent);
+
+        if (file->child) {
+            child = NULL;
+            parent = node;
+            prev = NULL;
+            file = file->child;
+            continue;
+        }
+
+
+        if (file->next) {
+            file = file->next;
+            continue;
+        }
+
+        if (file->parent && !file->next) {
+            /* No more files in child. Go to the parent */
+            file = file->parent->next;
+            parent = node->parent->parent;
+            prev = node->parent;
+            continue;
+        }
+
+    }
+
+    return 1;
 }
 
 /*  Initialize the initrd
@@ -33,12 +109,21 @@ int initrd_init(uintptr_t start, uintptr_t end)
     /* Organize the tar files in a hierarchical structure */
     uintptr_t ramdisk_ptr = ramdisk.start;
 
-    struct initrd_file* next = NULL;
     struct initrd_file* prev = NULL;
     struct initrd_file* parent = NULL;
     struct initrd_file* child = NULL;
 
+    /*  Parent folder name.
+
+        tar file stores the full relative path of the file
+        We get the parent name to know where the true file name starts
+    */
+    char parent_name[64] = "\0";
+
+    int child_end = 0;
     while (ramdisk_ptr < ramdisk.end) {
+
+
         struct tar_block_header* blk = (struct tar_block_header*) ramdisk_ptr;
         struct initrd_file* file = kcalloc(sizeof(struct initrd_file), 1);
 
@@ -56,29 +141,74 @@ int initrd_init(uintptr_t start, uintptr_t end)
 
         size_t size = 0;
 
-        memset(fname, 0, 128);
-        memcpy(blk->name, fname, 100);
+        if (parent) {
+            if (strncmp(parent_name, blk->name, strlen(parent_name))) {
+                /* Got out of the parent */
+                child_end = 1;
+            }
+        }
+
+        memcpy(&blk->name[strlen(parent_name)], fname, 100);
 
         char strsize[16];
         memset(strsize, 0, 16);
+
         memcpy(blk->size, strsize, 12);
         size = atoi(strsize, 8);
 
-        knotice("\t %08x: %s, %d bytes ", ramdisk_ptr, fname, size);
 
         /*  Go to the next file, skip file data
             tar blocks are always aligned to 512 bytes */
         ramdisk_ptr += (512 + ((size + 511) & ~511));
 
-        memcpy(&fname[0], file->name, strlen(file->name)+1);
+        memcpy(fname, file->name, strlen(fname)+1);
         file->size = size;
         file->addr = addr;
 
         file->prev = prev;
+
+        if (parent) {
+            if (!parent->child) {
+                parent->child = file;
+            }
+            file->parent = parent;
+        }
+
+        if (blk->typeflag == '5') {
+            /* Directory */
+
+            file->flags |= VFS_FLAG_FOLDER;
+            file->prev = prev;
+            if (prev) {
+                prev->next = file;
+            }
+            parent = file;
+            prev = NULL;
+
+            /* This might be the root */
+            if (parent_name[0] == 0) {
+                root = file;
+            }
+
+            memcpy(blk->name, parent_name, strlen(blk->name)+1);
+
+            continue;
+
+        }
+
+        /* No more items in the child. Back to parent */
+        if (child_end) {
+            if (parent) {
+                parent = parent->parent;
+                prev = parent;
+            }
+        }
+
         if (prev)
             prev->next = file;
 
         prev = file;
+
     }
 
     return 1;

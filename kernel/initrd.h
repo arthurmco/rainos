@@ -41,6 +41,7 @@ struct initrd_file {
     char name[64];
     size_t size;
     uintptr_t addr;
+    int flags;
     struct initrd_file* next;
     struct initrd_file* prev;
     struct initrd_file* parent;
