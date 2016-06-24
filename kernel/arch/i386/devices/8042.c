@@ -33,7 +33,7 @@ int i8042_init()
 
     outb(I8042_CMD, 0xAA);
     i8042_wait_send();
-    i8042_wait_recv();
+    if (!i8042_wait_recv()) { kerror("i8042: timeout"); return 0; }
 
     if (inb(I8042_DATA) != 0x55) {
         kerror("i8042: error on initialzation");
@@ -43,7 +43,7 @@ int i8042_init()
     /* Test the ports */
     outb(I8042_CMD, 0xAB);
     i8042_wait_send();
-    i8042_wait_recv();
+    if (!i8042_wait_recv()) { kerror("i8042: timeout"); return 0; }
 
     uint8_t ret = inb(I8042_DATA);
     if (ret != 0x00) {
@@ -84,14 +84,33 @@ int i8042_init()
 
 }
 
-void i8042_wait_send()
+int i8042_wait_send()
 {
-    while (inb(I8042_STATUS) & 0x2) {}
+    int timeout = 0;
+    while (inb(I8042_STATUS) & 0x2) {
+        if (timeout > 1024)
+            return 0;
+
+        io_wait();
+        timeout++;
+    }
+
+    return 1;
 }
 
-void i8042_wait_recv()
+int i8042_wait_recv()
 {
-    while (!(inb(I8042_STATUS) & 0x1)) {}
+    if (iHead != iTail) return 1;
+    int timeout = 0;
+    while (!(inb(I8042_STATUS) & 0x1)) {
+        if (timeout > 10000)
+            return 0;
+
+        io_wait();
+        timeout++;
+    }
+    return 1;
+
 }
 
 /* Send a byte through the controller */
@@ -119,7 +138,7 @@ uint8_t i8042_recv(uint8_t port)
     else
         ret = i8042Buffer[iTail++];
 
-    if (iTail > 64)
+    if (iTail >= 64)
         iTail = 0;
 
     if (port == 1)
@@ -134,11 +153,34 @@ uint8_t i8042_recv(uint8_t port)
     8042, usually the keyboard. Always IRQ 1 */
 static void i8042_interrupt_1(regs_t* r)
 {
+    if ((iHead == 63 && iTail == 0) || (iHead == iTail-1)) {
+        kerror("i8042: receive buffer full!");
+        return;
+    }
+
 	uint8_t res = inb(I8042_DATA);
-	knotice("i8042: %x", res);
     i8042Buffer[iHead++] = res;
 
-    if (iHead > 64) {
+    if (iHead >= 64) {
         iHead = 0;
     }
+
+}
+
+
+/* Flush the receive buffer */
+void i8042_flush_recv(uint8_t port)
+{
+    /* Receive until there's nothing to receive */
+    while ((inb(I8042_STATUS) & 0x1)) {
+        i8042_recv(port);
+    }
+
+    /* Flush OUR buffer too */
+    while (iHead != iTail) {
+        i8042_recv(port);
+    }
+
+    iHead = 0;
+    iTail = 0;
 }

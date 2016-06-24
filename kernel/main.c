@@ -11,7 +11,7 @@
 #include "arch/i386/devices/ioport.h"
 #include "arch/i386/devices/serial.h"
 #include "arch/i386/devices/pit.h"
-#include "arch/i386/devices/8042.h"
+#include "arch/i386/devices/ps2_kbd.h"
 #include "arch/i386/devices/pci.h"
 #include "arch/i386/devices/ata.h"
 #include "arch/i386/multiboot.h"
@@ -238,6 +238,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 	if (!i8042_init()) {
 		kprintf("\t fail!");
 	} else {
+        kbd_init();
 		kprintf("\t ok!");
 	}
 

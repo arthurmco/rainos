@@ -26,7 +26,13 @@ void i8042_send(uint8_t byte, uint8_t port);
 uint8_t i8042_recv(uint8_t port);
 
 /* Wait until you can send/receive */
-void i8042_wait_send();
-void i8042_wait_recv();
+int i8042_wait_send();
+int i8042_wait_recv();
+
+/* Flush the receive buffer */
+void i8042_flush_recv(uint8_t port);
+
+/* Check if we have a message queued on PS/2 buffer */
+int i8042_check_recv();
 
 #endif /* end of include guard: _8042_H */
