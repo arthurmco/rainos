@@ -23,7 +23,7 @@ int initrd_mount() {
 
     vfsroot->flags |= VFS_FLAG_MOUNTPOINT;
 
-    vfs_node_t *prev = NULL, *parent = vfsroot, *child = NULL;
+    vfs_node_t *prev = NULL;
 
     int end = 0, child_end = 0;
     while (!end) {
@@ -44,49 +44,86 @@ int initrd_mount() {
             prev->next = node;
         }
 
-        node->parent = parent;
-        if (parent) {
-            if (parent == vfsroot) {
-                /* If root, you are mounted in root */
-                if (!parent->ptr) {
-                    parent->ptr = node;
-                }
-            } else {
-                if (!parent->child) {
-                    parent->child = node;
-                }
-            }
-        }
+        node->parent = vfsroot;
+        node->__vfs_readdir = &initrd_readdir;
+        node->__vfs_read = &initrd_read;
 
         prev = node;
-        knotice("\t file: %s, inode: 0x%x, size: %d. [pr: 0x%x, ne: 0x%x, pa: 0x%x]",
-            node->name, (uint32_t)node->inode, (uint32_t)node->size,
-            node->prev, node->next, node->parent);
-
-        if (file->child) {
-            child = NULL;
-            parent = node;
-            prev = NULL;
-            file = file->child;
-            continue;
-        }
-
-
-        if (file->next) {
-            file = file->next;
-            continue;
-        }
-
-        if (file->parent && !file->next) {
-            /* No more files in child. Go to the parent */
-            file = file->parent->next;
-            parent = node->parent->parent;
-            prev = node->parent;
-            continue;
-        }
-
+        file = file->next;
     }
 
+    return 1;
+}
+
+static int initrd_readdir(vfs_node_t* parent, vfs_node_t** childs)
+{
+    /* Get the file object for this node */
+    struct initrd_file* fparent = (struct initrd_file*)parent->inode;
+
+    if (!fparent) {
+        kerror("initrd: invalid inode for file %s", parent->name);
+        return 0;
+    }
+
+    struct initrd_file* fchild = fparent->child;
+
+    if (!fchild) {
+        /* No childs, no need to worry */
+        return 1;
+    }
+
+    vfs_node_t* prev = NULL;
+    while (fchild) {
+
+        vfs_node_t* node = kcalloc(sizeof(vfs_node_t), 1);
+
+        if (!prev) {
+            *childs = node;
+        }
+
+        memcpy(fchild->name, node->name, strlen(fchild->name)+1);
+        node->size = fchild->size;
+        node->block = fchild->addr;
+        node->inode = (uintptr_t)fchild;
+        node->flags = fchild->flags;
+
+        node->prev = prev;
+        if (prev) {
+            prev->next = node;
+        }
+
+        node->parent = parent;
+        node->__vfs_readdir = &initrd_readdir;
+        node->__vfs_read = &initrd_read;
+
+        prev = node;
+        fchild = fchild->next;
+    }
+}
+
+static int initrd_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
+{
+    char* ptr = (char*)(node->block & 0xffffffff);
+
+    if (!ptr) {
+        kerror("initrd: %s has an invalid pointer to data", node->name);
+        return 0;
+    }
+
+    if (off > node->size) {
+        kwarn("initrd: trying to read %s past its size", node->name);
+        return 0;
+    }
+
+    if (len == (size_t)-1) {
+        len = (size_t)node->size;
+    }
+
+    if (off+len > node->size) {
+        len = (node->size-off);
+    }
+
+    memcpy(&ptr[off], buf, len);
     return 1;
 }
 
