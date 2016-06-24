@@ -33,7 +33,7 @@ uint64_t pit_get_counter()
 
 void pit_init()
 {
-    pit_setspeed(1000);
+    pit_setspeed(TICKS_PER_MS*1000);
 
     irq_add_handler(0, &pit_handler);
 }

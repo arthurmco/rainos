@@ -25,10 +25,16 @@ ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o pit.o \
  pci.o ata.o irq.o irq_asm.o pages.o vmm.o tss.o usermode.o specifics.o
 
 all: $(ARCH_DEP) stackguard.o main.o terminal.o ttys.o pmm.o kheap.o dev.o \
- disk.o vfs.o partition.o fat.o $(LIBK)
+ disk.o vfs.o partition.o fat.o initrd.o $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
-iso: all
+initrd: initrd.rain
+	cp initrd.rain iso/boot
+
+initrd.rain: initrd/*
+	tar -cf initrd.rain initrd/
+
+iso: all initrd
 	cp $(OUT) iso/boot
 	grub-mkrescue -o $(ISO) iso/
 
@@ -37,7 +43,11 @@ qemu: all
 
 clean: *.o
 	rm *.o
-	rm $(OUT)
+	rm *.iso
+	rm -f initrd.rain
+	rm -f iso/boot/initrd.rain
+	rm -f iso/boot/$(OUT)
+	rm -f $(OUT)
 
 ASM_SOURCE(kernel/arch/i386/,start)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,vga)
@@ -66,6 +76,7 @@ C_SOURCE_WITH_H(kernel/,ttys)
 C_SOURCE_WITH_H(kernel/,kheap)
 C_SOURCE_WITH_H(kernel/,dev)
 C_SOURCE_WITH_H(kernel/,disk)
+C_SOURCE_WITH_H(kernel/,initrd)
 C_SOURCE(kernel/,main)
 C_SOURCE(kernel/,stackguard)
 

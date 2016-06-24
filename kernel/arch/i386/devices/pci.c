@@ -94,15 +94,18 @@ int pci_init()
                 if (pci_get_device_bus(bus, dev, fun, &pcidev)) {
 
                     knotice("PCI: found device at %d:%d.%d", bus, dev, fun);
-                    knotice("\t vendor: 0x%x, device: 0x%x, class: %x:%x",
+                    knotice("\t vendor/device: %04x:%04x, class: %x:%x",
                         pcidev.config.vendor, pcidev.config.device,
                         pcidev.config.class_code, pcidev.config.subclass);
-                    knotice("\t header: 0x%x", pcidev.config.header_type);
+                    knotice("\t command: 0x%04x, status: 0x%04x",
+                        pcidev.config.command, pcidev.config.status);
 
                     if ((pcidev.config.header_type & 0x7f) == 0) {
-                        for (int i = 0; i < 6; i++) {
-                            knotice("\t BAR%d: 0x%x", i, pcidev.config.bar[i]);
-                        }
+
+                        knotice("\t BARS: [0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x]",
+                            pcidev.config.bar[0], pcidev.config.bar[1],
+                            pcidev.config.bar[2], pcidev.config.bar[3],
+                            pcidev.config.bar[4], pcidev.config.bar[5]);
 
                         knotice("\t Interrupt %d, pin %d",
                             pcidev.config.int_line, pcidev.config.int_pin);

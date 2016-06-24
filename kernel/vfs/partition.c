@@ -40,7 +40,7 @@ int partitions_retrieve(device_t* dev)
             nid = i;
     }
 
-    if (nid == -1)
+    if (nid == (unsigned int)-1)
         nid = dev_count;
 
     void* partition = kcalloc(512,1);

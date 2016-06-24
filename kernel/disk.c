@@ -1,4 +1,5 @@
 #include "disk.h"
+#include <kstdio.h>
 
 static disk_t disks[MAX_DISKS];
 int disk_count = 0;
@@ -74,8 +75,7 @@ int disk_add(struct disk* d)
 
     knotice("DISK: Adding disk %s (%d MB) as %s",
         d->disk_name, diskmb, d->sysname);
-
-    kprintf("\n\t\t%s: %s, %d MB", d->sysname, d->disk_name, diskmb);
+    kprintf("\n %s: %s (%d MB)", d->sysname, d->disk_name, diskmb);
 
     disks[disk_count] = *d;
     return disk_count++;

@@ -122,7 +122,7 @@ virtaddr_t kheap_allocate(size_t bytes)
     uint32_t* canary = (uint32_t*)(item->addr + item->bytes - sizeof(uint32_t));
     *canary = item->canary;
 
-    knotice("%x %d", item->addr, item->bytes);
+    // knotice("%x %d", item->addr, item->bytes);
 
     // kerror("t: 0x%x, s: 0x%x, b: 0x%x",
     // addr_reserve_top, addr_reserve_bottom+(VMM_PAGE_SIZE*DEFAULT_ALLOC_SIZE),
@@ -334,7 +334,7 @@ void _kheap_fix_list(struct HeapList* list)
     heap_item_t* first_broke = list->first;
     heap_item_t* last_broke = list->last;
 
-    int i = 0;
+    unsigned int i = 0;
     while (first_broke->next) {
         first_broke = first_broke->next;
         i++;
@@ -388,9 +388,9 @@ heap_item_t* _kheap_find_item(struct HeapList* const list, virtaddr_t addr, int 
 
     size_t step = list->count/2;
     HEAP_LIST_WALK(half, step);
-    knotice("s: 0x%x (%x), e: 0x%x (%x), m: 0x%x (%x)", start->addr, start,
-        end->addr, end, half->addr, half);
-
+    // knotice("s: 0x%x (%x), e: 0x%x (%x), m: 0x%x (%x)", start->addr, start,
+    //     end->addr, end, half->addr, half);
+    //
 
     while (step >= 2) {
         // knotice("-- %d ~ %d (%x) <<%08x>> %08x %08x %08x", step, list->count, mode,

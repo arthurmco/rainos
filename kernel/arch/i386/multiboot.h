@@ -46,6 +46,12 @@ typedef struct mboot_info {
 } multiboot_t;
 
 typedef struct {
+    uint32_t mod_start, mod_end;
+    uint32_t string_ptr;
+    uint32_t rsvd;
+} multiboot_mod_t;
+
+typedef struct {
     uint32_t size;
     uint32_t addr_low;
     uint32_t addr_high;

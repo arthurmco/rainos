@@ -23,7 +23,7 @@ int pmm_init(struct mmap_list* mm_list, physaddr_t kstart,
     /* Allocate memory for mmap regions, set kernel end accordingly */
     regs_data = (struct MMAPRegion*)(*kend);
     *kend = (*kend) + (sizeof(struct MMAPRegion) * regs_count);
-    memset(regs_data, 0, sizeof(struct MMAPRegion)* regs_count);
+    memset(regs_data, 0, sizeof(struct MMAPRegion)* (regs_count));
 
     int ir = 0;
     uint64_t freemem = 0;

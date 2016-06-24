@@ -25,6 +25,7 @@
 #include "mmap.h"
 #include "pmm.h"
 #include "kheap.h"
+#include "initrd.h"
 #include "vfs/vfs.h"
 #include "vfs/partition.h"
 #include "vfs/fat.h"
@@ -66,13 +67,13 @@ extern uintptr_t _kernel_start[];
 extern uintptr_t _kernel_end[];
 
 void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
-    terminal_t term_stdio;
+    static terminal_t term_stdio;
     term_stdio.defaultColor = 0x07;
     terminal_set(&term_stdio);
     vga_init(&term_stdio);
 
     /* Initialize logging terminal device */
-    terminal_t term_log;
+    static terminal_t term_log;
     term_log.defaultColor = 0x07;
     ttys_init(&term_log);
     klog_set_device(&term_log);
@@ -112,7 +113,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     mmap_t mm[mml.size];
 
-    const char* map_types[] = {"Unknown", "Free RAM", "Reserved RAM", "\0"};
+    static const char* map_types[] = {"Unknown", "Free RAM", "Reserved RAM", "\0"};
     int mmidx = 0;
     for (multiboot_mmap_t* map = (multiboot_mmap_t*)mboot->mmap_addr;
             map < (multiboot_mmap_t*)(((uintptr_t)mboot->mmap_addr) + mboot->mmap_length);
@@ -152,55 +153,42 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     mml.maps = &mm[0];
 
+    multiboot_mod_t* mod = (multiboot_mod_t*)mboot->modules_addr;
+    /* Get modules */
+
+    multiboot_mod_t* initrd = NULL;
+
+    for (int i = 0; i < mboot->modules_count; i++) {
+        const char* mname = mod->string_ptr ?
+            (const char*)(mod->string_ptr) : "<NULL>";
+        knotice("KERNEL: discovered mboot module '%s' "
+                "[start: 0x%08x, end: 0x%08x]", mname,
+                mod->mod_start, mod->mod_end);
+        kend = (kend > mod->mod_end) ? kend : mod->mod_end;
+
+        if (!strncmp("initrd", mname, 6))
+            initrd = mod;
+
+        mod++;
+    }
+
+    if (!initrd) {
+        kerror("initrd not found! This may cause problems");
+    }
+
+
+    /* Page-align the address */
+    kend = (kend + 0x1000) & ~0xfff;
+    knotice("KERNEL: new kend is at 0x%08x", kend);
     //Init physical memory manager
     WRITE_STATUS("Starting physical memory manager...");
     if (!pmm_init(&mml, kstart, &kend)) {
         WRITE_FAIL();
         kprintf("PANIC: error while starting memory manager");
         _cli();
-        return -1;
+        return;
     }
 
-/* Test for physica memory manager */
-#if 0
-{
-    physaddr_t addr = pmm_alloc(6, PMM_REG_DEFAULT);
-    kprintf("\n\t test: allocated RAM at 0x%x", addr);
-    addr = pmm_alloc(8, PMM_REG_DEFAULT);
-    kprintf("\n\t test: allocated RAM at 0x%x", addr);
-    addr = pmm_alloc(10, PMM_REG_DEFAULT);
-    kprintf("\n\t test: allocated RAM at 0x%x", addr);
-    addr = pmm_alloc(12, PMM_REG_DEFAULT);
-    kprintf("\n\t test: allocated RAM at 0x%x", addr);
-    addr = pmm_alloc(14, PMM_REG_DEFAULT);
-    kprintf("\n\t test: allocated RAM at 0x%x", addr);
-    addr = pmm_alloc(16, PMM_REG_DEFAULT);
-    kprintf("\n\t test: allocated RAM at 0x%x", addr);
-    addr = pmm_alloc(18, PMM_REG_DEFAULT);
-    kprintf("\n\t test: allocated RAM at 0x%x", addr);
-    addr = pmm_alloc(20, PMM_REG_DEFAULT);
-    kprintf("\n\t test: allocated RAM at 0x%x", addr);
-
-    uint32_t* ptr = (uint32_t*)addr;
-    *ptr = 0xbadb00;
-    knotice("Value: 0x%x", *ptr);
-
-    memset(ptr, 0x1, sizeof(uint32_t));
-    knotice("Value: 0x%x", *ptr);
-
-    if (!pmm_free(addr, 20)) {
-        kprintf("\n\t test: error, could not free");
-    } else {
-        kprintf("\n\t test: deallocated RAM at 0x%x", addr);
-    }
-
-    addr = pmm_reserve(addr, 2);
-    if (addr)
-        kprintf("\n\t test: ok (%x)", addr);
-    else
-        kprintf("\n\t test: failed, this should succeed now.");
-}
-#endif
     physaddr_t addr = pmm_alloc(6, PMM_REG_DEFAULT);
     if (!addr) {
         WRITE_FAIL();
@@ -222,7 +210,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     WRITE_STATUS("Starting virtual memory manager...");
     pages_init(page_dir_phys, 0x0);
-    vmm_init(kstart, &kend, page_dir_phys);
+    vmm_init(kstart, kend, page_dir_phys);
 
     WRITE_SUCCESS();
 
@@ -266,70 +254,27 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     //init filesystems
     fat_init();
 
-    int i = partitions_retrieve(device_get_by_name("disk0"));
-    int is_mount = 0;
-
-    if (i > 0) {
-        void* buf = kcalloc(512, 1);
-        device_t* p1 =  device_get_by_name("disk0p1");
-
-
-        if (p1) {
-            vfs_mount(vfs_get_root(), p1, vfs_get_fs("fatfs"));
-            is_mount = 1;
-        }
-        else
-            kerror("FAT partition not found for test case");
-    }
-
-    vfs_node_t* n = NULL;
-
-    if (is_mount) {
-        vfs_readdir(vfs_get_root(), &n);
-
-        while (n) {
-            kprintf("\n'%s' %s \t%d bytes \t cluster %d", n->name,
-                (n->flags & VFS_FLAG_FOLDER) ? "[DIR]" : "     ",
-                (uint32_t)n->size, (uint32_t)n->block);
-
-            if (n->flags & VFS_FLAG_FOLDER) {
-                vfs_node_t* n_child = NULL;
-
-                vfs_readdir(n, &n_child);
-
-                while (n_child) {
-                    kprintf("\n\t'%s' %s \t%d bytes \t cluster %d", n_child->name,
-                        (n_child->flags & VFS_FLAG_FOLDER) ? "[DIR]" : "     ",
-                        (uint32_t)n_child->size, (uint32_t)n_child->block);
-                    n_child = n_child->next;
-                }
-            }
-
-            n = n->next;
-        }
-
-        vfs_node_t* tst = vfs_find_node("/TEST.TXT");
-        kprintf("\n%x %s ", tst, (tst) ? tst->name : "<null>");
-
-        if (tst) {
-            kprintf("%d %d", (uint32_t)tst->size, (uint32_t)tst->block);
-
-            char buf[2048];
-            int r = vfs_read(tst, 0, -1, buf);
-
-            kprintf(", returned %d\n\n", r);
-
-            buf[r] = 0;
-            kprintf("Data: ");
-            terminal_setcolor(0x0f);
-            kputs(buf);
-            terminal_restorecolor();
-
-        }
-    }
-
     WRITE_SUCCESS();
 
+    if (initrd) {
+        WRITE_STATUS("Starting initrd");
+        if (!initrd_init(initrd->mod_start, initrd->mod_end)) {
+            WRITE_FAIL();
+            goto next3;
+        }
+
+        if (!initrd_mount()) {
+            kprintf("\n");
+            kerror("Failed to mount initrd");
+            WRITE_FAIL();
+            goto next3;
+        }
+
+        WRITE_SUCCESS();
+    }
+
+    next3:
+        kprintf("\n\n Nothing to do. System halted.");
 #if 0
 
     WRITE_STATUS("Jumping to user mode (will call init on the future)");
