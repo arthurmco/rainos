@@ -19,7 +19,7 @@ typedef void(*irq_handler_f)(regs_t*);
 void irq_init();
 
 /* IRQ general handler. It calls the other handlers you added */
-void irq_handler(regs_t* regs);
+void irq_handler();
 
 int irq_add_handler(int irq, irq_handler_f func);
 int irq_remove_handler(irq_handler_f func, int irq);

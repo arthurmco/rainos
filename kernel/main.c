@@ -11,6 +11,7 @@
 #include "arch/i386/devices/ioport.h"
 #include "arch/i386/devices/serial.h"
 #include "arch/i386/devices/pit.h"
+#include "arch/i386/devices/8042.h"
 #include "arch/i386/devices/pci.h"
 #include "arch/i386/devices/ata.h"
 #include "arch/i386/multiboot.h"
@@ -232,6 +233,14 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     kprintf(" \n  pci");
     pci_init();
     kprintf("\tok!");
+
+	kprintf(" \n keyboard");
+	if (!i8042_init()) {
+		kprintf("\t fail!");
+	} else {
+		kprintf("\t ok!");
+	}
+
 
     size_t pci_count = pci_get_device_count();
     for (size_t i = 0; i < pci_count; i++) {
