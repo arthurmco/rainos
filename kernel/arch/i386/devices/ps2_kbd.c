@@ -59,7 +59,6 @@ int kbd_init()
 
     /* Disable scanning */
     i8042_send(0xF5, kbd_port);
-    i8042_wait_send();
 
     ret = i8042_recv(kbd_port);
     if (ret != 0xFA) {
@@ -67,13 +66,10 @@ int kbd_init()
         return 0;
     }
 
-
     /* Set to scancode set 2 */
     scancode_sec:
     i8042_send(0xF0, kbd_port);
-    i8042_wait_send();
     i8042_send(0x02, kbd_port);
-    i8042_wait_send();
 
     i8042_wait_recv();
     ret = i8042_recv(kbd_port);
@@ -99,9 +95,7 @@ int kbd_init()
     /* Check if the scancode is set */
     scancode_check:
     i8042_send(0xF0, kbd_port);
-    i8042_wait_send();
     i8042_send(0x00, kbd_port);
-    i8042_wait_send();
 
     ret = i8042_recv(kbd_port);
 
@@ -143,9 +137,7 @@ int kbd_init()
     set_typematic:
     /* Set keyboard typematic rate to ~15 Hz, 500ms of delay */
     i8042_send(0xF3, kbd_port);
-    i8042_wait_send();
     i8042_send(0x35, kbd_port);
-    i8042_wait_send();
 
     ret = i8042_recv(kbd_port);
 
@@ -168,7 +160,6 @@ int kbd_init()
 
     /* Reenable scanning */
     i8042_send(0xF4, kbd_port);
-    i8042_wait_send();
 
     ret = i8042_recv(kbd_port);
     if (ret != 0xFA) {
@@ -184,7 +175,7 @@ int kbd_init()
     We need to buffer the extra keys somewhere.
 */
 static uint32_t buffer[8];
-static uint8_t iHead = 0; iTail = 0;
+static uint8_t iHead = 0, iTail = 0;
 
 /*  Get a scancode.
     Since the key scancode can have multiple sizes, we return a uint32_t
@@ -236,8 +227,9 @@ uint32_t kbd_get_scancode()
 
     if (kbreak) {
         key |= 0xF00000;
-    
-    } else if (kextended) {
+    }
+
+    if (kextended) {
         key |= 0xE000;
     }
 

@@ -4,6 +4,8 @@
 
 static struct MMAPRegion* regs_data;
 static int regs_count;
+static uintptr_t _kernel_start;
+static uintptr_t _kernel_end;
 
 /*  Initialize physical memory manager.
     Autodetect RAM regions, report usable physical RAM at end
@@ -134,6 +136,8 @@ int pmm_init(struct mmap_list* mm_list, physaddr_t kstart,
 
     }
 
+    _kernel_start = kstart;
+    _kernel_end = (*kend);
     reg_kernel->first_free_addr = kstart + memocc;
     knotice("PMM: %d kB of occupied RAM",
         (uint32_t)(memocc / 1024) & 0xffffffff);
@@ -253,6 +257,11 @@ physaddr_t pmm_alloc(size_t pages, int type)
     }
 
     physaddr_t addr = reg->first_free_addr;
+
+    /* Fixes bad addresses */
+    if (addr >= _kernel_start && addr <= _kernel_end)
+        addr = (_kernel_end + 0xfff) & ~0xfff;
+
     return _pmm_set_addr(addr, pages, reg, 0);
 }
 

@@ -27,7 +27,7 @@ int i8042_init()
     outb(I8042_CMD, 0xA7);  // second
 
     /* Tries to flush the out buffer */
-    for (int i = 0; i < 10; i++) {
+    while (!i8042_check_recv()) {
         inb(I8042_DATA);
     }
 
@@ -88,10 +88,10 @@ int i8042_wait_send()
 {
     int timeout = 0;
     while (inb(I8042_STATUS) & 0x2) {
-        if (timeout > 1024)
+        if (timeout > 10000)
             return 0;
 
-        io_wait();
+        asm volatile("pause");
         timeout++;
     }
 
@@ -117,7 +117,7 @@ int i8042_check_recv()
 {
     if (iHead != iTail) return 1;
 
-    return !(inb(I8042_STATUS) & 0x1);
+    return (inb(I8042_STATUS) & 0x1);
 }
 
 /* Send a byte through the controller */
