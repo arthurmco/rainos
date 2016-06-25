@@ -106,11 +106,18 @@ int i8042_wait_recv()
         if (timeout > 10000)
             return 0;
 
-        io_wait();
+        asm volatile("pause");
         timeout++;
     }
     return 1;
 
+}
+
+int i8042_check_recv()
+{
+    if (iHead != iTail) return 1;
+
+    return !(inb(I8042_STATUS) & 0x1);
 }
 
 /* Send a byte through the controller */
@@ -127,10 +134,9 @@ void i8042_send(uint8_t byte, uint8_t port)
 /* Receive a byte through the controller */
 uint8_t i8042_recv(uint8_t port)
 {
-
 	/* If both are equal, then wait until a message comes */
 	if (iTail == iHead)
-		i8042_wait_recv();
+		while (!i8042_wait_recv()){asm volatile("hlt");}
 
     uint8_t ret = 0;
     if (iHead == iTail)

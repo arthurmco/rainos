@@ -307,6 +307,10 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     WRITE_FAIL();
 #endif
     for(;;) {
-        _halt();
+        uint32_t sc = kbd_get_scancode();
+
+        if (sc)
+            kprintf("%08x\n", sc);
+        //_halt();
     }
 }

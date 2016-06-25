@@ -180,10 +180,74 @@ int kbd_init()
     return 1;
 }
 
+/*  Sometimes, multiple keys can come from a single request
+    We need to buffer the extra keys somewhere.
+*/
+static uint32_t buffer[8];
+static uint8_t iHead = 0; iTail = 0;
+
 /*  Get a scancode.
     Since the key scancode can have multiple sizes, we return a uint32_t
+    Returns the scancode, or 0 if no scancode.
 */
 uint32_t kbd_get_scancode()
 {
 
+    if (iHead != iTail) {
+        return buffer[iTail++];
+    }
+
+    if (iHead == iTail) {
+        iHead = 0;
+        iTail = 0;
+    }
+
+     /* Normal keys have 1 byte make code (xx) and 2 byte break code
+        (F0 xx)
+
+        Extended keys have 2 byte make code (E0 xx) and 3 byte break code
+        (E0 F0 xx)
+
+        Search for these patterns and break them
+    */
+
+    int key_ok = 0;
+    int kextended = 0, kbreak = 0;
+    uint32_t key;
+
+    if (!i8042_check_recv()) {
+
+        /* No key in buffer. */
+        return 0;
+    }
+
+    while (!key_ok) {
+        uint8_t key8 = i8042_recv(kbd_port);
+
+        if (key8 == 0xF0) {
+            kbreak = 1;
+        } else if (key8 == 0xE0) {
+            kextended = 1;
+        } else {
+            key = key8;
+            key_ok = 1;
+        }
+    }
+
+    if (kbreak) {
+        key |= 0xF00000;
+    
+    } else if (kextended) {
+        key |= 0xE000;
+    }
+
+    knotice("key: %x, (%s)",
+        key, (kbreak) ? "break" : "make");
+
+    /* Flush buffer */
+    buffer[iHead++] = key;
+
+    i8042_flush_recv(kbd_port);
+
+    return buffer[iTail++];
 }
