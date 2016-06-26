@@ -27,6 +27,7 @@
 #include "pmm.h"
 #include "kheap.h"
 #include "initrd.h"
+#include "keyboard.h"
 #include "vfs/vfs.h"
 #include "vfs/partition.h"
 #include "vfs/fat.h"
@@ -308,9 +309,25 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 #endif
     for(;;) {
         uint32_t sc = kbd_get_scancode();
+        struct key_event ke;
 
-        if (sc)
-            kprintf("%08x\n", sc);
-        //_halt();
+        if (sc) {
+            kbd_scancode_to_key_event(sc, &ke);
+
+            if (ke.key_status == KEYS_PRESSED) {
+                if (ke.key >= KEY_A && ke.key <= KEY_Z)
+                    putc('a'+(ke.key-0x20));
+                else if (ke.key >= KEY_0 && ke.key <= KEY_9)
+                    putc('0'+(ke.key-KEY_0));
+                else if (ke.key == KEY_ENTER)
+                    putc('\n');
+                else if (ke.key == KEY_SPACE)
+                    putc(' ');
+                else if (ke.key == KEY_SLASH)
+                    putc('/');
+
+            }
+        }
+
     }
 }

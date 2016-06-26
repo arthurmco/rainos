@@ -135,9 +135,17 @@ void i8042_send(uint8_t byte, uint8_t port)
 uint8_t i8042_recv(uint8_t port)
 {
 	/* If both are equal, then wait until a message comes */
-	if (iTail == iHead)
-		while (!i8042_wait_recv()){asm volatile("hlt");}
+	if (iTail == iHead) {
+        uint8_t timeout = 0;
+		while (!i8042_wait_recv()){
+            asm volatile("hlt");
+            timeout++;
 
+            if (timeout > 10000) {
+                kwarn("i8042: recv timeout");
+            }
+        }
+    }
     uint8_t ret = 0;
     if (iHead == iTail)
         ret = inb(I8042_DATA);

@@ -243,3 +243,55 @@ uint32_t kbd_get_scancode()
 
     return buffer[iTail++];
 }
+
+int kbd_scancode_to_key_event(uint32_t scan, struct key_event* key) {
+
+    /*  Default keymap for en-US keyboards
+        TODO: create a scancode to key translation table */
+    switch (scan & 0xffff) {
+        case 0x1C: key->key = KEY_A; break;
+        case 0x32: key->key = KEY_B; break;
+        case 0x21: key->key = KEY_C; break;
+        case 0x23: key->key = KEY_D; break;
+        case 0x24: key->key = KEY_E; break;
+        case 0x2B: key->key = KEY_F; break;
+        case 0x34: key->key = KEY_G; break;
+        case 0x33: key->key = KEY_H; break;
+        case 0x43: key->key = KEY_I; break;
+        case 0x3B: key->key = KEY_J; break;
+        case 0x42: key->key = KEY_K; break;
+        case 0x4B: key->key = KEY_L; break;
+        case 0x3A: key->key = KEY_M; break;
+        case 0x31: key->key = KEY_N; break;
+        case 0x44: key->key = KEY_O; break;
+        case 0x4D: key->key = KEY_P; break;
+        case 0x15: key->key = KEY_Q; break;
+        case 0x2D: key->key = KEY_R; break;
+        case 0x1B: key->key = KEY_S; break;
+        case 0x2C: key->key = KEY_T; break;
+        case 0x3C: key->key = KEY_U; break;
+        case 0x2A: key->key = KEY_V; break;
+        case 0x1D: key->key = KEY_W; break;
+        case 0x22: key->key = KEY_X; break;
+        case 0x35: key->key = KEY_Y; break;
+        case 0x1A: key->key = KEY_Z; break;
+
+        case 0x45: key->key = KEY_0; break;
+        case 0x16: key->key = KEY_1; break;
+        case 0x1e: key->key = KEY_2; break;
+        case 0x26: key->key = KEY_3; break;
+        case 0x25: key->key = KEY_4; break;
+        case 0x2E: key->key = KEY_5; break;
+        case 0x36: key->key = KEY_6; break;
+        case 0x3D: key->key = KEY_7; break;
+        case 0x3E: key->key = KEY_8; break;
+        case 0x46: key->key = KEY_9; break;
+
+        case 0x5A: key->key = KEY_ENTER; break;
+        case 0x4A: key->key = KEY_SLASH; break;
+        case 0x29: key->key = KEY_SPACE; break;
+    }
+
+    key->key_status = (scan & 0xf00000) ? KEYS_RELEASED : KEYS_PRESSED;
+
+}
