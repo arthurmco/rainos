@@ -5,6 +5,7 @@
 
 enum Keys {
 
+    KEY_BACKSPACE = 0x0a,
     KEY_ENTER = 0x0d,
     KEY_SPACE = 0x0e,
 

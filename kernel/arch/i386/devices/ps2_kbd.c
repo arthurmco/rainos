@@ -290,6 +290,8 @@ int kbd_scancode_to_key_event(uint32_t scan, struct key_event* key) {
         case 0x5A: key->key = KEY_ENTER; break;
         case 0x4A: key->key = KEY_SLASH; break;
         case 0x29: key->key = KEY_SPACE; break;
+        case 0x66: key->key = KEY_BACKSPACE; break;
+        case 0x49: key->key = KEY_DOT; break;
     }
 
     key->key_status = (scan & 0xf00000) ? KEYS_RELEASED : KEYS_PRESSED;

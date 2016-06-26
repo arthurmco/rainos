@@ -13,10 +13,14 @@ struct BDA {
     uint16_t lpt_port[3]; /* LPT1-LPT3 */
     uint16_t ebda_base; /* EBDA base >> 4 */
     uint16_t detected_hw_packed;
+    uint8_t pad0[5];
     uint16_t kbd_state_flags;
+    uint8_t pad1[5];
     uint8_t kbd_buffer[32];
+    uint8_t pad2[11];
     uint8_t display_mode;
     uint16_t text_mode_cols;
+    uint8_t pad3[23];
     uint16_t io_video_base;
     uint16_t irq0_count;
     uint8_t detected_hdd;

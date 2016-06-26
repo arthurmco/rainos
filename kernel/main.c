@@ -85,6 +85,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     fault_init();
     irq_init();
 
+
     terminal_clear();
     terminal_setx(20);
     terminal_setcolor(0x9f);
@@ -325,6 +326,15 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
                     putc(' ');
                 else if (ke.key == KEY_SLASH)
                     putc('/');
+                else if (ke.key == KEY_DOT)
+                    putc('.');
+
+                if (ke.key == KEY_BACKSPACE) {
+                    terminal_setx(terminal_getx()-1);
+                    putc(' ');
+                    terminal_setx(terminal_getx()-1);
+                    
+                }
 
             }
         }

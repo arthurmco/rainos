@@ -1,4 +1,5 @@
 #include "vga.h"
+#include "../bda.h"
 
 static volatile uint16_t* vga_addr = (uint16_t*) VGA_BASE;
 static uint16_t xPos = 0;
@@ -23,14 +24,38 @@ void vga_init(terminal_t* term) {
 
 }
 
+static void _vga_update_cursor()
+{
+    unsigned short io_vga_base = bda_ptr->io_video_base ;
+
+    uint16_t position = (yPos*80) + xPos;
+
+    // cursor LOW port to vga INDEX register
+    outb(io_vga_base, 0x0F);
+    outb(io_vga_base+1, (uint8_t)(position&0xFF));
+
+    // cursor HIGH port to vga INDEX register
+    outb(io_vga_base, 0x0E);
+    outb(io_vga_base+1, (uint8_t)((position>>8)&0xFF));
+}
+
+static void _vga_putc(unsigned char c)
+{
+    vga_putentry(VGA_ENTRY(c, default_color));
+}
+
+void vga_putc(unsigned char c) {
+    _vga_putc(c);
+    _vga_update_cursor();
+}
+
 void vga_puts(const char* msg) {
     while (*msg) {
-        vga_putc(*msg++);
+        _vga_putc(*msg++);
     }
+    _vga_update_cursor();
 }
-void vga_putc(unsigned char c) {
-   vga_putentry(VGA_ENTRY(c, default_color));
-}
+
 void vga_putentry(uint16_t entry) {
     char c =  entry & 0xff;
 
@@ -65,15 +90,17 @@ void vga_putentry(uint16_t entry) {
 
 }
 
-void vga_setx(uint16_t x){ xPos = x;}
+void vga_setx(uint16_t x){ xPos = x; _vga_update_cursor(); }
 uint16_t vga_getx(void) { return xPos; }
-void vga_sety(uint16_t y) {yPos = y; }
+void vga_sety(uint16_t y) {yPos = y; _vga_update_cursor(); }
 uint16_t vga_gety(void) { return yPos; }
 
 void vga_clear() {
     for (unsigned i = 0; i < VGA_WIDTH*VGA_HEIGHT; i++) {
         vga_addr[i] = VGA_ENTRY(' ', default_color);
     }
+    xPos = 0;
+    yPos = 0;
 }
 void vga_scrollup() {
     unsigned y = 1;
