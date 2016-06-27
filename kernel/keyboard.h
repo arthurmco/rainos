@@ -1,5 +1,8 @@
 /* Keyboard support functions for the kernel */
 
+#include "arch/i386/specifics.h"
+
+
 #ifndef _KEYBOARD_H
 #define _KEYBOARD_H
 
@@ -53,6 +56,8 @@ enum Keys {
     KEY_X,
     KEY_Y,
     KEY_Z,
+
+    KEY_MAX_KEYS
 };
 
 enum KeyStatus {
@@ -72,5 +77,12 @@ struct key_event {
     uint8_t pad;
 };
 
+/* Get key state for a specific key.
+    1 = Pressed, 0 = Released */
+int kbd_get_key_state(uint32_t key);
+
+int kbd_get_key();
+
+char kbd_get_ascii_key();
 
 #endif /* end of include guard: _KEYBOARD_H */

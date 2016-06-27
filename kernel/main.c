@@ -333,7 +333,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
                     terminal_setx(terminal_getx()-1);
                     putc(' ');
                     terminal_setx(terminal_getx()-1);
-                    
+
                 }
 
             }
