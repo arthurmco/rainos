@@ -27,8 +27,15 @@ int i8042_init()
     outb(I8042_CMD, 0xA7);  // second
 
     /* Tries to flush the out buffer */
+    size_t t = 0;
     while (!i8042_check_recv()) {
         inb(I8042_DATA);
+        t++;
+
+        /*  This prevents infinite loops on machines where
+            you don't have a i8042 ready */
+        if (t > 16)
+            break;
     }
 
     outb(I8042_CMD, 0xAA);
@@ -91,7 +98,7 @@ int i8042_wait_send()
         if (timeout > 10000)
             return 0;
 
-        asm volatile("pause");
+        asm volatile("nop");
         timeout++;
     }
 
@@ -106,7 +113,7 @@ int i8042_wait_recv()
         if (timeout > 10000)
             return 0;
 
-        asm volatile("pause");
+        asm volatile("nop");
         timeout++;
     }
     return 1;
