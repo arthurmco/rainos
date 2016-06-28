@@ -25,6 +25,7 @@ int initrd_mount() {
 
     vfs_node_t *prev = NULL;
 
+    int first = 1;
     int end = 0, child_end = 0;
     while (!end) {
         if (!file) {
@@ -50,6 +51,12 @@ int initrd_mount() {
 
         prev = node;
         file = file->next;
+
+
+        if (first) {
+            vfsroot->ptr = node;
+            first = 0;
+        }
     }
 
     return 1;

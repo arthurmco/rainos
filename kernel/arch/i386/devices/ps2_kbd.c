@@ -233,8 +233,8 @@ uint32_t kbd_get_scancode()
         key |= 0xE000;
     }
 
-    knotice("key: %x, (%s)",
-        key, (kbreak) ? "break" : "make");
+/*    knotice("key: %x, (%s)",
+        key, (kbreak) ? "break" : "make"); */
 
     /* Flush buffer */
     buffer[iHead++] = key;

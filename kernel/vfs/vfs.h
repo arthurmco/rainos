@@ -122,7 +122,11 @@ int vfs_read(struct vfs_node* node, uint64_t off, size_t len,
 
 
 /*  Read the childs and store the first child on
-    node->childs member */
+    node->childs member
+        Return < 0 if error
+        Return 0 if no child
+        Return 1 if child
+    */
 int vfs_readdir(vfs_node_t* node, vfs_node_t** childs);
 
 /* Find a node by its path */

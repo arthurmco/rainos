@@ -109,7 +109,7 @@ int vfs_readdir(vfs_node_t* node, vfs_node_t** childs)
 
     /* If node is a mount point, return the ptr pointer */
     if (node->flags & VFS_FLAG_MOUNTPOINT) {
-        /* Null? Read the root of the mountpoint which hace
+        /* Null? Read the root of the mountpoint which has
             this node as a rootdir parameter */
         if (!node->ptr) {
 

@@ -12,29 +12,132 @@ static size_t kcmd_count = 0;
 #define max(a,b) (a > b) ? a : b
 #define min(a,b) (a < b) ? a : b
 
-static int cmd_args(int argc, char* argv[])
-{
-    kprintf("argc: %d\n", argc);
-    kprintf("argv: ");
+#include "vfs/vfs.h"
 
-    for (int i = 0; i < argc; i++) {
-        kprintf("'%s' ", argv[i]);
+/* Filesystem operations for the kernel shell */
+static vfs_node_t* cwd = NULL;
+
+static int kshell_ls(int argc, char** argv) {
+
+    (void)argc;
+    (void)argv;
+
+    vfs_node_t* childs;
+    int chcount = vfs_readdir(cwd, &childs);
+
+    if (chcount < 0) {
+        kprintf("An error happened while reading directory %s\n", cwd->name);
+        return -1;
+    } else {
+        chcount = 0;
+        while (childs) {
+            kprintf("%s\t\t%s\t%d bytes\n", childs->name,
+                childs->flags & VFS_FLAG_FOLDER ? "[DIR]" : "     ",
+                (uint32_t)childs->size & 0xffffffff);
+            childs = childs->next;
+            chcount++;
+        }
+
+        kprintf("\n %d childs\n", chcount);
     }
 
-    kprintf("\n");
     return 1;
+
+}
+
+static int kshell_cd(int argc, char* argv[]) {
+    if (argc < 2) {
+        kprintf("Usage: cd <dirname>\n\n");
+        return 1;
+    }
+
+    if (!strcmp(argv[1], ".")) {
+        /* Browse into itself */
+        return 1;
+    } else if (!strcmp(argv[1], "..")) {
+        /* Browse into parent */
+        if (cwd->parent) {
+            cwd = cwd->parent;
+        }
+        return 1;
+    }
+
+    vfs_node_t* node = vfs_find_node_relative(cwd, argv[1]);
+    if (!node) {
+        kprintf("%s not found\n\n", argv[1]);
+        return -1;
+    } else if (node && !(node->flags & VFS_FLAG_FOLDER) ) {
+        kprintf("%s isn't a directory\n\n", argv[1]);
+        return -1;
+    } else {
+        cwd = node;
+    }
+    return 1;
+
+}
+
+static int kshell_mount(int argc, char* argv[]) {
+    if (argc < 4) {
+        kprintf("Usage: mkdir <dirname> <devname> <fs>\n");
+        return 1;
+    }
+
+    char* dir = argv[1];
+    char* dev = argv[2];
+    char* fs = argv[3];
+
+    vfs_node_t* node = vfs_find_node_relative(cwd, dir);
+    if (!node) {
+        kprintf("error: %s not found here\n", dir);
+        return -1;
+    } else if (node && !(node->flags & VFS_FLAG_FOLDER)) {
+        kprintf("error: %s is a file!\n", dir);
+        return -1;
+    }
+
+    device_t* odev = device_get_by_name(dev);
+
+    if (!odev) {
+        kprintf("Device %s not found!\n", dev);
+        return -1;
+    }
+
+    vfs_filesystem_t* ofs = vfs_get_fs(fs);
+
+    if (!ofs) {
+        kprintf("Filesystem %s not found!\n", fs);
+        return -1;
+    }
+
+    if (!vfs_mount(node, odev, ofs)) {
+        kprintf("error: failed to mount %s on %s using fs %s",
+            dev, dir, fs);
+        return -1;
+    }
+
+    return 1;
+
 }
 
 void kshell_init()
 {
-    kshell_add("args", "Test kernel shell argument passing", cmd_args);
+    cwd = vfs_get_root();
+
+    kshell_add("ls", "Read folder contents", &kshell_ls);
+    kshell_add("cd", "Browse into a directory", &kshell_cd);
+    kshell_add("mount", "Mount a filesystem", &kshell_mount);
+
     knotice("KSHELL: Starting kernel shell, %d commands", kcmd_count);
     char cmd[128];
     char* argv[16];
     while (1) {
         go_shell:
         terminal_setcolor(0x0f);
-        terminal_puts("kernsh> ");
+        terminal_puts("kernsh ");
+        terminal_setcolor(0x0d);
+        terminal_puts(cwd->name);
+        terminal_setcolor(0x0f);
+        terminal_puts(" >");
         terminal_restorecolor();
         size_t l = kgets(cmd, 128);
         if (l > 1) {
