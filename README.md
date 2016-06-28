@@ -25,8 +25,8 @@ You can also type ```make iso``` to create an ISO with the system or ```make qem
 If you want, you can help me with these tasks
 
 - [X] Jump to usermode and run some basic code
-- [ ] Improve VFS and create filesystem drivers, like
-  - [ ] a FAT driver
+- [X] Improve VFS and create filesystem drivers, like
+  - [X] a FAT driver
   - [ ] a ext driver
 - [ ] Add virtual 8086 support
 - [ ] Add VBE support (for creating framebuffers in BIOS systems)  
