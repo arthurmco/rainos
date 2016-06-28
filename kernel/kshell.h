@@ -3,6 +3,8 @@
     Copyright (C) 2016 Arthur M
 */
 
+#include <stddef.h>
+
 #ifndef _KSHELL_H
 #define _KSHELL_H
 
@@ -16,6 +18,8 @@ struct kernel_shell_cmd {
 };
 
 void kshell_init();
+
+void kshell_parse_args(char* cmd, size_t len, int* argc, char* argv[]);
 
 void kshell_add(const char* name, const char* desc, KernShellCommand ksc);
 void kshell_remove(KernShellCommand ksc);
