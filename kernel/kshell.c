@@ -67,8 +67,8 @@ void kshell_add(const char* name, const char* desc, KernShellCommand ksc)
     size_t kcmd = kcmd_count++;
     memcpy((void*)name, kcmds[kcmd].name, min(16, strlen(name)+1));
     memcpy((void*)desc, kcmds[kcmd].desc, min(96, strlen(desc)+1));
-    knotice("Adding command %s @ 0x%08x", kcmds[kcmd].name, kcmds[kcmd].cmd);
     kcmds[kcmd].cmd = ksc;
+    knotice("Adding command %s @ 0x%08x", kcmds[kcmd].name, kcmds[kcmd].cmd);
 }
 
 void kshell_remove(KernShellCommand ksc)

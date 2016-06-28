@@ -59,6 +59,7 @@ static uintptr_t addr_reserve_bottom;
 static uintptr_t addr_reserve_top;
 static uintptr_t addr_alloc;
 
+static int kheap_show(int argc, char** argv);
 void kheap_init()
 {
     // Allocate 2 pages for the item reserve
@@ -77,6 +78,8 @@ void kheap_init()
 
     memset(&hUsed, 0, sizeof(struct HeapList));
     memset(&hFree, 0, sizeof(struct HeapList));
+
+    kshell_add("heap", "Show heap memory list data", &kheap_show);
 }
 
 virtaddr_t kheap_allocate(size_t bytes)
@@ -494,6 +497,49 @@ void __kheap_dump(struct HeapList* const list)
         it = it->next;
     }
 
+}
+
+#include <kstring.h>
+#include <kstdio.h>
+
+static int kheap_show(int argc, char** argv) {
+    size_t start = 0, end = hUsed.count;
+    if (argc > 1) {
+        if (!strcmp(argv[1], "help")) {
+            kprintf("\nUsage: %s [start] [end]\n", argv[0]);
+            return 1;
+        } else {
+            start = atoi(argv[1], 10)-1;
+        }
+
+        if (argc > 2) {
+            end = atoi(argv[2], 10);
+        }
+    }
+
+    size_t umem = 0;
+    kprintf("Heap: %d to %d\n", start, end);
+
+    heap_item_t* it = hUsed.first;
+
+    for (size_t i = 0; i < start; i++) {
+        if (it) { it = it->next; }
+    }
+
+    size_t i = start;
+    while(it) {
+        kprintf("\t#%d -> addr: %08x, flags: %08x, size: %d\n",
+            ++i, it->addr, it->flags, it->bytes);
+        umem += it->bytes;
+        it = it->next;
+
+        if (i == end)
+            break;
+    }
+
+    kprintf("\ntotal: %d.%d kB\n", umem/1024, (umem%1024)/10);
+
+    return 1;
 }
 
 
