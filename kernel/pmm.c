@@ -1,4 +1,5 @@
 #include "pmm.h"
+#include "kshell.h"
 
 #define NULL 0
 
@@ -6,6 +7,15 @@ static struct MMAPRegion* regs_data;
 static int regs_count;
 static uintptr_t _kernel_start;
 static uintptr_t _kernel_end;
+
+static int pmm_shell_cmd(int argc, char* argv[0]) {
+    kprintf("Memory: \n");
+    kprintf("total: %d kB | used: %d kB | free: %d kB\n\n",
+        (pmm_get_mem_total(PMM_REG_DEFAULT) + pmm_get_mem_total(PMM_REG_LEGACY)) / 1024,
+        (pmm_get_mem_used(PMM_REG_DEFAULT) + pmm_get_mem_used(PMM_REG_LEGACY)) / 1024,
+        (pmm_get_mem_free(PMM_REG_DEFAULT) + pmm_get_mem_free(PMM_REG_LEGACY)) / 1024);
+
+}
 
 /*  Initialize physical memory manager.
     Autodetect RAM regions, report usable physical RAM at end
@@ -141,23 +151,48 @@ int pmm_init(struct mmap_list* mm_list, physaddr_t kstart,
     reg_kernel->first_free_addr = kstart + memocc;
     knotice("PMM: %d kB of occupied RAM",
         (uint32_t)(memocc / 1024) & 0xffffffff);
+
+    kshell_add("mem", "Show avaliable memory", &pmm_shell_cmd);
     return 1;
 }
 
 /* Get memory usage from region */
 size_t pmm_get_mem_total(int region)
 {
-
+    size_t mem = 0;
+    for (size_t reg = 0; reg < regs_count; reg++) {
+        if (regs_data[reg].region_type == region) {
+            mem += (regs_data[reg].len);
+        }
+    }
+    return mem;
 }
 
 size_t pmm_get_mem_used(int region)
 {
-
+    size_t mem = 0;
+    for (size_t reg = 0; reg < regs_count; reg++) {
+        if (regs_data[reg].region_type == region) {
+            for (size_t bl = 0; bl < (regs_data[reg].len/(PMM_PAGE_SIZE*8));
+                    bl++) {
+                if (regs_data[reg].region_bitset[bl] == 0xff) {
+                    mem += (PMM_PAGE_SIZE * 8);
+                } else {
+                    for (size_t p = 0; p < 8; p++) {
+                        if (BITSET_ISSET(regs_data[reg].region_bitset, bl, p)) {
+                            mem += PMM_PAGE_SIZE;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return mem;
 }
 
 size_t pmm_get_mem_free(int region)
 {
-
+    return pmm_get_mem_total(region) - pmm_get_mem_used(region);
 }
 
 static physaddr_t _pmm_set_addr(physaddr_t addr, size_t pages, struct MMAPRegion* reg,
@@ -322,5 +357,7 @@ int pmm_free(physaddr_t addr, size_t pages)
     return (_pmm_unset_addr(addr, pages, reg) > 0x0);
 
 }
+
+
 
 #undef NULL

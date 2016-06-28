@@ -28,6 +28,7 @@
 #include "kheap.h"
 #include "initrd.h"
 #include "keyboard.h"
+#include "kshell.h"
 #include "vfs/vfs.h"
 #include "vfs/partition.h"
 #include "vfs/fat.h"
@@ -308,7 +309,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     WRITE_FAIL();
 #endif
-    for(;;) {
+    /* for(;;) {
         terminal_setcolor(0x0f);
         terminal_puts("kernsh> ");
         terminal_restorecolor();
@@ -317,5 +318,6 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
         kprintf("You typed: %s", s);
 
-    }
+    } */
+    kshell_init();
 }
