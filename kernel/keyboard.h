@@ -83,6 +83,6 @@ int kbd_get_key_state(uint32_t key);
 
 int kbd_get_key();
 
-char kbd_get_ascii_key();
+char kbd_get_ascii_key(struct key_event* ev);
 
 #endif /* end of include guard: _KEYBOARD_H */
