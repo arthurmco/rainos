@@ -286,7 +286,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     }
 
     next3:
-        kprintf("\n\n Nothing to do. System halted.");
+        kprintf("\n\n Nothing to do. Starting kernel shell... \n");
 #if 0
 
     WRITE_STATUS("Jumping to user mode (will call init on the future)");
@@ -309,23 +309,13 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     WRITE_FAIL();
 #endif
     for(;;) {
-        uint32_t sc = kbd_get_scancode();
-        struct key_event ke;
+        terminal_setcolor(0x0f);
+        terminal_puts("kernsh> ");
+        terminal_restorecolor();
+        char s[128];
+        kgets(s, 128);
 
-        if (sc) {
-            kbd_scancode_to_key_event(sc, &ke);
-
-            if (ke.key_status == KEYS_PRESSED) {
-                if (ke.key == KEY_BACKSPACE) {
-                    terminal_setx(terminal_getx()-1);
-                    putc(' ');
-                    terminal_setx(terminal_getx()-1);
-                } else {
-                    putc(kbd_get_ascii_key(&ke));
-                }
-
-            }
-        }
+        kprintf("You typed: %s", s);
 
     }
 }

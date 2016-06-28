@@ -12,6 +12,19 @@ int kbd_get_key_state(uint32_t key)
     return keys[key];
 }
 
+int kbd_get_event(struct key_event* ev)
+{
+    uint32_t sc = 0;
+
+    do {
+        sc = kbd_get_scancode();
+        _halt();
+
+    } while (!sc);
+    kbd_scancode_to_key_event(sc, ev);
+    return 1;
+}
+
 int kbd_get_key()
 {
     uint32_t sc = 0;
@@ -27,7 +40,7 @@ int kbd_get_key()
     return ke.key;
 }
 
-static const char* key2ascii_normal[] = {
+static const char key2ascii_normal[] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '\b', 0, 0, '\r', ' ', 0,
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', ',', ':', '/', 0, '=',
     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
@@ -36,7 +49,7 @@ static const char* key2ascii_normal[] = {
 
 char kbd_get_ascii_key(struct key_event* ev)
 {
-    if (ev->key < KEY_MAX_KEYS) {
+    if (ev->key < KEY_MAX_KEYS && ev->key_status == KEYS_PRESSED) {
         return key2ascii_normal[ev->key];
     }
 

@@ -81,6 +81,8 @@ struct key_event {
     1 = Pressed, 0 = Released */
 int kbd_get_key_state(uint32_t key);
 
+int kbd_get_event(struct key_event* ev);
+
 int kbd_get_key();
 
 char kbd_get_ascii_key(struct key_event* ev);
