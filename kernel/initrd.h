@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <kstring.h>
 #include <kstdlog.h>
 
 #include "vfs/vfs.h"

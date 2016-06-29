@@ -163,13 +163,18 @@ int initrd_init(uintptr_t start, uintptr_t end)
         We get the parent name to know where the true file name starts
     */
     char parent_name[64] = "\0";
+    int prev_slash_count = 0, parent_slash_count = 0;
+    size_t parent_len = 0;
 
-    int child_end = 0;
     while (ramdisk_ptr < ramdisk.end) {
 
 
         struct tar_block_header* blk = (struct tar_block_header*) ramdisk_ptr;
         struct initrd_file* file = kcalloc(sizeof(struct initrd_file), 1);
+
+        if (!root) {
+            root = file;
+        }
 
         /*  If the first byte is 0, then is likely everything is 0
             So we shall end, because this is the end of the tar file data */
@@ -177,81 +182,92 @@ int initrd_init(uintptr_t start, uintptr_t end)
             break;
         }
 
-        char fname[128];
+        knotice("\traw: %s", blk->name);
+
+
+        parent_len = strlen(parent_name);
+
+
+        size_t size = atoi(blk->size, 8);
 
         /*  On tar files, file data always come after the definition,
             even on directories */
         uintptr_t addr = ramdisk_ptr + 512;
 
-        size_t size = 0;
+        int slash_count = 0;
 
-        if (parent) {
-            if (strncmp(parent_name, blk->name, strlen(parent_name))) {
-                /* Got out of the parent */
-                child_end = 1;
+        int len = strlen(blk->name);
+        for (int i = 0; i < len-1; i++) {
+            if (blk->name[i] == '/') {
+                slash_count++;
             }
         }
 
-        memcpy(&blk->name[strlen(parent_name)], fname, 100);
-
-        char strsize[16];
-        memset(strsize, 0, 16);
-
-        memcpy(blk->size, strsize, 12);
-        size = atoi(strsize, 8);
-
-
-        /*  Go to the next file, skip file data
-            tar blocks are always aligned to 512 bytes */
-        ramdisk_ptr += (512 + ((size + 511) & ~511));
-
-        memcpy(fname, file->name, strlen(fname)+1);
-        file->size = size;
         file->addr = addr;
+        file->name[63] = 0;
+        file->size = size;
 
+        if (slash_count > prev_slash_count) {
+            /* Previous directory was a parent directory */
+
+            parent = prev;
+            parent_slash_count = slash_count;
+            prev_slash_count = slash_count+1;
+            memcpy(prev->name, parent_name, strlen(prev->name)+1);
+            prev = NULL;
+        }
+
+        if (slash_count < parent_slash_count) {
+            /* Previous directory was the last directory of the chain */
+            if (parent) {
+                prev = parent;
+                parent = parent->parent;
+                memcpy(parent->name, parent_name, strlen(parent->name)+1);
+            } else {
+                prev = NULL;
+                parent = NULL;
+                memcpy("", parent_name, 1);
+            }
+
+            parent_slash_count = slash_count;
+            prev_slash_count = slash_count-1;
+        }
+
+        prev_slash_count = slash_count;
+
+        char* name = strrtok_n(blk->name, '/', strlen(blk->name)-2);
+
+        if (!name)
+            name = blk->name;
+        else
+            name = name+1;
+
+        memcpy(name, file->name, 63);
+        if (blk->typeflag == '5')
+            file->flags |= VFS_FLAG_FOLDER;
         file->prev = prev;
+        file->parent = parent;
+
+        if (prev) {
+            prev->next = file;
+        }
 
         if (parent) {
             if (!parent->child) {
                 parent->child = file;
             }
-            file->parent = parent;
         }
 
-        if (blk->typeflag == '5') {
-            /* Directory */
-
-            file->flags |= VFS_FLAG_FOLDER;
-            file->prev = prev;
-            if (prev) {
-                prev->next = file;
-            }
-            parent = file;
-            prev = NULL;
-
-            /* This might be the root */
-            if (parent_name[0] == 0) {
-                root = file;
-            }
-
-            memcpy(blk->name, parent_name, strlen(blk->name)+1);
-
-            continue;
-
-        }
-
-        /* No more items in the child. Back to parent */
-        if (child_end) {
-            if (parent) {
-                parent = parent->parent;
-                prev = parent;
-            }
-        }
-
-        if (prev)
-            prev->next = file;
+        knotice("file: %s, parent %s (%s), prev %s, size %d",
+            file->name, (parent) ? parent->name : "<NULL>", parent_name,
+            (file->prev) ? file->prev->name : "<NULL>",
+            file->size);
 
         prev = file;
+
+        /*  Go to the next file, skip file data
+            tar blocks are always aligned to 512 bytes */
+        ramdisk_ptr += (512 + ((size + 511) & ~511));
 
     }
 

@@ -157,3 +157,21 @@ char* strtok(const char* s, char tok)
 
     return NULL;
 }
+
+char* strrtok(const char* s, char tok)
+{
+    return strrtok_n(s, tok, strlen(s));
+}
+
+char* strrtok_n(const char* s, char tok, size_t len)
+{
+    int i = (int) len;
+    while (i >= 0) {
+        if (s[i] == tok)
+            return &s[i];
+
+        i--;
+    }
+
+    return NULL;
+}
