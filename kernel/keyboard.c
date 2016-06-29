@@ -67,3 +67,70 @@ char kbd_get_ascii_key(struct key_event* ev)
 
     return 0;
 }
+
+static size_t kbd_gets(char* str, size_t len)
+{
+    size_t i = 0;
+    struct key_event kev;
+    while (i < len) {
+        kbd_get_event(&kev);
+
+        char c = kbd_get_ascii_key(&kev);
+        if (c == '\b') {
+
+            if (i == 0)
+                continue;
+
+            i--;
+            str[i] = 0;
+
+            unsigned x = terminal_getx();
+            if (x == 0) {
+                terminal_sety(terminal_gety()-1);
+            }
+            terminal_setx(--x);
+            terminal_putc(' ');
+            x = terminal_getx();
+            if (x == 0) {
+                terminal_sety(terminal_gety()-1);
+            }
+            terminal_setx(--x);
+        } else if (c == 0) {
+            continue;
+        } else if (c == '\r') {
+            c = '\n';
+            putc(c);
+            str[i++] = c;
+        } else {
+            putc(c);
+            str[i++] = c;
+        }
+
+        if (c == '\n') {
+            break;
+        }
+
+    }
+
+    str[i] = 0;
+    return i;
+}
+
+static char kbd_getc()
+{
+    struct key_event kev;
+
+    do { kbd_get_event(&kev); _halt(); } while(kev.key_status != KEYS_PRESSED);
+
+    return kbd_get_ascii_key(&kev);
+}
+
+
+
+void keyboard_init(terminal_t* term)
+{
+    if (term) {
+        term->term_getc = &kbd_getc;
+        term->term_gets = &kbd_gets;
+    }
+}

@@ -72,3 +72,35 @@ void terminal_setcolor(uint8_t color)
 void terminal_restorecolor() {
     terminal_setcolor(term->defaultColor);
 }
+
+
+size_t terminal_getwidth()
+{
+    if (term->term_getwidth)
+        return term->term_getwidth();
+
+    return 0;
+}
+size_t terminal_getheight()
+{
+    if (term->term_getheight)
+        return term->term_getheight();
+
+    return 0;
+}
+
+char terminal_getc()
+{
+    if (term->term_getc)
+        return term->term_getc();
+
+    return 0;
+}
+
+size_t terminal_gets(char* str, size_t len)
+{
+    if (term->term_gets)
+        return term->term_gets(str, len);
+
+    return 0;
+}

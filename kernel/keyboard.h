@@ -1,7 +1,7 @@
 /* Keyboard support functions for the kernel */
 
 #include "arch/i386/specifics.h"
-
+#include "terminal.h"
 
 #ifndef _KEYBOARD_H
 #define _KEYBOARD_H
@@ -86,5 +86,8 @@ int kbd_get_event(struct key_event* ev);
 int kbd_get_key();
 
 char kbd_get_ascii_key(struct key_event* ev);
+
+
+void keyboard_init(terminal_t* term);
 
 #endif /* end of include guard: _KEYBOARD_H */

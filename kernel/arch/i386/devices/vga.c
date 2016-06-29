@@ -6,6 +6,9 @@ static uint16_t xPos = 0;
 static uint16_t yPos = 0;
 static uint8_t default_color;
 
+static size_t vga_width() {return 80;}
+static size_t vga_height() {return 25;}
+
 void vga_init(terminal_t* term) {
     default_color = VGA_COLOR(VGA_BLACK, VGA_LIGHTGREY);
 
@@ -20,6 +23,9 @@ void vga_init(terminal_t* term) {
         term->term_sety_f = &vga_sety;
         term->term_getcolor_f = &vga_getcolor;
         term->term_setcolor_f = &vga_setcolor;
+
+        term->term_getheight = &vga_height;
+        term->term_getwidth = &vga_width;
     }
 
 }

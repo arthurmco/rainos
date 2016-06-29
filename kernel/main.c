@@ -242,6 +242,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 		kprintf("\t fail!");
 	} else {
         kbd_init();
+        keyboard_init(&term_stdio);
 		kprintf("\t ok!");
 	}
 

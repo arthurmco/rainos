@@ -24,6 +24,12 @@ typedef struct _Terminal {
     void (*term_setx_f)(uint16_t x);
     uint8_t (*term_getcolor_f)();
     void (*term_setcolor_f)(uint8_t color);
+
+    size_t (*term_getwidth)();
+    size_t (*term_getheight)();
+
+    char (*term_getc)();
+    size_t (*term_gets)(char* str, size_t len);
 } terminal_t;
 
 void terminal_set(terminal_t*);
@@ -39,5 +45,11 @@ void terminal_setx(uint16_t x);
 uint8_t terminal_getcolor();
 void terminal_setcolor(uint8_t color);
 void terminal_restorecolor();
+
+size_t terminal_getwidth();
+size_t terminal_getheight();
+
+char terminal_getc();
+size_t terminal_gets(char* str, size_t len);
 
 #endif /* end of include guard: _TERMINAL_H */
