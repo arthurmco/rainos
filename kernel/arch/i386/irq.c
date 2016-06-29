@@ -36,9 +36,9 @@ void irq_handler(regs_t* regs)
 {
     unsigned i = regs->int_no;
     //
-    // if (i>0) {
-    //     knotice("IRQ %d\n", i);
-    // }
+    //  if (i>0) {
+        //  knotice("IRQ %d\n", i);
+    //  }
 
     for (int h = 0; h < handler_pos[i]; h++) {
         irq_handler_f fun = handlers[i][h];

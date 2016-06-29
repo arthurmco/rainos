@@ -23,6 +23,10 @@ jump_usermode:
   pushl %eax       # Stack
   pushf           # eflags
 
+  pop %eax
+  orl $0x200, %eax # Enable interrupts on userland
+  pushl %eax
+
   pushl $0x1B      # Data descriptor
   pushl %ebx       # New EIP
 
