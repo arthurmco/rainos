@@ -70,3 +70,12 @@ size_t kgets(char* str, size_t len)
     str[i] = 0;
     return i;
 }
+
+char kgetc()
+{
+    struct key_event kev;
+
+    do { kbd_get_event(&kev); _halt(); } while(kev.key_status != KEYS_PRESSED);
+
+    return kbd_get_ascii_key(&kev);
+}

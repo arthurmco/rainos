@@ -8,6 +8,7 @@
 
 enum Keys {
 
+    KEY_LSHIFT = 0x09,
     KEY_BACKSPACE = 0x0a,
     KEY_ENTER = 0x0d,
     KEY_SPACE = 0x0e,
@@ -27,7 +28,6 @@ enum Keys {
     KEY_COMMA = 0x1b,
     KEY_COLON = 0x1c,
     KEY_SLASH = 0x1d,
-    KEY_SHIFT = 0x1e,
     KEY_EQUAL = 0x1f,
 
     KEY_A = 0x20,

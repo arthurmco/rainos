@@ -5,6 +5,8 @@
     1 is pressed, 0 is released */
 static uint8_t keys[KEY_MAX_KEYS];
 
+static int shift = 0;
+
 /* Get key state for a specific key.
     1 = Pressed, 0 = Released */
 int kbd_get_key_state(uint32_t key)
@@ -42,14 +44,24 @@ int kbd_get_key()
 
 static const char key2ascii_normal[] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '\b', 0, 0, '\r', ' ', 0,
-    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', ',', ':', '/', 0, '=',
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', ',', ';', '/', 0, '=',
     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
     'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
+};
+
+static const char key2ascii_shift[] = {
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '\b', 0, 0, '\r', ' ', 0,
+    ')', '!', '@', '#', '$', '%', '~', '&', '*', '(', '>', '<', ':', '/', 0, '+',
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+    'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
 };
 
 char kbd_get_ascii_key(struct key_event* ev)
 {
     if (ev->key < KEY_MAX_KEYS && ev->key_status == KEYS_PRESSED) {
+        if (ev->modifiers.is_shift) {
+            return key2ascii_shift[ev->key];
+        }
         return key2ascii_normal[ev->key];
     }
 

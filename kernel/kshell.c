@@ -36,6 +36,10 @@ static int kshell_ls(int argc, char** argv) {
                 (uint32_t)childs->size & 0xffffffff);
             childs = childs->next;
             chcount++;
+
+            if (chcount % 20 == 0 && chcount > 0) {
+                kgetc();
+            }
         }
 
         kprintf("\n %d childs\n", chcount);
@@ -78,7 +82,7 @@ static int kshell_cd(int argc, char* argv[]) {
 
 static int kshell_mount(int argc, char* argv[]) {
     if (argc < 4) {
-        kprintf("Usage: mkdir <dirname> <devname> <fs>\n");
+        kprintf("Usage: %s <dirname> <devname> <fs>\n", argv[0]);
         return 1;
     }
 
@@ -99,6 +103,11 @@ static int kshell_mount(int argc, char* argv[]) {
 
     if (!odev) {
         kprintf("Device %s not found!\n", dev);
+        return -1;
+    }
+
+    if (odev->devtype != DEVTYPE_BLOCK) {
+        kprintf("Device %s isn't a block device!\n", dev);
         return -1;
     }
 
@@ -134,7 +143,7 @@ void kshell_init()
         go_shell:
         terminal_setcolor(0x0f);
         terminal_puts("kernsh ");
-        terminal_setcolor(0x0d);
+        terminal_setcolor(0x0a);
         terminal_puts(cwd->name);
         terminal_setcolor(0x0f);
         terminal_puts(" >");

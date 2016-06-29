@@ -254,6 +254,7 @@ static int _fat_read_directories(void* clusterbuf, unsigned int dir_sec_count,
 
         node->__vfs_readdir = &fat_readdir;
         node->__vfs_read = &fat_read;
+        node->parent = parent;
 
         if (parent) {
             node->mount = parent->mount;

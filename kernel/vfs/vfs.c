@@ -89,6 +89,7 @@ int vfs_mount(vfs_node_t* node, device_t* dev, struct vfs_filesystem* fs)
     mounts[mountid] = m;
     while (node_childs) {
         node_childs->mount = (void*)&mounts[mountid];
+        node_childs->parent = node;
         node_childs = node_childs->next;
     }
 

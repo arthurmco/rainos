@@ -19,8 +19,11 @@ void partitions_init()
     int i = 0;
     device_t* dev = NULL;
 
+    /* Autodetect the disks and its partitions */
     do {
         dname[4] = '0'+i;
+        knotice("partitions: checking %s", dname);
+        
         dev = device_get_by_name(dname);
 
         if (dev) {

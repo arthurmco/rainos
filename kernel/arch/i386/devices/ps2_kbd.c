@@ -177,6 +177,8 @@ int kbd_init()
 static uint32_t buffer[8];
 static uint8_t iHead = 0, iTail = 0;
 
+static int isShift, isCtrl, isAlt;
+
 /*  Get a scancode.
     Since the key scancode can have multiple sizes, we return a uint32_t
     Returns the scancode, or 0 if no scancode.
@@ -292,8 +294,16 @@ int kbd_scancode_to_key_event(uint32_t scan, struct key_event* key) {
         case 0x29: key->key = KEY_SPACE; break;
         case 0x66: key->key = KEY_BACKSPACE; break;
         case 0x49: key->key = KEY_DOT; break;
+        case 0x12: key->key = KEY_LSHIFT; break;
     }
 
     key->key_status = (scan & 0xf00000) ? KEYS_RELEASED : KEYS_PRESSED;
+
+    if (key->key == KEY_LSHIFT) {
+        isShift = (key->key_status == KEYS_PRESSED);
+    }
+
+    key->modifiers.is_shift = isShift;
+
 
 }

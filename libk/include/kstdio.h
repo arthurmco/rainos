@@ -15,5 +15,6 @@ void kprintf(const char* format, ...);
 void kerror(const char* format, ...);
 
 size_t kgets(char* str, size_t len);
+char kgetc();
 
 #endif /* end of include guard: _KSTDIO_H */
