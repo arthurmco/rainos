@@ -292,37 +292,55 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     }
 
     next3:
-        kprintf("\n\n Nothing to do. Starting kernel shell... \n");
-#if 0
+//        kprintf("\n\n Nothing to do. Starting kernel shell... \n");
 
     WRITE_STATUS("Jumping to user mode (will call init on the future)");
     tss_init(page_dir_phys);
 
     uint8_t* newfunc = vmm_alloc_page(VMM_AREA_USER, 3);
-    void* newstack = vmm_alloc_page(VMM_AREA_USER, 1);
+    void* newstack = (vmm_alloc_page(VMM_AREA_USER, 1) + VMM_PAGE_SIZE - 16);
 
-    // Usermode code will run
-    newfunc[0] = 0x66;
-    newfunc[1] = 0xb8;
-    newfunc[2] = 0xff;
-    newfunc[3] = 0xff;   //movw $0xffff, ax
-    newfunc[4] = 0xeb;
-    newfunc[5] = 0xfe;   //jmp -1
+    knotice("opening bintest.bin");
+    vfs_node_t* node_file = vfs_find_node("/dir/bintest.bin");
+
+    if (!node_file) {
+        knotice("not found");
+        WRITE_FAIL();
+        _halt();
+    }
+
+    size_t read = vfs_read(node_file, 0, -1, (void*)newfunc);
+    kprintf("\n%s - %d bytes\n", node_file->name, read);
+    kprintf("\n");
+    for (size_t i = 0; i <= (read/16); i++) {
+        for (size_t j = 0; j < 16; j++) {
+            kprintf("%02x ", newfunc[i*16+j]);
+        }
+
+        kprintf(" | ");
+
+        for (size_t j = 0; j < 16; j++) {
+            char c =  (char)newfunc[i*16+j];
+
+            if (c < 32) {
+                putc('.');
+            } else {
+                putc(c);
+            }
+        }
+
+        if (i % 8 == 0 && i > 0) {
+            kgetc();
+        }
+
+        kprintf("\n");
+    }
+
 
     jump_usermode((uintptr_t)newstack, (uintptr_t)newfunc);
 
 
     WRITE_FAIL();
-#endif
-    /* for(;;) {
-        terminal_setcolor(0x0f);
-        terminal_puts("kernsh> ");
-        terminal_restorecolor();
-        char s[128];
-        kgets(s, 128);
 
-        kprintf("You typed: %s", s);
-
-    } */
     kshell_init();
 }

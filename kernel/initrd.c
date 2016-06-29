@@ -131,7 +131,7 @@ static int initrd_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
     }
 
     memcpy(&ptr[off], buf, len);
-    return 1;
+    return len;
 }
 
 /*  Initialize the initrd
