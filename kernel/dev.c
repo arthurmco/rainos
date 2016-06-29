@@ -39,10 +39,31 @@ device_t* device_get_by_name(char* name)
     return NULL;
 }
 
+static int dev_cmd_created = 0;
+static void kshell_lsdev(int argc, char* argv[]) {
+    kprintf("Device list:\n");
+    device_t* d = last_dev;
+
+    while (d)
+    {
+        kprintf("id: %08x%08x, name: %s\n",
+            ((uint32_t)(d->devid >> 32)),
+            (uint32_t)d->devid & 0xffffffff,
+            d->devname);
+        d = d->prev;
+    }
+
+}
+
 /* Creates a device. Returns pointer */
 device_t* device_create(uint64_t id, const char* name,
     uint8_t devtype, device_t* parent)
     {
+        if (!dev_cmd_created) {
+            kshell_add("lsdev", "List avaliable devices", &kshell_lsdev);
+            dev_cmd_created = ~0;
+        }
+
         device_t* dev = kcalloc(sizeof(device_t), 1);
         dev->devname = kmalloc(strlen(name)+1);
         dev->devtype = devtype;

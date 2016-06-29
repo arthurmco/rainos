@@ -14,6 +14,21 @@ void partitions_init()
 {
     knotice("PARTITIONS: partition support started");
     dev_count = 0;
+
+    char* dname = "disk0";
+    int i = 0;
+    device_t* dev = NULL;
+
+    do {
+        dname[4] = '0'+i;
+        dev = device_get_by_name(dname);
+
+        if (dev) {
+            partitions_retrieve(dev);
+        }
+        i++;
+    } while (i < 10);
+
 }
 
 /*  Retrieve partitions from a device.
