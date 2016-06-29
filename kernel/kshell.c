@@ -135,6 +135,7 @@ void kshell_init()
     kshell_add("ls", "Read folder contents", &kshell_ls);
     kshell_add("cd", "Browse into a directory", &kshell_cd);
     kshell_add("mount", "Mount a filesystem", &kshell_mount);
+    kshell_add("clear", "Clears the screen", &terminal_clear);
 
     knotice("KSHELL: Starting kernel shell, %d commands", kcmd_count);
     char cmd[128];

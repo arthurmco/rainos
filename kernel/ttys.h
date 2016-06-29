@@ -19,5 +19,11 @@ void ttys_clear();
 uint8_t ttys_getcolor();
 void ttys_setcolor(uint8_t color);
 
+uint16_t ttys_getx();
+uint16_t ttys_gety();
+void ttys_setx(uint16_t nx);
+
+char ttys_getc();
+size_t ttys_gets(char* c, size_t len);
 
 #endif /* end of include guard: _TTYS_H */

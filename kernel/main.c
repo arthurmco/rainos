@@ -74,6 +74,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     term_stdio.defaultColor = 0x07;
     terminal_set(&term_stdio);
     vga_init(&term_stdio);
+    //ttys_init(&term_stdio);
 
     /* Initialize logging terminal device */
     static terminal_t term_log;
@@ -237,14 +238,17 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     pci_init();
     kprintf("\tok!");
 
-	kprintf(" \n keyboard");
-	if (!i8042_init()) {
-		kprintf("\t fail!");
-	} else {
-        kbd_init();
-        keyboard_init(&term_stdio);
-		kprintf("\t ok!");
-	}
+
+    if (!term_stdio.term_getc) {
+    	kprintf(" \n keyboard");
+    	if (!i8042_init()) {
+    		kprintf("\t fail!");
+    	} else {
+            kbd_init();
+            keyboard_init(&term_stdio);
+    		kprintf("\t ok!");
+    	}
+    }
 
 
     size_t pci_count = pci_get_device_count();

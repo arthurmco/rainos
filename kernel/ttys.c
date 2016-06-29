@@ -1,6 +1,7 @@
 #include "ttys.h"
 
 static uint8_t* default_color_ptr = 0;
+static uint16_t x, y;
 void ttys_init(terminal_t* term)
 {
     /* Start serial port in early state */
@@ -15,20 +16,29 @@ void ttys_init(terminal_t* term)
         term->term_getcolor_f = &ttys_getcolor;
         term->term_setcolor_f = &ttys_setcolor;
         default_color_ptr = &term->defaultColor;
+        term->term_getx_f = &ttys_getx;
+        term->term_gety_f = &ttys_gety;
+        term->term_setx_f = &ttys_setx;
 
-        if (*default_color_ptr)
-            *default_color_ptr = 0x07;
+        term->term_gets = &ttys_gets;
+        term->term_getc = &ttys_getc;
     }
+
+    x = 0;
+    y = 0;
 }
 
 void ttys_putc(unsigned char c)
 {
-    if (c == '\n')
+    if (c == '\n') {
         /*  Sends a CRLF combination, for being compatible with most terminal
             clients */
         serial_putc('\r');
+        y++;
+    }
 
     serial_putc(c);
+    x++;
 }
 void ttys_puts(const char* s)
 {
@@ -39,8 +49,10 @@ void ttys_puts(const char* s)
 }
 void ttys_clear()
 {
-    for (int i = 0; i < 25; i++)
-        ttys_putc('\n');
+    ttys_puts("\033[2J");
+
+    y = 0;
+    x = 0;
 }
 
 static uint8_t _color = 0;
@@ -82,4 +94,64 @@ void ttys_setcolor(uint8_t color)
         fg == (*default_color_ptr & 0xf) ? "" : colors_fg[fg]);
     ttys_puts(color_str);
     _color = color;
+}
+
+char ttys_getc()
+{
+    return serial_getc();
+}
+
+size_t ttys_gets(char* c, size_t len)
+{
+    y = 0;
+    for (size_t i = 0; i < len; i++) {
+        c[i] = serial_getc();
+
+        if (c[i] == '\r') {
+            serial_putc('\n');
+            y++;
+        } else if (c[i] == '\b' || c[i] == 0x7f){
+            if (i > 0) {
+                ttys_setx(x-1);
+                serial_putc(' ');
+                c[i] = ' ';
+                ttys_setx(x-1);
+                i -= 2;
+            }
+            continue;
+        } else {
+            serial_putc(c[i]);
+            x++;
+        }
+
+        if (c[i] == '\r' || c[i] == '\n') {
+            c[i] = '\n';
+            c[i+1] = 0;
+            return i+1;
+        }
+    }
+}
+
+uint16_t ttys_getx()
+{
+    return x;
+}
+
+uint16_t ttys_gety()
+{
+    return y;
+}
+
+void ttys_setx(uint16_t nx)
+{
+    int16_t delta = ((int16_t)nx)-x;
+    char ansi_setx[16];
+
+    if (delta > 0)
+        sprintf(ansi_setx, "\033[%dC", delta);
+    else
+        sprintf(ansi_setx, "\033[%dD", -delta);
+
+    ttys_puts(ansi_setx);
+    x = nx;
 }
