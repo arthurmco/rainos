@@ -10,6 +10,8 @@ int kbd_init()
     uint8_t ret = 0;
 
     for (unsigned p = 1; p <= 2; p++) {
+        io_wait();
+
         /* Identify each device */
         i8042_send(0xF2, p);
 
@@ -21,6 +23,7 @@ int kbd_init()
             continue;
         }
 
+        io_wait();
         uint8_t dtype = i8042_recv(p);
 
         if (dtype == 0xAB) {
@@ -54,7 +57,8 @@ int kbd_init()
         kerror("ps2_kbd: No keyboard ports found");
         return 0;
     }
-
+    io_wait();
+    
     uint8_t timeout = 0;
 
     /* Disable scanning */

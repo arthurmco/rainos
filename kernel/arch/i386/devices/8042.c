@@ -13,18 +13,31 @@ int i8042_init()
     /*  Disable interrupts for the ports of the controller, and
         disable scancode translation */
 
-    outb(I8042_CMD, 0x20);
     i8042_wait_send();
+    outb(I8042_CMD, 0x20);
+
+    i8042_wait_recv();
     uint8_t confbyte = inb(I8042_DATA);
 
     confbyte = (confbyte & ~0x43);
+
+    i8042_wait_send();
     outb(I8042_CMD, 0x60);
     i8042_wait_send();
     outb(I8042_DATA, confbyte);
 
+    io_wait();
+
+
     /* Disable the ports */
+    i8042_wait_send();
     outb(I8042_CMD, 0xAD);  // first
+    i8042_wait_send();
     outb(I8042_CMD, 0xA7);  // second
+
+    io_wait();
+
+    knotice("i8042: configuring the device...");
 
     /* Tries to flush the out buffer */
     size_t t = 0;
@@ -38,8 +51,8 @@ int i8042_init()
             break;
     }
 
-    outb(I8042_CMD, 0xAA);
     i8042_wait_send();
+    outb(I8042_CMD, 0xAA);
     if (!i8042_wait_recv()) { kerror("i8042: timeout"); return 0; }
 
     if (inb(I8042_DATA) != 0x55) {
@@ -48,8 +61,8 @@ int i8042_init()
     }
 
     /* Test the ports */
-    outb(I8042_CMD, 0xAB);
     i8042_wait_send();
+    outb(I8042_CMD, 0xAB);
     if (!i8042_wait_recv()) { kerror("i8042: timeout"); return 0; }
 
     uint8_t ret = inb(I8042_DATA);
@@ -58,21 +71,26 @@ int i8042_init()
    	return 0;
     }
 
+    io_wait();
     /* Reenable the ports */
+    i8042_wait_send();
     outb(I8042_CMD, 0xAE);
-    i8042_wait_send();
 
+    io_wait();
     /* Restore interrupts */
-    outb(I8042_CMD, 0x20);
     i8042_wait_send();
+    outb(I8042_CMD, 0x20);
+    i8042_wait_recv();
     confbyte = inb(I8042_DATA);
 
     confbyte = (confbyte | 0x3);
+    i8042_wait_send();
     outb(I8042_CMD, 0x60);
     i8042_wait_send();
     outb(I8042_DATA, confbyte);
 
-	i8042_recv(1);
+    if (i8042_check_recv())
+	   i8042_recv(1);
 
     /* Reset devices */
 	i8042_send(0xff, 1);
@@ -95,7 +113,7 @@ int i8042_wait_send()
 {
     int timeout = 0;
     while (inb(I8042_STATUS) & 0x2) {
-        if (timeout > 10000)
+        if (timeout > 10)
             return 0;
 
         asm volatile("nop");
@@ -107,10 +125,12 @@ int i8042_wait_send()
 
 int i8042_wait_recv()
 {
+
     if (iHead != iTail) return 1;
+
     int timeout = 0;
     while (!(inb(I8042_STATUS) & 0x1)) {
-        if (timeout > 10000)
+        if (timeout > 100)
             return 0;
 
         asm volatile("nop");
@@ -130,12 +150,13 @@ int i8042_check_recv()
 /* Send a byte through the controller */
 void i8042_send(uint8_t byte, uint8_t port)
 {
+    i8042_wait_send();
+
     if (port == 1)
         outb(I8042_DATA, byte);
     else
         kerror("i8042: writes to port %d not supported by this driver", port);
 
-    i8042_wait_send();
 }
 
 /* Receive a byte through the controller */
