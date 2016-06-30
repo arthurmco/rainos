@@ -324,5 +324,14 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         kprintf("You typed: %s", s);
 
     } */
+
+    int64_t ts = 1209600;
+    int year;
+    unsigned mon, day, hour, min, sec;
+    vfs_unix_to_day(ts, &year, &mon, &day, &hour, &min, &sec);
+    kprintf("Timestamp %d%d is %d/%d/%d %d:%d:%d\n",
+        (uint32_t)(ts>>32), (uint32_t)(ts&0xffffffff),
+        day+1, mon+1, year, hour, min, sec);
+
     kshell_init();
 }

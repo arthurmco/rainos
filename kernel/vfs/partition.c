@@ -23,7 +23,7 @@ void partitions_init()
     do {
         dname[4] = '0'+i;
         knotice("partitions: checking %s", dname);
-        
+
         dev = device_get_by_name(dname);
 
         if (dev) {

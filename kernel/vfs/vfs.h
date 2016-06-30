@@ -48,11 +48,14 @@ typedef struct vfs_node {
     /* Inode number, used as a ID to the fs driver */
     uint64_t inode;
 
+    /* UNIX timestamp of file creation */
+    int64_t time_fcreation;
+
     /*  Physical location, in fs-specific unit, of the file, or a pointer
         to that location*/
     uint64_t block;
 
-    /* Physical file size */
+    /* Physical file size, in bytes */
     uint64_t size;
 
     /* A pointer to the mount point.
@@ -79,6 +82,11 @@ typedef struct vfs_node {
     int (*__vfs_write)(struct vfs_node* node, uint64_t off, size_t len,
         void* buffer);
 
+    /*  Add a node to a parent node.
+        Usually, adds a file/directory inside another directory
+
+        Returns 1 on success, 0 on failure */
+    int (*__vfs_add_node)(struct vfs_node* node, struct vfs_node* parent);
 
     /* Pointer to the first child */
     struct vfs_node* child;
@@ -135,4 +143,7 @@ vfs_node_t* vfs_find_node(const char* path);
 /* Find a node from a starting point */
 vfs_node_t* vfs_find_node_relative(vfs_node_t* base, const char* path_rel);
 
+void vfs_unix_to_day(int64_t timestamp,
+    signed* year, unsigned* month, unsigned* day,
+    unsigned* hour, unsigned* minute, unsigned* second);
 #endif /* end of include guard: _VFS_H */
