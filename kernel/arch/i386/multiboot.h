@@ -43,7 +43,13 @@ typedef struct mboot_info {
 
     char* loader_name;
 
-} multiboot_t;
+    uint32_t apm_table;
+
+    uint32_t vbe_control_info;
+    uint32_t vbe_mode_info;
+    uint16_t vbe_mode;
+    uint16_t vbe_iface_seg, vbe_iface_off, vbe_iface_len;
+} __attribute__((packed)) multiboot_t;
 
 typedef struct {
     uint32_t mod_start, mod_end;

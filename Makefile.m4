@@ -23,10 +23,11 @@ ISO=rainos.iso
 LIBK=kstdio.o kstdlib.o kstring.o kstdlog.o
 ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o 8042.o \
  ps2_kbd.o pit.o pci.o ata.o irq.o irq_asm.o pages.o vmm.o tss.o usermode.o \
- specifics.o
+ specifics.o vbe.o
 
 all: $(ARCH_DEP) stackguard.o main.o terminal.o ttys.o pmm.o kheap.o dev.o \
- disk.o vfs.o partition.o fat.o initrd.o keyboard.o kshell.o $(LIBK)
+ disk.o vfs.o partition.o fat.o initrd.o keyboard.o kshell.o framebuffer.o \
+ $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
 initrd: initrd.rain
@@ -65,6 +66,7 @@ C_SOURCE_WITH_H(kernel/arch/i386/,tss)
 C_SOURCE_WITH_H(kernel/arch/i386/,idt)
 C_SOURCE_WITH_H(kernel/arch/i386/,irq)
 C_SOURCE_WITH_H(kernel/arch/i386/,vmm)
+C_SOURCE_WITH_H(kernel/arch/i386/,vbe)
 C_SOURCE_WITH_H(kernel/arch/i386/,pages)
 C_SOURCE_WITH_H(kernel/,pmm)
 ASM_SOURCE(kernel/arch/i386/,idt_asm)
@@ -82,6 +84,7 @@ C_SOURCE_WITH_H(kernel/,disk)
 C_SOURCE_WITH_H(kernel/,initrd)
 C_SOURCE_WITH_H(kernel/,keyboard)
 C_SOURCE_WITH_H(kernel/,kshell)
+C_SOURCE_WITH_H(kernel/,framebuffer)
 C_SOURCE(kernel/,main)
 C_SOURCE(kernel/,stackguard)
 

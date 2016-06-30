@@ -29,6 +29,7 @@
 #include "initrd.h"
 #include "keyboard.h"
 #include "kshell.h"
+#include "framebuffer.h"
 #include "vfs/vfs.h"
 #include "vfs/partition.h"
 #include "vfs/fat.h"
@@ -73,8 +74,8 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     static terminal_t term_stdio;
     term_stdio.defaultColor = 0x07;
     terminal_set(&term_stdio);
-    vga_init(&term_stdio);
-    //ttys_init(&term_stdio);
+    //vga_init(&term_stdio);
+    ttys_init(&term_stdio);
 
     /* Initialize logging terminal device */
     static terminal_t term_log;
@@ -223,6 +224,26 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     kheap_init();
 
     WRITE_SUCCESS();
+
+    /* VBE start */
+    if (mboot->flags & (1 << 11)) {
+        WRITE_STATUS("Starting VBE support");
+        vbe_init(mboot->vbe_control_info, mboot->vbe_mode_info);
+        framebuffer_t* vbe_fb = kcalloc(sizeof(framebuffer_t*), 1);
+        vbe_get_framebuffer_struct(vbe_fb);
+        framebuffer_set(vbe_fb);
+
+        for (unsigned y = 0; y < 480; y++) {
+            for (unsigned x = 0; x < 640; x++) {
+                framebuffer_plot_pixel(x, y, 0x99, 0x66,0xff);
+            }
+        }
+
+        WRITE_FAIL();
+    } else {
+        kprintf("warning: VBE modesetting isn't supported by this bootloader\n");
+    }
+    //asm("cli;hlt");
 
     WRITE_STATUS("Starting devices...\t ");
     kprintf(" \n  pit");

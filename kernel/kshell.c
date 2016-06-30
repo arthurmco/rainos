@@ -30,21 +30,25 @@ static int kshell_ls(int argc, char** argv) {
         return -1;
     } else {
         chcount = 0;
-        size_t bytes = 0;
+        size_t sbytes = 0;
         while (childs) {
             kprintf("%s\t\t%s\t%d bytes\n", childs->name,
                 childs->flags & VFS_FLAG_FOLDER ? "[DIR]" : "     ",
                 (uint32_t)childs->size & 0xffffffff);
+
+            if (childs->size > 0)
+                sbytes += (size_t)childs->size;
+
             childs = childs->next;
             chcount++;
 
-            bytes += (size_t)childs->size;
             if (chcount % 20 == 0 && chcount > 0) {
                 kgetc();
             }
         }
 
-        kprintf("\n %d childs, %d kB total\n", chcount, bytes/1024);
+        kprintf("\n %d childs, %d.%d kB total\n", chcount,
+            sbytes/1024, (sbytes%1024)/100);
     }
 
     return 1;

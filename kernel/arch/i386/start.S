@@ -7,7 +7,9 @@
 
 .set PAGEALIGN, 1 << 0              #; Align our kernel in page (4K) boundaries
 .set MEMINFO,   1 << 1              #; Provides memory map
-.set FLAGS,     PAGEALIGN | MEMINFO #; Multiboot flags
+.set VBEINFO,   1 << 2              #; Set default mode to a VESA mode
+
+.set FLAGS,     PAGEALIGN | MEMINFO | VBEINFO #; Multiboot flags
 .set MAGIC,     0x1BADB002          #; Multiboot magic number
 .set CHECKSUM,  -(MAGIC + FLAGS)    #; Checksum. The checksum plus magic and flags
                                     #; needs to be zero.
@@ -18,6 +20,15 @@
 .long MAGIC
 .long FLAGS
 .long CHECKSUM
+.long 0x0 # a.out data that we don't need
+.long 0x0
+.long 0x0
+.long 0x0
+.long 0x0
+.long 0x0 # VBE multiboot mode setting
+.long 0x0 # Any width you like
+.long 0x0 # Any height you like
+.long 32  # 32 bpp
 
 .section .phys_stack, "aw", @nobits
     .align 4
