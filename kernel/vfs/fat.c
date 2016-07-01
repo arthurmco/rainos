@@ -150,13 +150,21 @@ static int _fat_read_directories(void* clusterbuf, unsigned int dir_sec_count,
     int next_inode = 1;
     int is_over = 0;
 
+    char long_name[128];
+    int long_off = 0;
+    int has_long_name = 0;
+
     for (unsigned i = 0; i < dir_sec_count*8; i++) {
-        if (((unsigned char)rootdir[i].name[0]) == 0xe5) /* free directory, but can be more */
+        if (((unsigned char)rootdir[i].name[0]) == 0xe5) {/* free directory, but can be more */
+            long_off = 0;
+            has_long_name = 0;
             continue;
+        }
 
         /* Illegal chars on a directory entry */
         if (((unsigned char)rootdir[i].name[0]) < 0x20 &&
-            rootdir[i].name[0] != 0x05) {
+            rootdir[i].name[0] != 0x05 &&
+            rootdir[i].attr != FAT_ATTR_LONG_NAME ) {
                 continue;
             }
 
@@ -190,8 +198,34 @@ static int _fat_read_directories(void* clusterbuf, unsigned int dir_sec_count,
         char dirname[16];
         memset(dirname, 0, 16);
 
-        if (rootdir[i].attr & FAT_ATTR_LONG_NAME) {
-            kwarn("fat: long file names is not yet supported");
+        if (rootdir[i].attr == FAT_ATTR_LONG_NAME) {
+            /* Get the long name for the file */
+            struct fat_long_dir* long_dir = (struct fat_long_dir*) &rootdir[i];
+            if (long_dir->type != 0) {
+                kwarn("fat: entry %d is a invalid long name entry", i);
+                long_off = 0;
+                continue;
+            }
+
+            long_off = ((long_dir->ordinal & 0x1f)-1) * 13;
+            knotice("%d", long_off);
+
+            for (int c = 0; c < 5; c++)
+                long_name[long_off+c] = (char)(long_dir->name1[c] & 0xff);
+
+            for (int c = 0; c < 6; c++)
+                long_name[long_off+5+c] = (char)(long_dir->name2[c] & 0xff);
+
+            for (int c = 0; c < 2; c++)
+                long_name[long_off+11+c] = (char)(long_dir->name3[c] & 0xff);
+
+
+            if (long_dir->ordinal & 0x40) {
+                /* The last. Zero-pad the name */
+                long_name[long_off+13] = 0;
+            }
+
+            has_long_name = 1;
             continue;
         }
 
@@ -210,7 +244,14 @@ static int _fat_read_directories(void* clusterbuf, unsigned int dir_sec_count,
         if (rootdir[i].attr & FAT_ATTR_DIRECTORY)
             node->flags |= VFS_FLAG_FOLDER;
 
-        if (node->flags & VFS_FLAG_FOLDER) {
+        if (has_long_name) {
+            /* It was a long name entry. Copy it */
+            memcpy(long_name, node->name, strlen(long_name));
+            long_off = 0;
+            has_long_name = 0;
+            long_name[0] = '1';
+        } else {
+            if (node->flags & VFS_FLAG_FOLDER) {
             /* Trim the spaces on folder name */
             for (int i = 10; i > 1; i--) {
                 if (dirname[i] != ' ') {
@@ -219,38 +260,39 @@ static int _fat_read_directories(void* clusterbuf, unsigned int dir_sec_count,
                 }
             }
 
-        } else {
-            unsigned int namelen = 8, extlen = 3;
-            /* Retrieve name and extension, separated */
+            } else {
+                unsigned int namelen = 8, extlen = 3;
+                /* Retrieve name and extension, separated */
 
-            for (int j = 0; j < 8; j++) {
-                if (rootdir[i].name[j] == ' ') {
-                    namelen = j;
-                    break;
+                for (int j = 0; j < 8; j++) {
+                    if (rootdir[i].name[j] == ' ') {
+                        namelen = j;
+                        break;
+                    }
+
+                    dirname[j] = rootdir[i].name[j];
+
                 }
 
-                dirname[j] = rootdir[i].name[j];
+                dirname[namelen] = '.';
 
-            }
+                for (int j = 0; j < 3; j++) {
+                    if (rootdir[i].name[8+j] == ' ') {
+                        dirname[namelen+j+1] = 0;
+                        extlen = j;
+                        break;
+                    }
 
-            dirname[namelen] = '.';
-
-            for (int j = 0; j < 3; j++) {
-                if (rootdir[i].name[8+j] == ' ') {
-                    dirname[namelen+j+1] = 0;
-                    extlen = j;
-                    break;
+                    dirname[namelen+j+1] = rootdir[i].name[8+j];
                 }
 
-                dirname[namelen+j+1] = rootdir[i].name[8+j];
+                dirname[namelen+extlen+1] = 0;
             }
-
-            dirname[namelen+extlen+1] = 0;
-        }
         /* And copy it */
 
-        knotice("%s %d", dirname, rootdir[i].cluster_low);
         memcpy(dirname, node->name, strlen(dirname)+1);
+        }
+        knotice("%s %d", node->name, rootdir[i].cluster_low);
 
         node->__vfs_readdir = &fat_readdir;
         node->__vfs_read = &fat_read;

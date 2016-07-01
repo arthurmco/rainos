@@ -57,13 +57,14 @@ int kbd_init()
         kerror("ps2_kbd: No keyboard ports found");
         return 0;
     }
-    io_wait();
-    
+
     uint8_t timeout = 0;
+
 
     /* Disable scanning */
     i8042_send(0xF5, kbd_port);
 
+    i8042_wait_recv();
     ret = i8042_recv(kbd_port);
     if (ret != 0xFA) {
         kerror("ps2_kbd: Keyboard returned unexpected value %x", ret);
@@ -94,13 +95,14 @@ int kbd_init()
         return 0;
     }
 
-    i8042_flush_recv(kbd_port);
     timeout = 0;
     /* Check if the scancode is set */
     scancode_check:
     i8042_send(0xF0, kbd_port);
+    i8042_wait_send();
     i8042_send(0x00, kbd_port);
 
+    i8042_wait_recv();
     ret = i8042_recv(kbd_port);
 
     if (ret == 0xFE) {
@@ -121,8 +123,6 @@ int kbd_init()
 
     scancode_check_recv:
     i8042_wait_recv();
-
-
     ret = i8042_recv(kbd_port);
 
     if (ret == 0xfa) {
@@ -135,14 +135,15 @@ int kbd_init()
     }
 
     knotice("ps2_kbd: Scancode set changed to set 2");
-    i8042_flush_recv(kbd_port);
 
     timeout = 0;
     set_typematic:
     /* Set keyboard typematic rate to ~15 Hz, 500ms of delay */
     i8042_send(0xF3, kbd_port);
+    i8042_wait_send();
     i8042_send(0x35, kbd_port);
 
+    i8042_wait_recv();
     ret = i8042_recv(kbd_port);
 
     if (ret == 0xFE) {
@@ -163,8 +164,10 @@ int kbd_init()
 
 
     /* Reenable scanning */
+    i8042_wait_send();
     i8042_send(0xF4, kbd_port);
 
+    i8042_wait_recv();
     ret = i8042_recv(kbd_port);
     if (ret != 0xFA) {
         kerror("ps2_kbd: Keyboard returned unexpected value %x", ret);

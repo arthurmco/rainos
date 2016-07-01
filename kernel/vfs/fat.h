@@ -91,6 +91,17 @@ struct fat_dir {
     uint32_t size;
 } __attribute__((packed));
 
+struct fat_long_dir {
+    uint8_t ordinal;       /* Order of this entry. If masked with 0x40, is the last */
+    uint16_t name1[5];     /* First 5 chars (in unicode) of the entry */
+    uint8_t long_attr;     /* The attribute */
+    uint8_t type;          /* Entry type, must be 0 */
+    uint8_t chksum;          /* Entry checksum */
+    uint16_t name2[6];      /* Next 5 chars of the entry */
+    uint16_t cluster_low;   /* Must be zero. Compatibility for old tools */
+    uint16_t name3[2];
+} __attribute__((packed));
+
 
 enum FatDirAttributes
 {
