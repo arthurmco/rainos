@@ -72,6 +72,10 @@ static size_t kbd_gets(char* str, size_t len)
 {
     size_t i = 0;
     struct key_event kev;
+
+    uint8_t origcolor = terminal_getcolor();
+    uint8_t erasercolor = (origcolor & ~0xf) | ((origcolor >> 4) & 0xf);
+
     while (i < len) {
         kbd_get_event(&kev);
 
@@ -82,14 +86,19 @@ static size_t kbd_gets(char* str, size_t len)
                 continue;
 
             i--;
-            str[i] = 0;
 
             unsigned x = terminal_getx();
             if (x == 0) {
                 terminal_sety(terminal_gety()-1);
             }
             terminal_setx(--x);
-            terminal_putc(' ');
+            if (terminal_get()->name[0] == 'f') {
+                terminal_setcolor(erasercolor);
+                terminal_putc(str[i]);
+                terminal_setcolor(origcolor);
+            } else {
+                terminal_putc(' ');
+            }
             x = terminal_getx();
             if (x == 0) {
                 terminal_sety(terminal_gety()-1);

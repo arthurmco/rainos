@@ -26,8 +26,8 @@
 .long 0x0
 .long 0x0
 .long 0x0 # VBE multiboot mode setting
-.long 0x0 # Any width you like
-.long 0x0 # Any height you like
+.long 800 # Any width you like
+.long 600 # Any height you like
 .long 32  # 32 bpp
 
 .section .phys_stack, "aw", @nobits

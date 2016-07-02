@@ -21,6 +21,7 @@ int fbcon_init(terminal_t* term)
     knotice("fbcon: framebuffer terminal of %dx%d chars", charW, charH);
 
     if (term) {
+        term->name[0] = 'f';
         term->term_putc_f = &fbcon_putc;
         term->term_puts_f = &fbcon_puts;
         term->term_clear_f = &fbcon_clear;
@@ -59,44 +60,38 @@ void fbcon_scroll()
 
 void fbcon_putc(unsigned char c)
 {
-    framebuffer_putc(c, charX*FONT_WIDTH, charY*FONT_HEIGHT,
-        vga_fb[usedColor&0xf][2], vga_fb[usedColor&0xf][1],
-        vga_fb[usedColor&0xf][0]);
+    switch (c) {
+    case '\n':
+        charY++;
+    case '\r':
+        charX = 0;
+        break;
+    case '\t':
+        charX += 4;
+        break;
+    default:
+        framebuffer_putc(c, charX*FONT_WIDTH, charY*FONT_HEIGHT,
+            vga_fb[usedColor&0xf][2], vga_fb[usedColor&0xf][1],
+            vga_fb[usedColor&0xf][0]);
+        charX++;
+        break;
+    }
+    if (charX > charW) {
+        charX = 0;
+        charY++;
+    }
+    if (charY >= charH) {
+        /* scroll */
+        charY--;
+        fbcon_scroll();
+    }
 }
 void fbcon_puts(const char* s)
 {
     while (*s) {
-        switch (*s) {
-        case '\n':
-            charY++;
-        case '\r':
-            charX = 0;
-            break;
-        case '\t':
-            charX += 4;
-            break;
-        default:
-            fbcon_putc(*s);
-            charX++;
-            break;
-        }
-
-
-        if (charX > charW) {
-            charX = 0;
-            charY++;
-        }
-
-        if (charY >= charH) {
-            /* scroll */
-            charY--;
-            fbcon_scroll();
-
-        }
-
+        fbcon_putc(*s);
         s++;
     }
-
 }
 
 void fbcon_clear()

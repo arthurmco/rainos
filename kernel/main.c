@@ -75,8 +75,8 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     static terminal_t term_stdio;
     term_stdio.defaultColor = 0x07;
     terminal_set(&term_stdio);
-    // vga_init(&term_stdio);
-    ttys_init(&term_stdio);
+    vga_init(&term_stdio);
+    // ttys_init(&term_stdio);
 
     /* Initialize logging terminal device */
     static terminal_t term_log;
@@ -269,7 +269,6 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     kprintf(" \n  pci");
     pci_init();
     kprintf("\tok!");
-    framebuffer_plot_pixel(200, 200, 0xff, 0x0, 0x0);
 
     if (!term_stdio.term_getc) {
     	kprintf(" \n keyboard");
