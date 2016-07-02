@@ -64,7 +64,7 @@ device_t* device_create(uint64_t id, const char* name,
             dev_cmd_created = ~0;
         }
 
-        device_t* dev = kcalloc(sizeof(device_t), 1);
+        device_t* dev = kcalloc(sizeof(device_t),1);
         dev->devname = kmalloc(strlen(name)+1);
         dev->devtype = devtype;
         memcpy(name, dev->devname, strlen(name)+1);

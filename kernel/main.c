@@ -75,8 +75,8 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     static terminal_t term_stdio;
     term_stdio.defaultColor = 0x07;
     terminal_set(&term_stdio);
-    vga_init(&term_stdio);
-    //ttys_init(&term_stdio);
+    // vga_init(&term_stdio);
+    ttys_init(&term_stdio);
 
     /* Initialize logging terminal device */
     static terminal_t term_log;
@@ -230,7 +230,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     if (mboot->flags & (1 << 11)) {
         WRITE_STATUS("Starting VBE support");
         vbe_init(mboot->vbe_control_info, mboot->vbe_mode_info);
-        framebuffer_t* vbe_fb = kcalloc(sizeof(framebuffer_t*), 1);
+        framebuffer_t* vbe_fb = kcalloc(sizeof(framebuffer_t), 1);
         vbe_get_framebuffer_struct(vbe_fb);
         framebuffer_set(vbe_fb);
 
@@ -239,32 +239,37 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         } else {
             framebuffer_puts("RainOS", 60, 0, 0x30, 0x30, 0xff);
             framebuffer_puts("Copyright (C) 2016 Arthur M", 60, 20, 0x7f, 0x7f, 0x7f);
+            for (int i = 0; i < 320; i++) {
+                framebuffer_plot_pixel(i, 36, 0xff, 0xff, 0xff);
+                framebuffer_plot_pixel(i, 37, 0xcf, 0xcf, 0xcf);
+                framebuffer_plot_pixel(i, 38, 0x8f, 0x8f, 0x8f);
+                framebuffer_plot_pixel(i, 39, 0x4f, 0x4f, 0x4f);
+                framebuffer_plot_pixel(i, 40, 0x0f, 0x0f, 0x0f);
+            }
 
             fbcon_sety(4);
+
             knotice("KERNEL: using framebuffer console driver");
         }
 
     } else {
         kprintf("warning: VBE modesetting isn't supported by this bootloader\n");
     }
-    //asm("cli;hlt");
 
     WRITE_STATUS("Starting devices...\t ");
     kprintf(" \n  pit");
     pit_init();
     kprintf("\tok!");
 
-
     // Start serial device in the right way
-    // kprintf(" \n  serial");
-    // serial_init();
-    // kprintf("\tok!");
+    kprintf(" \n  serial");
+    serial_init();
+    kprintf("\tok!");
 
-    framebuffer_puts("aaa", 200, 400, 30, 100, 150);
     kprintf(" \n  pci");
     pci_init();
     kprintf("\tok!");
-
+    framebuffer_plot_pixel(200, 200, 0xff, 0x0, 0x0);
 
     if (!term_stdio.term_getc) {
     	kprintf(" \n keyboard");
@@ -276,7 +281,6 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     		kprintf("\t ok!");
     	}
     }
-
 
     size_t pci_count = pci_get_device_count();
     for (size_t i = 0; i < pci_count; i++) {

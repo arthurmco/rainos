@@ -97,7 +97,8 @@ framebuffer_t* framebuffer_get_data()
 static void _fb_plot_pixel24(uint16_t x, uint16_t y,
     uint8_t r, uint8_t g, uint8_t b)
     {
-        uint8_t* off = (((uint32_t)current_fb->fb_addr) + (y * current_fb->pitch) + (x * 3));
+        uint8_t* off = (uint8_t*)(((uint32_t)current_fb->fb_addr)
+            + (y * current_fb->pitch) + (x * 3));
         off[0] = b;
         off[1] = g;
         off[2] = r;
@@ -135,7 +136,8 @@ static void _fb_putc24(char c, uint16_t x, uint16_t y,
 static void _fb_plot_pixel32(uint16_t x, uint16_t y,
     uint8_t r, uint8_t g, uint8_t b)
     {
-        uint32_t* off = (((uint32_t)current_fb->fb_addr) + (y * current_fb->pitch) + (x * 4));
+        uint32_t* off = (uint8_t*)(((uint32_t)current_fb->fb_addr) +
+            (y * current_fb->pitch) + (x * 4));
         *off = ((r & ((1 << current_fb->red_mask) -1)) << current_fb->red_off);
         *off |= ((g & ((1 << current_fb->green_mask) -1)) << current_fb->green_off);
         *off |= ((b & ((1 << current_fb->blue_mask) -1)) << current_fb->blue_off);

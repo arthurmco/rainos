@@ -18,6 +18,8 @@ int fbcon_init(terminal_t* term)
     charW = fb->width / FONT_WIDTH;
     charH = fb->height / FONT_HEIGHT;
 
+    knotice("fbcon: framebuffer terminal of %dx%d chars", charW, charH);
+
     if (term) {
         term->term_putc_f = &fbcon_putc;
         term->term_puts_f = &fbcon_puts;
@@ -39,11 +41,27 @@ int fbcon_init(terminal_t* term)
     return 1;
 }
 
+void fbcon_scroll()
+{
+    for (size_t y = FONT_HEIGHT; y < fb->height; y++) {
+        memcpy(((uintptr_t)fb->fb_addr) + fb->pitch * y,
+               ((uintptr_t)fb->fb_addr) + fb->pitch * (y-FONT_HEIGHT),
+               fb->pitch);
+    }
+
+    for (size_t y = fb->height-FONT_HEIGHT; y < fb->height; y++) {
+        for (size_t x = 0; x < fb->width; x++) {
+            framebuffer_plot_pixel(x, y, 0, 0, 0);
+        }
+    }
+
+}
+
 void fbcon_putc(unsigned char c)
 {
-    framebuffer_putc(c, charX*FONT_WIDTH, charY*FONT_HEIGHT, 
-        vga_fb[usedColor][0], vga_fb[usedColor][1],
-        vga_fb[usedColor][2]);
+    framebuffer_putc(c, charX*FONT_WIDTH, charY*FONT_HEIGHT,
+        vga_fb[usedColor&0xf][2], vga_fb[usedColor&0xf][1],
+        vga_fb[usedColor&0xf][0]);
 }
 void fbcon_puts(const char* s)
 {
@@ -59,18 +77,21 @@ void fbcon_puts(const char* s)
             break;
         default:
             fbcon_putc(*s);
+            charX++;
             break;
         }
 
-        charX++;
 
-        if (charX >= charW) {
+        if (charX > charW) {
             charX = 0;
             charY++;
         }
 
         if (charY >= charH) {
             /* scroll */
+            charY--;
+            fbcon_scroll();
+
         }
 
         s++;
@@ -85,6 +106,8 @@ void fbcon_clear()
             framebuffer_plot_pixel(x, y, 0, 0, 0);
         }
     }
+    charX = 0;
+    charY = 0;
 }
 
 uint16_t fbcon_gety() { return charY; }

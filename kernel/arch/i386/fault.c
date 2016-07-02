@@ -75,9 +75,13 @@ void fault_trace(uint32_t ebp) {
 
 void fault_handler(regs_t* r) {
 
-    asm("cli");
     kputs("\n");
-    kerror("Processor Exception: %s\n", fault_names[r->int_no]);
+    kerror("Processor Exception: %s\n"
+            "\teax: %08x\t ebx: %08x\t ecx: %08x\t edx:%08x\t\n"
+            "\teip: %08x\t esp: %08x\t ebp: %08x\n"
+            "\texc_code: %08x\n",
+            fault_names[r->int_no],
+            r->eax, r->ebx, r->ecx, r->edx, r->eip, r->esp, r->ebp, r->err_code);
     kprintf("eax: %08x\t ebx: %08x\t ecx: %08x\t edx:%08x\t\n", r->eax, r->ebx, r->ecx, r->edx);
     kprintf("eip: %08x\t esp: %08x\t ebp: %08x\t \n", r->eip, r->esp, r->ebp);
 
@@ -88,14 +92,15 @@ void fault_handler(regs_t* r) {
         asm volatile("mov %%cr3, %%eax" : "=a"(_cr3));
 
         kprintf("cr2: %08x\t cr3: %08x\n", _cr2, _cr3);
+        knotice("page fault at %08x, cr3 was %08x", _cr2, _cr3);
     }
 
     kprintf("\nexception code: %08x", r->err_code);
 
     /* Do not print a trace in double fault
         (the other exception might have ben fucked up the stack) */
-    if (r->int_no != 8)
-        fault_trace(r->ebp);
+    // if (r->int_no != 8)
+    //     fault_trace(r->ebp);
 
     asm("cli; hlt");
 
