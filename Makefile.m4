@@ -27,7 +27,7 @@ ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o 8042.o \
 
 all: $(ARCH_DEP) stackguard.o main.o terminal.o ttys.o pmm.o kheap.o dev.o \
  disk.o vfs.o partition.o fat.o initrd.o keyboard.o kshell.o framebuffer.o \
- $(LIBK)
+ fbcon.o $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
 initrd: initrd.rain
@@ -85,6 +85,7 @@ C_SOURCE_WITH_H(kernel/,initrd)
 C_SOURCE_WITH_H(kernel/,keyboard)
 C_SOURCE_WITH_H(kernel/,kshell)
 C_SOURCE_WITH_H(kernel/,framebuffer)
+C_SOURCE_WITH_H(kernel/,fbcon)
 C_SOURCE(kernel/,main)
 C_SOURCE(kernel/,stackguard)
 

@@ -30,6 +30,7 @@
 #include "keyboard.h"
 #include "kshell.h"
 #include "framebuffer.h"
+#include "fbcon.h"
 #include "vfs/vfs.h"
 #include "vfs/partition.h"
 #include "vfs/fat.h"
@@ -74,8 +75,8 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     static terminal_t term_stdio;
     term_stdio.defaultColor = 0x07;
     terminal_set(&term_stdio);
-    //vga_init(&term_stdio);
-    ttys_init(&term_stdio);
+    vga_init(&term_stdio);
+    //ttys_init(&term_stdio);
 
     /* Initialize logging terminal device */
     static terminal_t term_log;
@@ -233,13 +234,16 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         vbe_get_framebuffer_struct(vbe_fb);
         framebuffer_set(vbe_fb);
 
-        for (unsigned y = 0; y < 480; y++) {
-            for (unsigned x = 0; x < 640; x++) {
-                framebuffer_plot_pixel(x, y, 0x99, 0x66,0xff);
-            }
+        if (!fbcon_init(&term_stdio)) {
+            WRITE_FAIL();
+        } else {
+            framebuffer_puts("RainOS", 60, 0, 0x30, 0x30, 0xff);
+            framebuffer_puts("Copyright (C) 2016 Arthur M", 60, 20, 0x7f, 0x7f, 0x7f);
+
+            fbcon_sety(4);
+            knotice("KERNEL: using framebuffer console driver");
         }
 
-        WRITE_FAIL();
     } else {
         kprintf("warning: VBE modesetting isn't supported by this bootloader\n");
     }
@@ -250,11 +254,13 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     pit_init();
     kprintf("\tok!");
 
-    // Start serial device in the right way
-    kprintf(" \n  serial");
-    serial_init();
-    kprintf("\tok!");
 
+    // Start serial device in the right way
+    // kprintf(" \n  serial");
+    // serial_init();
+    // kprintf("\tok!");
+
+    framebuffer_puts("aaa", 200, 400, 30, 100, 150);
     kprintf(" \n  pci");
     pci_init();
     kprintf("\tok!");
@@ -311,6 +317,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
         WRITE_SUCCESS();
     }
+
 
     next3:
         kprintf("\n\n Nothing to do. Starting kernel shell... \n");
