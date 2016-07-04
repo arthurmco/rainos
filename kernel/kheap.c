@@ -85,7 +85,14 @@ void kheap_init()
 
 virtaddr_t kheap_allocate(size_t bytes)
 {
+    knotice("TA DE BRINKS UNA SKILL %d CIENTO DANO", bytes);
+    if (bytes == 0) bytes = 4;
+
     heap_item_t* item = _kheap_alloc_item((bytes + 3) & ~3);
+
+    if (!item) {
+        panic("Invalid heap item!");
+    }
 
     if (!item->addr) {
 
@@ -128,6 +135,13 @@ virtaddr_t kheap_allocate(size_t bytes)
             HFIND_NEAREST_BELOW), &hUsed);
     }
 
+    if (item->bytes < 4) {
+        kwarn("heap: zero allocation at 0x%x {%d-%x-%x-%x-%x} (%x)", item->addr,
+            item->bytes, item->canary, item->flags, item->next, item->prev,
+            item);
+        item->bytes =  ((bytes + 3) & ~3) + sizeof(uint32_t);
+    }
+
     uint32_t* canary = (uint32_t*)(item->addr + item->bytes - sizeof(uint32_t));
     knotice("%x %d", item->addr, item->bytes);
     *canary = item->canary;
@@ -138,7 +152,7 @@ virtaddr_t kheap_allocate(size_t bytes)
     // addr_reserve_bottom);
 
     if (((uintptr_t)item_reserve_top - (uintptr_t)item_reserve_bottom) >=
-        addr_alloc_size) {
+        item_alloc_size) {
         kheap_get_more_descriptors();
     }
 
@@ -375,7 +389,7 @@ void _kheap_fix_list(struct HeapList* list)
 }
 
 #define HEAP_LIST_WALK(item, count) \
-    for (unsigned i = 0; i < (count); i++) { item = item->next; }
+    for (unsigned i = 0; i < (count); i++) { if (item->next) item = item->next; }
 
 /* Find an item that represents the address 'addr'
     if mode & HFIND_NEAREST_ABOVE, return the nearest item bigger than the address
@@ -516,6 +530,10 @@ void __kheap_dump(struct HeapList* const list)
 
 static int kheap_show(int argc, char** argv) {
     size_t start = 0, end = hUsed.count;
+
+    heap_item_t* it = hUsed.first;
+    size_t count = hUsed.count;
+
     if (argc > 1) {
         if (!strcmp(argv[1], "help")) {
             kprintf("\nUsage: %s [start] [end]\n", argv[0]);
@@ -527,12 +545,19 @@ static int kheap_show(int argc, char** argv) {
         if (argc > 2) {
             end = atoi(argv[2], 10);
         }
+
+        if (!strcmp(argv[1], "free")) {
+            start = 0;
+            end = hFree.count;
+            count = end;
+            it = hFree.first;
+            kprintf("Listing free items\n");
+        }
     }
 
     size_t umem = 0;
     kprintf("Heap: %d to %d\n", start, end);
 
-    heap_item_t* it = hUsed.first;
 
     for (size_t i = 0; i < start; i++) {
         if (it) { it = it->next; }
@@ -549,7 +574,8 @@ static int kheap_show(int argc, char** argv) {
             break;
     }
 
-    kprintf("\ntotal: %d.%d kB\n", umem/1024, (umem%1024)/10);
+    kprintf("\ntotal: %d.%d kB, heap total was %d items\n",
+        umem/1024, (umem%1024)/10, count);
 
     return 1;
 }
