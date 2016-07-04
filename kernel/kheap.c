@@ -54,10 +54,11 @@ static void kheap_removeItem(heap_item_t* item, struct HeapList* list) {
 
 static heap_item_t* item_reserve_bottom;
 static heap_item_t* item_reserve_top;
+static uintptr_t item_alloc_size;
 
 static uintptr_t addr_reserve_bottom;
 static uintptr_t addr_reserve_top;
-static uintptr_t addr_alloc;
+static uintptr_t addr_alloc_size;
 
 static int kheap_show(int argc, char** argv);
 void kheap_init()
@@ -65,12 +66,12 @@ void kheap_init()
     // Allocate 2 pages for the item reserve
     item_reserve_bottom = (heap_item_t*)vmm_alloc_page(VMM_AREA_KERNEL, 2);
     memset(item_reserve_bottom, 0, 2*VMM_PAGE_SIZE);
-
     item_reserve_top = item_reserve_bottom;
+    item_alloc_size = DEFAULT_DESCRIPTOR_SIZE * VMM_PAGE_SIZE;
 
     // Allocate 16 pages for the data reserve
     addr_reserve_bottom = vmm_alloc_page(VMM_AREA_KERNEL, DEFAULT_ALLOC_SIZE);
-    addr_alloc = addr_reserve_bottom + (DEFAULT_ALLOC_SIZE * VMM_PAGE_SIZE);
+    addr_alloc_size = (DEFAULT_ALLOC_SIZE * VMM_PAGE_SIZE);
     addr_reserve_top = addr_reserve_bottom;
 
     //knotice("KHEAP: items starts at 0x%x, addresses starts at 0x%x",
@@ -84,7 +85,14 @@ void kheap_init()
 
 virtaddr_t kheap_allocate(size_t bytes)
 {
+    knotice("TA DE BRINKS UNA SKILL %d CIENTO DANO", bytes);
+    if (bytes == 0) bytes = 4;
+
     heap_item_t* item = _kheap_alloc_item((bytes + 3) & ~3);
+
+    if (!item) {
+        panic("Invalid heap item!");
+    }
 
     if (!item->addr) {
 
@@ -92,18 +100,23 @@ virtaddr_t kheap_allocate(size_t bytes)
         // and reserve space to store the canary
         item->bytes = ((bytes + 3) & ~3) + sizeof(uint32_t);
 
+        knotice("|%d %d|", addr_reserve_top-addr_reserve_bottom,
+            ((signed)addr_alloc_size)-item->bytes);
         /* Check if we need more pages */
-        if (addr_reserve_top + item->bytes > addr_alloc) {
+        signed sz = addr_alloc_size;
+        sz -= item->bytes;
+        if ((signed)(addr_reserve_top - addr_reserve_bottom) >= sz) {
             knotice("HEAP: more space needed. %x %x %d", addr_reserve_bottom, addr_reserve_top,
-                bytes);
+                item->bytes);
             /* We will need */
             /*  Allocate the needed amount of pages to fill this space and
                 request more */
+            size_t needed = (addr_reserve_top - addr_reserve_bottom) - (addr_alloc_size);
 
-            size_t needed = (addr_alloc - addr_reserve_top);
 
             /* needed - 8 for canary and worst-case alignment */
-            kheap_deallocate(kheap_allocate(needed - 16));
+            if (needed > 8)
+                kheap_deallocate(kheap_allocate(needed - 16));
 
             kheap_get_more_pages(item->bytes);
         }
@@ -123,13 +136,18 @@ virtaddr_t kheap_allocate(size_t bytes)
     }
 
     uint32_t* canary = (uint32_t*)(item->addr + item->bytes - sizeof(uint32_t));
+    knotice("%x %d", item->addr, item->bytes);
     *canary = item->canary;
 
-    // knotice("%x %d", item->addr, item->bytes);
 
     // kerror("t: 0x%x, s: 0x%x, b: 0x%x",
     // addr_reserve_top, addr_reserve_bottom+(VMM_PAGE_SIZE*DEFAULT_ALLOC_SIZE),
     // addr_reserve_bottom);
+
+    if (((uintptr_t)item_reserve_top - (uintptr_t)item_reserve_bottom) >=
+        item_alloc_size) {
+        kheap_get_more_descriptors();
+    }
 
     return item->addr;
 
@@ -152,7 +170,6 @@ virtaddr_t kheap_allocate_phys(physaddr_t phys, size_t bytes)
         kheap_addItem(item, _kheap_find_item(&hUsed, item->addr,
             HFIND_NEAREST_BELOW), &hUsed);
         addr_reserve_top += item->bytes;
-
     } else {
         item->flags = HFLAGS_USED;
         item->canary = (item->addr) & ~bytes;
@@ -363,7 +380,7 @@ void _kheap_fix_list(struct HeapList* list)
 }
 
 #define HEAP_LIST_WALK(item, count) \
-    for (unsigned i = 0; i < (count); i++) { item = item->next; }
+    for (unsigned i = 0; i < (count); i++) { if (item->next) item = item->next; }
 
 /* Find an item that represents the address 'addr'
     if mode & HFIND_NEAREST_ABOVE, return the nearest item bigger than the address
@@ -504,6 +521,10 @@ void __kheap_dump(struct HeapList* const list)
 
 static int kheap_show(int argc, char** argv) {
     size_t start = 0, end = hUsed.count;
+
+    heap_item_t* it = hUsed.first;
+    size_t count = hUsed.count;
+
     if (argc > 1) {
         if (!strcmp(argv[1], "help")) {
             kprintf("\nUsage: %s [start] [end]\n", argv[0]);
@@ -515,12 +536,19 @@ static int kheap_show(int argc, char** argv) {
         if (argc > 2) {
             end = atoi(argv[2], 10);
         }
+
+        if (!strcmp(argv[1], "free")) {
+            start = 0;
+            end = hFree.count;
+            count = end;
+            it = hFree.first;
+            kprintf("Listing free items\n");
+        }
     }
 
     size_t umem = 0;
     kprintf("Heap: %d to %d\n", start, end);
 
-    heap_item_t* it = hUsed.first;
 
     for (size_t i = 0; i < start; i++) {
         if (it) { it = it->next; }
@@ -537,7 +565,8 @@ static int kheap_show(int argc, char** argv) {
             break;
     }
 
-    kprintf("\ntotal: %d.%d kB\n", umem/1024, (umem%1024)/10);
+    kprintf("\ntotal: %d.%d kB, heap total was %d items\n",
+        umem/1024, (umem%1024)/10, count);
 
     return 1;
 }
@@ -547,7 +576,7 @@ static int kheap_show(int argc, char** argv) {
 /* Allocate a fixed size of pages for the heap */
 void kheap_get_more_pages(size_t asked_size)
 {
-    size_t asked_pages = (asked_size / VMM_PAGE_SIZE) + 2;
+    size_t asked_pages = ((VMM_PAGE_SIZE+asked_size) / VMM_PAGE_SIZE) + 2;
     size_t allocation = ((asked_pages > DEFAULT_ALLOC_SIZE) ?
         (asked_pages) : (DEFAULT_ALLOC_SIZE));
 
@@ -556,9 +585,18 @@ void kheap_get_more_pages(size_t asked_size)
 
     addr_reserve_bottom = vmm_alloc_page(VMM_AREA_KERNEL, allocation);
     addr_reserve_top = addr_reserve_bottom;
-    addr_alloc += (allocation * VMM_PAGE_SIZE);
+    addr_alloc_size = (allocation * VMM_PAGE_SIZE);
 
-    knotice("pointers: 0x%x 0x%x 0x%x",
-        addr_reserve_bottom, addr_reserve_top, addr_alloc);
+    knotice("pointers: 0x%x 0x%x (size=%d)",
+        addr_reserve_bottom, addr_reserve_top, addr_alloc_size);
 
+}
+
+void kheap_get_more_descriptors()
+{
+    knotice("HEAP: allocating more %d pages for the descriptors",
+        DEFAULT_DESCRIPTOR_SIZE);
+    item_reserve_bottom = vmm_alloc_page(VMM_AREA_KERNEL, DEFAULT_DESCRIPTOR_SIZE);
+    item_reserve_top = item_reserve_bottom;
+    item_alloc_size = DEFAULT_DESCRIPTOR_SIZE * VMM_PAGE_SIZE;
 }

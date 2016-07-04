@@ -311,6 +311,6 @@ int kbd_scancode_to_key_event(uint32_t scan, struct key_event* key) {
     }
 
     key->modifiers.is_shift = isShift;
-
+    return 1;
 
 }

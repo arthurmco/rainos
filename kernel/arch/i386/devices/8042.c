@@ -53,7 +53,7 @@ int i8042_init()
 
     i8042_wait_send();
     outb(I8042_CMD, 0xAA);
-    if (!i8042_wait_recv()) { kerror("i8042: timeout"); return 0; }
+    if (!i8042_wait_recv()) { kerror("i8042: timeout"); return 2; }
 
     if (inb(I8042_DATA) != 0x55) {
         kerror("i8042: error on initialzation");
@@ -63,12 +63,12 @@ int i8042_init()
     /* Test the ports */
     i8042_wait_send();
     outb(I8042_CMD, 0xAB);
-    if (!i8042_wait_recv()) { kerror("i8042: timeout"); return 0; }
+    if (!i8042_wait_recv()) { kerror("i8042: timeout"); return 2; }
 
     uint8_t ret = inb(I8042_DATA);
     if (ret != 0x00) {
 	kerror("i8042: first port returned status %x on test", ret);
-   	return 0;
+   	return 2;
     }
 
     io_wait();
