@@ -135,6 +135,13 @@ virtaddr_t kheap_allocate(size_t bytes)
             HFIND_NEAREST_BELOW), &hUsed);
     }
 
+    if (item->bytes < 4) {
+        kwarn("heap: zero allocation at 0x%x {%d-%x-%x-%x-%x} (%x)", item->addr,
+            item->bytes, item->canary, item->flags, item->next, item->prev,
+            item);
+        item->bytes =  ((bytes + 3) & ~3) + sizeof(uint32_t);
+    }
+
     uint32_t* canary = (uint32_t*)(item->addr + item->bytes - sizeof(uint32_t));
     knotice("%x %d", item->addr, item->bytes);
     *canary = item->canary;

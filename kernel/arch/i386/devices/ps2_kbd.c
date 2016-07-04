@@ -14,12 +14,16 @@ int kbd_init()
 
         /* Identify each device */
         i8042_send(0xF2, p);
+        i8042_wait_send();
 
+        i8042_wait_recv();
+        re_recv:
         ret = i8042_recv(p);
         if (ret != 0xFA) {
             /* there's an error on this port */
             kwarn("ps2_kbd: received unexpected message %x from controller",
                 ret);
+            if (i8042_wait_recv()) goto re_recv;
             continue;
         }
 
