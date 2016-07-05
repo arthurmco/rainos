@@ -96,8 +96,8 @@ void fault_handler(regs_t* r) {
 
     /* Do not print a trace in double fault
         (the other exception might have ben fucked up the stack) */
-    if (r->int_no != 8)
-        fault_trace(r->ebp);
+    // if (r->int_no != 8)
+    //     fault_trace(r->ebp);
 
     asm("cli; hlt");
 

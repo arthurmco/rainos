@@ -133,6 +133,61 @@ static int kshell_mount(int argc, char* argv[]) {
 
 }
 
+static int kshell_cat(int argc, char* argv[])
+{
+    if (argc < 2) {
+        kprintf("\n Usage: cat <filename> \n");
+        return 2;
+    }
+
+    vfs_node_t* node = vfs_find_node_relative(cwd, argv[1]);
+
+    if (!node) {
+        kprintf("\n\t%s doesn't exist\n", argv[1]);
+        return -1;
+    }
+
+    if (node->flags & VFS_FLAG_FOLDER) {
+        kprintf("\n\t%s is a folder\n", argv[1]);
+        return 2;
+    }
+
+    kprintf("\n %s - %d bytes\n", node->name, node->size);
+    size_t pos = 0;
+    char* file = kcalloc(node->size,1);
+    int rx = vfs_read(node, pos, -1, file);
+
+    if (rx >= 0) {
+        do {
+            for (size_t c = 0; c <= 320/16; c++) {
+                for (size_t r = 0; r < 16; r++) {
+                    uint8_t s = file[pos+(c*16+r)];
+                    kprintf("%02x ", s);
+                }
+                kprintf(" | ");
+                for (size_t r = 0; r < 16; r++) {
+                    unsigned char ch = (unsigned char)file[pos+(c*16+r)];
+                    if (ch < ' ')
+                        putc('.');
+                    else
+                        putc(ch);
+                }
+                kprintf("\n");
+            }
+
+            char x = kgetc();
+            if (x == 'q') {
+                break;
+            }
+
+            pos += 320;
+        } while (pos < node->size);
+    }
+
+    kfree(file);
+    return 0;
+}
+
 void kshell_init()
 {
     cwd = vfs_get_root();
@@ -141,6 +196,7 @@ void kshell_init()
     kshell_add("cd", "Browse into a directory", &kshell_cd);
     kshell_add("mount", "Mount a filesystem", &kshell_mount);
     kshell_add("clear", "Clears the screen", &terminal_clear);
+    kshell_add("cat", "Read the content", &kshell_cat);
 
     knotice("KSHELL: Starting kernel shell, %d commands", kcmd_count);
     char cmd[128];
