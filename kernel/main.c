@@ -29,6 +29,7 @@
 #include "initrd.h"
 #include "keyboard.h"
 #include "kshell.h"
+#include "elf.h"
 #include "vfs/vfs.h"
 #include "vfs/partition.h"
 #include "vfs/fat.h"
@@ -338,8 +339,21 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     char buf[64];
     vfs_get_full_path(node_file, buf);
-    kprintf("File: %s", buf);
-    jump_usermode((uintptr_t)newstack, (uintptr_t)newfunc);
+    kprintf("File: %s\n\n", buf);
+    //jump_usermode((uintptr_t)newstack, (uintptr_t)newfunc);
+
+    vfs_node_t* elfnode = vfs_find_node("/dir/bintest.elf");
+    if (!elfnode) {
+        kerror("Our test ELF file wasn't found");
+    }
+    vfs_get_full_path(elfnode, buf);
+    kprintf("Test ELF file: %s\n", buf);
+
+    elf_exec_t* elf_exec = elf_open_file(elfnode);
+    if (elf_exec) {
+        int s = elf_parse_sections(elf_exec);
+        kprintf("\t %d sections found", s);
+    }
 
     WRITE_FAIL();
 
