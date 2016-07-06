@@ -249,3 +249,44 @@ int vfs_read(struct vfs_node* node, uint64_t off, size_t len,
 
         return -1;
     }
+
+void vfs_get_full_path(vfs_node_t* n, char* buf)
+{
+    char tmp[256];
+    int i = 0;
+    vfs_node_t* p = n;
+
+    /* First, get all parent names */
+    while (p != vfs_get_root()) {
+        size_t l = strlen(p->name);
+        memcpy(p->name, &tmp[i], l);
+        i += l;
+        tmp[i++] = '/';
+        tmp[i] = 0;
+        p = p->parent;
+    }
+
+    tmp[i] = 0;
+    /* Then reverse it */
+    char *tok = strrtok_n(tmp, '/', strlen(tmp)-3);
+    size_t soff, eoff = strlen(tmp)-1;
+    size_t idx = 0;
+
+    int notok = 0;
+
+    do {
+        if (tok) {
+            soff = (tok - tmp);
+            tok = strrtok_n(tmp, '/', soff-1);
+        } else {
+            soff = 0;
+            notok = 1;
+        }
+
+        memcpy(&tmp[soff], &buf[idx], (eoff - soff));
+        idx += (eoff-soff);
+        eoff = soff;
+    } while (!notok);
+
+    buf[strlen(tmp)] = 0;
+}

@@ -135,4 +135,6 @@ vfs_node_t* vfs_find_node(const char* path);
 /* Find a node from a starting point */
 vfs_node_t* vfs_find_node_relative(vfs_node_t* base, const char* path_rel);
 
+void vfs_get_full_path(vfs_node_t* n, char* buf);
+
 #endif /* end of include guard: _VFS_H */

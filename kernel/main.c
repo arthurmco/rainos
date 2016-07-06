@@ -336,6 +336,9 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         kprintf("\n");
     }
 
+    char buf[64];
+    vfs_get_full_path(node_file, buf);
+    kprintf("File: %s", buf);
     jump_usermode((uintptr_t)newstack, (uintptr_t)newfunc);
 
     WRITE_FAIL();
