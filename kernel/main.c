@@ -13,6 +13,7 @@
 #include "arch/i386/devices/pit.h"
 #include "arch/i386/devices/ps2_kbd.h"
 #include "arch/i386/devices/pci.h"
+#include "arch/i386/devices/floppy.h"
 #include "arch/i386/devices/ata.h"
 #include "arch/i386/multiboot.h"
 #include "arch/i386/vmm.h"
@@ -233,6 +234,12 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     kprintf(" \n  serial");
     serial_init();
     kprintf("\tok!");
+
+    kprintf(" \n  floppy");
+    if (floppy_init())
+        kprintf("\tok!");
+    else
+        kprintf("\tfail!");
 
     kprintf(" \n  pci");
     pci_init();
