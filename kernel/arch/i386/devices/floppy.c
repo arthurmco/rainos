@@ -3,11 +3,6 @@
 static volatile int wait_recalibration = 0, wait_on_irq = 0;
 static struct floppy_data floppies[MAX_FLOPPIES];
 
-struct floppy_data* floppy_get(int i)
-{
-    return &floppies[i];
-}
-
 void floppy_halt_motor(struct floppy_data* f)
 {
     outb(FLOPPY0_BASE + FREG_DOR,
@@ -21,6 +16,40 @@ void floppy_start_motor(struct floppy_data* f)
 }
 
 static void floppy_irq6(regs_t* r);
+
+static int dev_floppy_read(device_t* dev, uint64_t off, size_t len, void* buf)
+{
+    if (dev->devid < 0x820AA && dev->devid > 0x820AF) {
+        kerror("floppy: invalid device %s", dev->devname);
+        return 0;
+    }
+
+    uint8_t sec, cyl, head, seccount;
+    struct floppy_data* f = &floppies[(dev->devid-0x820AA) & 3];
+
+    uint16_t buf_off = off % 512;
+    uint32_t roff = off / 512;
+    knotice("floppy: byte %d = lba %d byte %d", (uint32_t)(off),
+        roff, buf_off);
+
+    uint8_t* tmp_buf = kcalloc(512, 1+((len+buf_off)/512));
+
+    LBA2CHS(f, roff, sec, head, cyl);
+    seccount = (uint8_t)1+((len / 512) & 0xff);
+
+
+    knotice("floppy: reading sec=%d cyl=%d head=%d count=%d from lba %d",
+        sec, cyl, head, seccount, roff);
+
+    int r =  floppy_read(f, sec, head, cyl, seccount, tmp_buf);
+
+    if (!r) return r;
+
+    knotice("%x %x", tmp_buf[0], tmp_buf[1]);
+    memcpy(&tmp_buf[buf_off], buf, len);
+    kfree(tmp_buf);
+    return 1;
+}
 
 int floppy_init()
 {
@@ -191,6 +220,7 @@ int floppy_init()
         /* Prepare device */
         device_t* fdev = device_create(0x820AA, "floppy0", DEVTYPE_BLOCK, NULL);
         fdev->b_size = 512;
+        fdev->__dev_read = &dev_floppy_read;
     }
 
     return 1;

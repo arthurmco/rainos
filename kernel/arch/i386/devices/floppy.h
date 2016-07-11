@@ -88,6 +88,4 @@ int floppy_read(struct floppy_data* f,
 void floppy_halt_motor(struct floppy_data* f);
 void floppy_start_motor(struct floppy_data* f);
 
-struct floppy_data* floppy_get(int i);
-
 #endif /* end of include guard: _FLOPPY_H */
