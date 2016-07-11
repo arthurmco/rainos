@@ -79,10 +79,15 @@ struct floppy_data {
 
 int floppy_init();
 
+int floppy_sense_int(struct floppy_data* f, uint8_t* st0, uint8_t* cyl);
+
 int floppy_read(struct floppy_data* f,
     uint8_t sector, uint8_t head, uint8_t cylinder, uint8_t seccount,
     void* buffer);
 
+void floppy_halt_motor(struct floppy_data* f);
+void floppy_start_motor(struct floppy_data* f);
 
+struct floppy_data* floppy_get(int i);
 
 #endif /* end of include guard: _FLOPPY_H */

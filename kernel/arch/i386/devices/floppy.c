@@ -3,6 +3,23 @@
 static volatile int wait_recalibration = 0, wait_on_irq = 0;
 static struct floppy_data floppies[MAX_FLOPPIES];
 
+struct floppy_data* floppy_get(int i)
+{
+    return &floppies[i];
+}
+
+void floppy_halt_motor(struct floppy_data* f)
+{
+    outb(FLOPPY0_BASE + FREG_DOR,
+        inb(FLOPPY0_BASE + FREG_DOR) & ~(0x1 << (4+f->num)));
+}
+
+void floppy_start_motor(struct floppy_data* f)
+{
+    outb(FLOPPY0_BASE + FREG_DOR,
+        inb(FLOPPY0_BASE + FREG_DOR) | (0x1 << (4+f->num)));
+}
+
 static void floppy_irq6(regs_t* r);
 
 int floppy_init()
@@ -75,7 +92,7 @@ int floppy_init()
         io_wait();
         outb(FLOPPY0_BASE + FREG_DATA, 0);
         io_wait();
-        outb(FLOPPY0_BASE + FREG_DATA, 0xAF); //Polling off, FIFO on, implied seek on, threshold of 8 bytes
+        outb(FLOPPY0_BASE + FREG_DATA, 0x57); //Polling off, FIFO on, implied seek on, threshold of 8 bytes
         io_wait();
         outb(FLOPPY0_BASE + FREG_DATA, 0); //Default precompensation
 
@@ -90,23 +107,43 @@ int floppy_init()
 
         /* Recalibrate */
         wait_recalibration = 1;
-        outb(FLOPPY0_BASE + FREG_DATA, FCMD_RECALIBRATE);
-        io_wait();
-        outb(FLOPPY0_BASE + FREG_DATA, 0);   // Drive 0
+        uint8_t recalib_timeout = 0;
+        do {
+            outb(FLOPPY0_BASE + FREG_DATA, FCMD_RECALIBRATE);
+            io_wait();
+            outb(FLOPPY0_BASE + FREG_DATA, 0);   // Drive 0
 
-        /* Wait interrupt */
-        uint16_t timesleep = 16;
-        while (wait_recalibration) {
-            sleep(timesleep);
-            timesleep *= 2;
+            /* Wait interrupt */
+            uint16_t timesleep = 16;
+            while (wait_recalibration) {
+                sleep(timesleep);
+                timesleep *= 2;
 
-            if (timesleep > 4096) {
-                kerror("floppy: floppy0 recalibration failed");
-                return 0;
+                if (timesleep > 4096) {
+                    kerror("floppy: floppy0 recalibration failed");
+                    return 0;
+                }
             }
+
+            uint8_t st0, cyl;
+            floppy_sense_int(&floppies[0], &st0, &cyl);
+
+            if (st0 == 0x20) {
+                break;
+            }
+
+            recalib_timeout++;
+        } while (recalib_timeout <= 5);
+
+        if (recalib_timeout > 5) {
+            kerror("floppy: floppy0 multiple errors on recalibration");
+            return 0;
         }
 
         knotice("floppy: floppy0 recalibrated");
+
+        /* Set datarate */
+        outb(FLOPPY0_BASE + FREG_CCR, 0); //500 kbps
 
         /* Allocate memory and configure an ISA DMA buffer for the floppy
 
@@ -124,19 +161,31 @@ int floppy_init()
         knotice("floppy: floppy0 dma buffer is at phys 0x%08x, virt 0x%08x",
             floppies[0].dma_buffer_phys, floppies[0].dma_buffer_virt);
 
+        /* Shutdown motor */
 
-        outb(0x0f, inb(0x0f) & 0x4);   // mask channel 2
-        outb(0x0c, 0xff);      // flip-flop reset
+        floppy_halt_motor(&floppies[0]);
+
+        outb(0x0a, 0x06);   // mask channel 2
+        outb(0xd8, 0xff);      // flip-flop reset
 
         /* address */
         outb(0x04, floppies[0].dma_buffer_phys & 0xff);
         outb(0x04, (floppies[0].dma_buffer_phys >> 8) & 0xff);
 
         /* byte count minus one */
-        outb(0x0c, 0xff);
+        outb(0xd8, 0xff);
+        outb(0x05, 0xff);   //0x3fff = 0x4000 - 1 = 16k
         outb(0x05, 0x3f);   //0x3fff = 0x4000 - 1 = 16k
+        outb (0x80, 0);     //external page register = 0
+        outb(0x0a, 0x02);   // unmask channel 2
 
-        outb(0x0f, inb(0x0f) & ~0x4);   // unmask channel 2
+        /* Specify config data used by the controller regarding the floppy */
+        outb(FLOPPY0_BASE + FREG_DATA, FCMD_SPECIFY);
+        /*  seek rate time = 0xA (6ms);
+            head load time = 0x5 (10 ms);
+            head unload time = 0 (maximum allowed) */
+        outb(FLOPPY0_BASE + FREG_DATA, (0xA << 4) | 0x5 );
+        outb(FLOPPY0_BASE + FREG_DATA, 0);  // hut = 0, DMA
 
         floppies[0].num = 0;
         /* Prepare device */
@@ -147,7 +196,7 @@ int floppy_init()
     return 1;
 }
 
-static uint8_t irq_io_ok = 0;
+static volatile uint8_t irq_io_ok = 0;
 static void floppy_irq6(regs_t* r)
 {
     if (wait_recalibration == 1) {
@@ -179,18 +228,20 @@ int floppy_read(struct floppy_data* f,
             } while (irq_io_ok);
         }
 
+        floppy_start_motor(f);
+
         irq_io_ok = 1;
         /* select the drive */
         uint8_t dor = inb(FLOPPY0_BASE + FREG_DOR);
         outb(FLOPPY0_BASE + FREG_DOR, (dor & ~0x3) | f->num); //drive 0
 
         /* setup dma direction */
-        outb(0x0f, inb(0x0f) & 0x4);   // mask channel 2
+        outb(0x0a, 0x06);   // mask channel 2
         outb(0x0b, 0x56); //Single DMA, auto reset to initial values, read, channel 2 //
-        outb(0x0f, inb(0x0f) & ~0x4);   // unmask channel 2
+        outb(0x0a, 0x02);   // unmask channel 2
 
         /* send command */
-        outb(FLOPPY0_BASE + FREG_DATA, FCMD_READ_DATA);
+        outb(FLOPPY0_BASE + FREG_DATA, 0x40 | FCMD_READ_DATA);
         outb(FLOPPY0_BASE + FREG_DATA, (head << 2) | f->num);
         outb(FLOPPY0_BASE + FREG_DATA, cylinder);
         outb(FLOPPY0_BASE + FREG_DATA, head);
@@ -200,12 +251,13 @@ int floppy_read(struct floppy_data* f,
         outb(FLOPPY0_BASE + FREG_DATA, FLOPPY_GAP1);
         outb(FLOPPY0_BASE + FREG_DATA, 0xff);
 
-        uint8_t sleepamount = 2*seccount;
+        uint32_t sleepamount = 2*seccount;
         /* wait irq */
         do {
             sleep(sleepamount);
 
             sleepamount *= 2;
+            kprintf("%d ", sleepamount);
 
             if (sleepamount > (2*seccount)*256) {
                 kerror("floppy: floppy%d timed out while reading "
@@ -232,21 +284,37 @@ int floppy_read(struct floppy_data* f,
             return 0;
         }
 
-        if (st0 || st1) {
+        if ((st0 & 0xC0) || st1) {
             kerror("floppy: error while reading floppy%d "
                 "sector %d cylinder %d head %d - st0:%x, st1:%x, st2:%x",
                 f->num, sector, cylinder, head, st0, st1, st2);
             return 0;
         }
 
-        if (rcyl != cylinder) {
+        /* if (rcyl != cylinder) {
             kerror("floppy: error while reading floppy%d "
                 "sector %d cylinder %d head %d - wrong cylinder",
                 f->num, sector, cylinder, head);
             return 0;
-        }
+        } */
 
+        knotice("floppy: read setup (st0:%x, st1:%x, st2:%x, rcyl:%x, ehead:%x, esec:%x)",
+            st0, st1, st2, rcyl, ehead, esec);
         memcpy(f->dma_buffer_virt, buffer, 512*seccount);
+        floppy_halt_motor(f);
+
         return 1;
 
     }
+
+int floppy_sense_int(struct floppy_data* f, uint8_t* st0, uint8_t* cyl)
+{
+    outb(FLOPPY0_BASE + FREG_DATA, FCMD_SENSE_INTERRUPT);
+
+    sleep(1);
+
+    *st0 = inb(FLOPPY0_BASE + FREG_DATA);
+    *cyl = inb(FLOPPY0_BASE + FREG_DATA);
+    knotice("floppy: sense interrupt for floppy%d - st0:%0x, cyl:%x",
+        f->num, *st0, *cyl);
+}

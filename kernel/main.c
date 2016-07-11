@@ -241,6 +241,32 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     else
         kprintf("\tfail!");
 
+    uint8_t* buf = kcalloc(512, 1);
+    if (floppy_read(floppy_get(0), 4, 0, 0, 1, buf)) {
+        kprintf("\n");
+
+        for (size_t r = 0; r < 512/16; r++) {
+            for (size_t c = 0; c < 16; c++) {
+                kprintf("%02x ", buf[r*16+c] & 0xff);
+            }
+
+            kprintf(" | ");
+
+            for (size_t c = 0; c < 16; c++) {
+                if (buf[r*16+c] > ' ') {
+                    putc(buf[r*16+c]);
+                } else {
+                    putc('.');
+                }
+            }
+
+            kprintf("\n");
+        }
+    }
+    kprintf("");
+
+    asm("cli; hlt");
+
     kprintf(" \n  pci");
     pci_init();
     kprintf("\tok!");
