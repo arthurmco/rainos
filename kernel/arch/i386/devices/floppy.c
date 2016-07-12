@@ -41,9 +41,18 @@ static int dev_floppy_read(device_t* dev, uint64_t off, size_t len, void* buf)
     knotice("floppy: reading sec=%d cyl=%d head=%d count=%d from lba %d",
         sec, cyl, head, seccount, roff);
 
-    int r =  floppy_read(f, sec, head, cyl, seccount, tmp_buf);
-
-    if (!r) return r;
+    int readcount = (readcount > (f->sectors-sec)) ? (f->sectors-sec) : seccount;
+    int count = 0;
+    do {
+        size_t rcount = (readcount > (f->sectors-sec+1)) ? (f->sectors-sec+1) : readcount;
+        knotice("floppy:  sec=%d cyl=%d head=%d count=%d from lba %d",
+            sec, cyl+count, head, rcount, roff);
+        int r =  floppy_read(f, sec, head, cyl+count, rcount,
+            &tmp_buf[count * (f->sectors * 512)]);
+        if (!r) return r;
+        readcount -= rcount;
+        sec = 0;
+    } while (readcount > 0);
 
     knotice("%x %x", tmp_buf[0], tmp_buf[1]);
     memcpy(&tmp_buf[buf_off], buf, len);
@@ -183,9 +192,9 @@ int floppy_init()
             TODO: do something similar with ATA drives.
         */
 
-        /* 4 pages = 16kb, cover track size for any existant floppy */
+        /* 8 pages = 32kb, cover track size for any existant floppy */
         floppies[0].dma_buffer_virt = (void*)vmm_alloc_physical(VMM_AREA_KERNEL,
-            &floppies[0].dma_buffer_phys, 4, PMM_REG_LEGACY);
+            &floppies[0].dma_buffer_phys, 8, PMM_REG_LEGACY);
 
         knotice("floppy: floppy0 dma buffer is at phys 0x%08x, virt 0x%08x",
             floppies[0].dma_buffer_phys, floppies[0].dma_buffer_virt);
@@ -203,8 +212,8 @@ int floppy_init()
 
         /* byte count minus one */
         outb(0xd8, 0xff);
-        outb(0x05, 0xff);   //0x3fff = 0x4000 - 1 = 16k
-        outb(0x05, 0x3f);   //0x3fff = 0x4000 - 1 = 16k
+        outb(0x05, 0xff);   //0x7fff = 0x8000 - 1 = 32k
+        outb(0x05, 0x7f);   //0x7fff = 0x8000 - 1 = 32k
         outb (0x80, 0);     //external page register = 0
         outb(0x0a, 0x02);   // unmask channel 2
 
@@ -271,7 +280,7 @@ int floppy_read(struct floppy_data* f,
         outb(0x0a, 0x02);   // unmask channel 2
 
         /* send command */
-        outb(FLOPPY0_BASE + FREG_DATA, 0x40 | FCMD_READ_DATA);
+        outb(FLOPPY0_BASE + FREG_DATA, 0xc0 | FCMD_READ_DATA);
         outb(FLOPPY0_BASE + FREG_DATA, (head << 2) | f->num);
         outb(FLOPPY0_BASE + FREG_DATA, cylinder);
         outb(FLOPPY0_BASE + FREG_DATA, head);

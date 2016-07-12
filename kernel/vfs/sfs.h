@@ -15,7 +15,7 @@ struct sfs_superblock {
     char bootcode2[372];
     uint64_t timestamp;
     uint64_t data_area_blocks;
-    uint64_t index_area_blocks;
+    uint64_t index_area_bytes;
     uint32_t sfs_magic_version;
     uint64_t total_block_count;
     uint32_t rsvd_block_count;

@@ -49,10 +49,10 @@ int sfs_mount(device_t* dev)
     uint8_t version = (sb->sfs_magic_version & 0xff000000) >> 24;
     knotice("sfs: filesystem has version %d.%d",
         version >> 4, version & 0xf);
-    knotice("sfs: %d total blocks, %d data area blocks, %d index area blocks, "
+    knotice("sfs: %d total blocks, %d data area blocks, %d bytes in index area, "
         "%d reserved blocks",
         ((uint32_t)sb->total_block_count), ((uint32_t)sb->data_area_blocks),
-        ((uint32_t)sb->index_area_blocks), ((uint32_t)sb->rsvd_block_count));
+        ((uint32_t)sb->index_area_bytes), ((uint32_t)sb->rsvd_block_count));
     knotice("sfs: block size is %d bytes",
         1 << (7+ sb->block_size));
 
@@ -86,11 +86,13 @@ int sfs_get_root_dir(device_t* dev, vfs_node_t** root_childs)
         return 0;
     }
 
-    unsigned index_area_start = (fs->sb->total_block_count - fs->sb->index_area_blocks);
+    unsigned index_area_start = (fs->sb->total_block_count -
+            (1+(fs->sb->index_area_bytes) / (1 << (7 + fs->sb->block_size))));
     knotice("sfs: index area starts at block %d", index_area_start);
 
     unsigned index_area_off = index_area_start * (1 << (7 + fs->sb->block_size));
-    unsigned index_area_len = (fs->sb->index_area_blocks * (1 << (7 + fs->sb->block_size)));
+    unsigned index_area_len = (fs->sb->total_block_count - index_area_start) * (1 << (7 + fs->sb->block_size));
+    index_area_len--;
 
     void* index_area = kcalloc(index_area_len, 1);
     fs->index_area = index_area;
@@ -107,7 +109,8 @@ int sfs_get_root_dir(device_t* dev, vfs_node_t** root_childs)
 
 int sfs_parse_index_area(struct sfs_fs* fs, vfs_node_t** root)
 {
-    unsigned index_count = (fs->sb->index_area_blocks * (1 << (7 + fs->sb->block_size)));
+    unsigned index_count = (1+(fs->sb->index_area_bytes) / (1 << (7 + fs->sb->block_size)));
+    index_count *= (1 << (7 + fs->sb->block_size));
     index_count /= sizeof(struct sfs_index);
 
     knotice("sfs: %d total index entries (%d entry size)", index_count,
@@ -117,6 +120,24 @@ int sfs_parse_index_area(struct sfs_fs* fs, vfs_node_t** root)
     for (size_t i = 0; i < index_count; i++) {
         if (!indices[i].entry_type) continue;
         knotice("\t entry type %02x", indices[i].entry_type);
+
+        switch (indices[i].entry_type) {
+            case SFS_ENTRY_DIRECTORY:
+                knotice("\t\tdir name: %s",
+                    indices[i].entry_data.direntry.dirname);
+            break;
+            case SFS_ENTRY_FILE:
+                knotice("\t\tfile name: %s, blocks %d to %d, %d bytes",
+                    indices[i].entry_data.fileentry.dirname,
+                    (uint32_t) indices[i].entry_data.fileentry.starting_block,
+                    (uint32_t) indices[i].entry_data.fileentry.ending_block,
+                    (uint32_t) indices[i].entry_data.fileentry.file_size);
+                break;
+            case SFS_ENTRY_VOLUMEID:
+                knotice("\t\tvolume: %s",
+                    indices[i].entry_data.volumeid.volume_name);
+                break;
+        }
     }
 
     return 1;
