@@ -33,6 +33,7 @@
 #include "vfs/vfs.h"
 #include "vfs/partition.h"
 #include "vfs/fat.h"
+#include "vfs/sfs.h"
 
 volatile int _timer = 0;
 void timer(regs_t* regs) {
@@ -302,6 +303,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     //init filesystems
     fat_init();
+    sfs_init();
 
     WRITE_SUCCESS();
 

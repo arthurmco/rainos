@@ -21,6 +21,8 @@ typedef struct vfs_filesystem {
     int (*__vfs_mount)(device_t* dev);
     int (*__vfs_get_root_dir)(device_t* dev, void** childs);
 
+    /* Create a node inside the filesystem */
+    int (*__vfs_create_node)(device_t* dev, void** node);
 } vfs_filesystem_t ;
 
 enum VfsNodeFlags {

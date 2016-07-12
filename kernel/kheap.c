@@ -85,7 +85,7 @@ void kheap_init()
 
 virtaddr_t kheap_allocate(size_t bytes)
 {
-    knotice("TA DE BRINKS UNA SKILL %d CIENTO DANO", bytes);
+    // knotice("TA DE BRINKS UNA SKILL %d CIENTO DANO", bytes);
     if (bytes == 0) bytes = 4;
 
     heap_item_t* item = _kheap_alloc_item((bytes + 3) & ~3);
@@ -100,14 +100,14 @@ virtaddr_t kheap_allocate(size_t bytes)
         // and reserve space to store the canary
         item->bytes = ((bytes + 3) & ~3) + sizeof(uint32_t);
 
-        knotice("|%d %d|", addr_reserve_top-addr_reserve_bottom,
-            ((signed)addr_alloc_size)-item->bytes);
+        // knotice("|%d %d|", addr_reserve_top-addr_reserve_bottom,
+        //     ((signed)addr_alloc_size)-item->bytes);
         /* Check if we need more pages */
         signed sz = addr_alloc_size;
         sz -= item->bytes;
         if ((signed)(addr_reserve_top - addr_reserve_bottom) >= sz) {
-            knotice("HEAP: more space needed. %x %x %d", addr_reserve_bottom, addr_reserve_top,
-                item->bytes);
+            // knotice("HEAP: more space needed. %x %x %d", addr_reserve_bottom, addr_reserve_top,
+                // item->bytes);
             /* We will need */
             /*  Allocate the needed amount of pages to fill this space and
                 request more */
@@ -143,7 +143,7 @@ virtaddr_t kheap_allocate(size_t bytes)
     }
 
     uint32_t* canary = (uint32_t*)(item->addr + item->bytes - sizeof(uint32_t));
-    knotice("%x %d", item->addr, item->bytes);
+    // knotice("%x %d", item->addr, item->bytes);
     *canary = item->canary;
 
 
