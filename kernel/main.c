@@ -241,29 +241,29 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     else
         kprintf("\tfail!");
 
-    uint8_t* buf = kcalloc(512, 1);
-    if (device_read(device_get_by_name("floppy0"), 0x100, 0x100, buf)) {
-        kprintf("\n");
-
-        for (size_t r = 0; r < 128/16; r++) {
-            for (size_t c = 0; c < 16; c++) {
-                kprintf("%02x ", buf[r*16+c] & 0xff);
-            }
-
-            kprintf(" | ");
-
-            for (size_t c = 0; c < 16; c++) {
-                if (buf[r*16+c] > ' ') {
-                    putc(buf[r*16+c]);
-                } else {
-                    putc('.');
-                }
-            }
-
-            kprintf("\n");
-        }
-    }
-    asm("cli; hlt");
+    // uint8_t* buf = kcalloc(512, 1);
+    // if (device_read(device_get_by_name("floppy0"), 0x200, 0x200, buf)) {
+    //     kprintf("\n");
+    //
+    //     for (size_t r = 0; r < 128/16; r++) {
+    //         for (size_t c = 0; c < 16; c++) {
+    //             kprintf("%02x ", buf[r*16+c] & 0xff);
+    //         }
+    //
+    //         kprintf(" | ");
+    //
+    //         for (size_t c = 0; c < 16; c++) {
+    //             if (buf[r*16+c] > ' ') {
+    //                 putc(buf[r*16+c]);
+    //             } else {
+    //                 putc('.');
+    //             }
+    //         }
+    //
+    //         kprintf("\n");
+    //     }
+    // }
+    // asm("cli; hlt");
 
     kprintf(" \n  pci");
     pci_init();

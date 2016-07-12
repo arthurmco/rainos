@@ -52,6 +52,21 @@ static int _disk_dev_read_wrapper(device_t* dev,
     return -1;
 }
 
+int disk_cmd_added = 0;
+static int disk_cmd(int argc, char** argv)
+{
+    kprintf("Disks:\n");
+    for (int i = 0; i < disk_count; i++) {
+        uint64_t disk_mb = disks[i].b_size;
+        disk_mb *= disks[i].b_count;
+        disk_mb /= 1048576;
+        kprintf("%s: %s \n", disks[i].sysname, disks[i].disk_name);
+        kprintf("\t %d sectors, %d bytes/sector\n", disks[i].b_count, disks[i].b_size);
+        kprintf("\t %d MB\n\n", (uint32_t)(disk_mb & 0xffffffff));
+    }
+
+    return 1;
+}
 
 int disk_add(struct disk* d)
 {
@@ -76,6 +91,11 @@ int disk_add(struct disk* d)
     knotice("DISK: Adding disk %s (%d MB) as %s",
         d->disk_name, diskmb, d->sysname);
     kprintf("\n %s: %s (%d MB)", d->sysname, d->disk_name, diskmb);
+
+    if (!disk_cmd_added) {
+        kshell_add("disks", "List disks and their info", disk_cmd);
+        disk_cmd_added = 1;
+    }
 
     disks[disk_count] = *d;
     return disk_count++;
