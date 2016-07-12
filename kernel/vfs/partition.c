@@ -28,6 +28,7 @@ void partitions_init()
 
         if (dev) {
             partitions_retrieve(dev);
+            dev_count++;
         }
         i++;
     } while (i < 10);

@@ -28,7 +28,7 @@ device_t* device_get_by_name(char* name)
 
     while (d)
     {
-        if (!strncmp(d->devname, name, strlen(name)))
+        if (!strncmp(d->devname, name, strlen(name)+1))
         {
             return d;
         }

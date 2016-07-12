@@ -11,7 +11,9 @@ static int _disk_dev_read_wrapper(device_t* dev,
     for (size_t i = 0; i < MAX_DISKS; i++)
     {
         disk = &disks[i];
-        if (disk->dev == dev || disk->dev->devid == dev->devid)
+        knotice("%s %s %x%x %x%x", disk->dev->devname, dev->devname,
+            disk->dev->devid, dev->devid);
+        if (disk->dev == dev && disk->dev->devid == dev->devid)
         {
             knotice("\t disk: found disk %s = %s", disk->dev->devname, dev->devname);
 
