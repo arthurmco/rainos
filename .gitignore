@@ -3,6 +3,7 @@
 *.o
 *.elf
 *.iso
+*.swp
 Makefile
 bochs_serial.txt
 initrd.rain

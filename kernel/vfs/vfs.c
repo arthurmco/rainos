@@ -177,7 +177,7 @@ vfs_node_t* vfs_find_node_relative(vfs_node_t* base, const char* path_rel)
         /* No childs */
         if (!n_end) {
             /* Over. It's him. No need to search */
-            return base;
+           // return base;
         } else {
             return NULL;
         }

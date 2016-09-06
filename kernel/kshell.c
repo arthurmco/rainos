@@ -34,7 +34,7 @@ static int kshell_ls(int argc, char** argv) {
         char csize[16];
         while (childs) {
             sprintf(csize, "%d bytes", (uint32_t)childs->size & 0xffffffff);
-            kprintf("%s\t\t%s\n", childs->name,
+            kprintf("(%x) %s\t\t%s\n", childs->flags, childs->name,
                 childs->flags & VFS_FLAG_FOLDER ? "[DIR]" : csize);
             bytes += (size_t)childs->size;
             childs = childs->next;
@@ -148,7 +148,7 @@ static int kshell_cat(int argc, char* argv[])
     }
 
     if (node->flags & VFS_FLAG_FOLDER) {
-        kprintf("\n\t%s is a folder\n", argv[1]);
+        kprintf("\n\t%s is a folder\n", node->name);
         return 2;
     }
 
