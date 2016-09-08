@@ -12,8 +12,8 @@ define(`ASM_SOURCE',
 `$2.o: $1$2.S
 	`$'(AS) $1$2.S -o $2.o `$'(ASMFLAGS)') dnl
 
-CC=i686-elf-gcc
-AS=i686-elf-as
+CC=/opt/cross/bin/i686-elf-gcc
+AS=/opt/cross/bin/i686-elf-as
 CFLAGS= -std=gnu99 -ffreestanding -fstack-protector -nostdlib -nostartfiles -Wall -Wextra -O1
 CINCLUDES= -I$(CURDIR)/libk/include
 LDFLAGS=-lgcc -g
@@ -26,7 +26,8 @@ ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o 8042.o \
  specifics.o floppy.o
 
 all: $(ARCH_DEP) stackguard.o main.o terminal.o ttys.o pmm.o kheap.o dev.o \
- disk.o vfs.o partition.o fat.o sfs.o initrd.o keyboard.o kshell.o $(LIBK)
+ disk.o vfs.o partition.o fat.o sfs.o initrd.o keyboard.o kshell.o time.o \
+ $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
 initrd: initrd.rain
@@ -39,8 +40,11 @@ iso: all initrd
 	cp $(OUT) iso/boot
 	grub-mkrescue -o $(ISO) iso/
 
-qemu: all
-	qemu-system-i386 -kernel $(OUT) -m 8 -monitor stdio
+qemu: all initrd 
+	qemu-system-i386 -kernel $(OUT) -initrd initrd.rain -m 8 -monitor stdio
+
+serial: all initrd
+	qemu-system-i386 -kernel $(OUT) -initrd initrd.rain -m 8 -serial stdio
 
 clean: *.o
 	rm -f *.o
@@ -83,6 +87,7 @@ C_SOURCE_WITH_H(kernel/,dev)
 C_SOURCE_WITH_H(kernel/,disk)
 C_SOURCE_WITH_H(kernel/,initrd)
 C_SOURCE_WITH_H(kernel/,keyboard)
+C_SOURCE_WITH_H(kernel/,time)
 C_SOURCE_WITH_H(kernel/,kshell)
 C_SOURCE(kernel/,main)
 C_SOURCE(kernel/,stackguard)

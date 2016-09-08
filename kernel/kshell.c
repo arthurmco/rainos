@@ -5,6 +5,7 @@
 #include <kstdlib.h>
 #include <kstdlog.h>
 #include "terminal.h"
+#include "time.h"
 
 static struct kernel_shell_cmd kcmds[MAX_SHELL_CMD];
 static size_t kcmd_count = 0;
@@ -188,6 +189,17 @@ static int kshell_cat(int argc, char* argv[])
     return 0;
 }
 
+static int kshell_date(int argc, char** argv) 
+{
+    struct time_tm time;
+    time_gettime(&time);
+
+    kprintf("\n%02d/%02d/%04d %02d:%02d:%02d\n",
+        time.day, time.month, time.year,
+        time.hour, time.minute, time.second);
+    
+}
+
 void kshell_init()
 {
     cwd = vfs_get_root();
@@ -197,6 +209,7 @@ void kshell_init()
     kshell_add("mount", "Mount a filesystem", &kshell_mount);
     kshell_add("clear", "Clears the screen", &terminal_clear);
     kshell_add("cat", "Read the content", &kshell_cat);
+    kshell_add("date", "Show date and time", &kshell_date);
 
     knotice("KSHELL: Starting kernel shell, %d commands", kcmd_count);
     char cmd[128];

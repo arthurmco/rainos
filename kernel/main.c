@@ -23,6 +23,7 @@
 #include "arch/i386/pages.h"
 #include "arch/i386/fault.h"
 #include "terminal.h"
+#include "time.h"
 #include "ttys.h"
 #include "mmap.h"
 #include "pmm.h"
@@ -180,7 +181,8 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     }
 
     if (!initrd) {
-        kerror("initrd not found! This may cause problems");
+        kerror("Couldn't find initrd.rain");
+        panic("FATAL: initrd not found! Can't continue.");
     }
 
 
@@ -241,30 +243,6 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         kprintf("\tok!");
     else
         kprintf("\tfail!");
-
-    // uint8_t* buf = kcalloc(512, 1);
-    // if (device_read(device_get_by_name("floppy0"), 0x200, 0x200, buf)) {
-    //     kprintf("\n");
-    //
-    //     for (size_t r = 0; r < 128/16; r++) {
-    //         for (size_t c = 0; c < 16; c++) {
-    //             kprintf("%02x ", buf[r*16+c] & 0xff);
-    //         }
-    //
-    //         kprintf(" | ");
-    //
-    //         for (size_t c = 0; c < 16; c++) {
-    //             if (buf[r*16+c] > ' ') {
-    //                 putc(buf[r*16+c]);
-    //             } else {
-    //                 putc('.');
-    //             }
-    //         }
-    //
-    //         kprintf("\n");
-    //     }
-    // }
-    // asm("cli; hlt");
 
     kprintf(" \n  pci");
     pci_init();
@@ -358,13 +336,14 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     } */
 
-    int64_t ts = 1209600;
-    int year;
-    unsigned mon, day, hour, min, sec;
-    vfs_unix_to_day(ts, &year, &mon, &day, &hour, &min, &sec);
-    kprintf("Timestamp %d%d is %d/%d/%d %d:%d:%d\n",
-        (uint32_t)(ts>>32), (uint32_t)(ts&0xffffffff),
-        day+1, mon+1, year, hour, min, sec);
+    struct time_tm t;
+    t.second = 0;
+    t.minute = 0;
+    t.hour = 0;
+    t.day = 0;
+    t.month = 0;
+    t.year = 0;
+    time_init(t);
 
     kshell_init();
 }
