@@ -353,6 +353,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     if (elf_exec) {
         int s = elf_parse_sections(elf_exec);
         kprintf("\t %d sections found", s);
+        elf_execute_file(elf_exec);
     }
 
     WRITE_FAIL();

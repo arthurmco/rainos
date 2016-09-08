@@ -326,7 +326,7 @@ virtaddr_t vmm_map_physical(unsigned int vmm_area,
         unsigned dir = (addr >> 22) & 0x3ff;
         unsigned page = (addr >> 12) & 0x3ff;
         knotice("(phys) actual dir = %x, %x (%x)", dir, page, addr);
-
+    
         if (!vmm_check_if_page_allocated(&dir, &page, count)) {
             return NULL; // No more pages.
         }
@@ -406,3 +406,85 @@ virtaddr_t vmm_map_physical(unsigned int vmm_area,
             "mapped to physaddr 0x%x", count, addr, phys);
         return addr;
     }
+
+
+/*  Map 'count' pages to 'addr' and return 'addr' or 0 on fail */
+virtaddr_t vmm_map_page(virtaddr_t addr, unsigned int vmm_area, size_t count)
+{ 
+    unsigned dir = (addr >> 22) & 0x3ff;
+    unsigned page = (addr >> 12) & 0x3ff;
+    //knotice("actual dir = %x, %x (%x)", dir, page, addr);
+
+    if (!vmm_check_if_page_allocated(&dir, &page, count)) {
+        return NULL; // No more pages.
+    }
+
+    addr = ((dir << 22) | (page << 12));
+
+    pdir_t* pdir = page_dir_get(dir);
+
+    if (!pdir)
+        pdir = page_dir_create(dir, 0x3);
+    else if (!pdir->addr)
+        pdir = page_dir_create(dir, 0x3);
+    else if (!pdir->options.present)
+        pdir = page_dir_create(dir, 0x3);
+    else if (!pdir->options.dir_location)
+        pdir = page_dir_create(dir, 0x3);
+
+    if (vmm_area == VMM_AREA_USER)
+        pdir->options.user = 1;
+
+    //knotice("pdir %d at 0x%x, addr 0x%x", dir, pdir,
+    //    pdir->addr);
+
+    /* Create the pages */
+    for (size_t i = 0; i < count; i++) {
+        ptable_t* ptable = page_table_get(pdir, page+i);
+
+        if (!ptable)
+            ptable = page_table_create(pdir, page+i,
+                pmm_alloc(1, PMM_REG_DEFAULT), 0x3);
+        else if (!ptable->options.present)
+            ptable = page_table_create(pdir, page+i,
+                pmm_alloc(1, PMM_REG_DEFAULT), 0x3);
+        else if (!ptable->options.dir_location)
+            ptable = page_table_create(pdir, page+i,
+                pmm_alloc(1, PMM_REG_DEFAULT), 0x3);
+        else
+            ptable->options.dir_location = (pmm_alloc(1, PMM_REG_DEFAULT) >> 12);
+
+
+        if (i > 0)
+            ptable->options.chained_prev = 1;
+
+        if (i < (count-1)) {
+            ptable->options.chained_next = 1;
+        }
+
+        if (vmm_area == VMM_AREA_USER)
+            ptable->options.user = 1;
+
+    //    knotice("page %d: 0x%x 0x%x", page+i, ptable, ptable->addr);
+
+        if (page+i > MAX_TABLE_COUNT) {
+            page = 0;
+            i = 0;
+            count -= i;
+
+            dir++;
+            pdir = page_dir_get(dir);
+
+            if (!pdir->options.present)
+                pdir = page_dir_create(dir, 0x3);
+
+            if (vmm_area == VMM_AREA_USER)
+                pdir->options.user = 1;
+
+        }
+    }
+
+ //   max_virt[vmm_area] += (count * VMM_PAGE_SIZE);
+    knotice("VMM: Allocated %d pages at virtaddr 0x%x", count, addr);
+    return addr;
+}

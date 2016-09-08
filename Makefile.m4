@@ -12,8 +12,8 @@ define(`ASM_SOURCE',
 `$2.o: $1$2.S
 	`$'(AS) $1$2.S -o $2.o `$'(ASMFLAGS)') dnl
 
-CC=i686-elf-gcc
-AS=i686-elf-as
+CC=/opt/cross/bin/i686-elf-gcc
+AS=/opt/cross/bin/i686-elf-as
 CFLAGS= -std=gnu99 -ffreestanding -fstack-protector -nostdlib -nostartfiles -Wall -Wextra -O1
 CINCLUDES= -I$(CURDIR)/libk/include
 LDFLAGS=-lgcc -g
