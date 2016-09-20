@@ -14,7 +14,10 @@ pdir_t* page_dir_get(unsigned dir_index)
     if (dir_index >= MAX_DIR_COUNT)
         return NULL;
 
-    return &dir_table[dir_index];
+    if (dir_table[dir_index].options.present)
+        return &dir_table[dir_index];
+    else
+        return NULL;
 }
 
 ptable_t* page_table_get(pdir_t* dir, unsigned table_index)

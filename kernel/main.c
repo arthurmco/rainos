@@ -244,6 +244,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         kprintf("\tok!");
     else
         kprintf("\tfail!");
+    
 
     kprintf(" \n  pci");
     pci_init();
@@ -309,8 +310,8 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     tss_init(page_dir_phys);
 
-    uint8_t* newfunc = kmalloc(4096); //vmm_alloc_page(VMM_AREA_USER, 3);
-    void* newstack = kmalloc(256); //(vmm_alloc_page(VMM_AREA_USER, 1) + VMM_PAGE_SIZE - 16);
+    uint8_t* newfunc = vmm_alloc_page(VMM_AREA_USER, 3);
+    void* newstack = (vmm_alloc_page(VMM_AREA_USER, 1) + VMM_PAGE_SIZE - 16);
     knotice("opening bintest.bin");
 
     vfs_node_t* node_file = vfs_find_node("/dir/bintest.bin");

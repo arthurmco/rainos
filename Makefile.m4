@@ -14,7 +14,7 @@ define(`ASM_SOURCE',
 
 CC=/opt/cross/bin/i686-elf-gcc
 AS=/opt/cross/bin/i686-elf-as
-CFLAGS= -std=gnu99 -ffreestanding -fstack-protector -nostdlib -nostartfiles -Wall -Wextra -O1
+CFLAGS= -std=gnu99 -ffreestanding -fstack-protector -nostdlib -nostartfiles -Wall -Wextra 
 CINCLUDES= -I$(CURDIR)/libk/include
 LDFLAGS=-lgcc -g
 OUT=rainos.elf
@@ -43,7 +43,7 @@ iso: all initrd
 qemu: all initrd
 	qemu-system-i386 -kernel $(OUT) -initrd initrd.rain -m 8 -monitor stdio
 
-serial: all initrd
+qemu-serial: all initrd
 	qemu-system-i386 -kernel $(OUT) -initrd initrd.rain -m 8 -serial stdio
 
 clean: *.o
