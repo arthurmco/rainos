@@ -10,6 +10,7 @@
 #include "pci.h"
 #include "ioport.h"
 
+#include "../irq.h"
 #include "../../../disk.h"
 
 #ifndef _ATA_H
@@ -72,7 +73,8 @@ struct AtaDevice {
     uint16_t ioalt; /* IO address of alternate status register */
     uint8_t number; /* 0: Pri, 1: Sec, 2: Third, 3: Fourth... */
     uint8_t slavery; /* 0: Master, 1: Slave */
-
+    uint8_t atapi;
+    uint8_t irq;
     struct AtaIdentify* ident;
 };
 
@@ -108,6 +110,8 @@ enum AtaCommands {
     ATACMD_READ = 0x20,
     ATACMD_WRITE = 0x30,
     ATACMD_IDENTIFY = 0xEC,
+    ATACMD_PACKET = 0xA0,
+    ATACMD_PKTIDENTIFY = 0xA1,
 };
 
 #define MAX_ATA_DEVS 16
@@ -122,6 +126,11 @@ int ata_initialize(struct PciDevice* dev);
     Return 1 if drive is valid, 0 if not
     Automatically fill the 'ident' member of AtaDevice */
 int ata_identify(struct AtaDevice* atadev);
+int atapi_identify(struct AtaDevice* atadev);
+
+/* Send an ATAPI packet to the device */
+int atapi_packet(struct AtaDevice* atadev, uint16_t* packet,
+    uint16_t* bytecount, uint16_t* buffer, size_t buffersize);
 
 void ata_change_drive(struct AtaDevice* atadev);
 
@@ -137,5 +146,6 @@ int ata_read_sector_dma(struct AtaDevice* dev,
 int ata_write_sector_dma(struct AtaDevice* dev,
     uint64_t lba, size_t count, void* const buffer);
 
+int ata_irq(regs_t* registers);
 
 #endif /* end of include guard: _ATA_H */

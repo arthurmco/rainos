@@ -23,10 +23,11 @@ ISO=rainos.iso
 LIBK=kstdio.o kstdlib.o kstring.o kstdlog.o
 ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o 8042.o \
  ps2_kbd.o pit.o pci.o ata.o irq.o irq_asm.o pages.o vmm.o tss.o usermode.o \
- specifics.o
+ specifics.o floppy.o
 
 all: $(ARCH_DEP) stackguard.o main.o terminal.o ttys.o pmm.o kheap.o dev.o \
- disk.o vfs.o partition.o fat.o initrd.o keyboard.o kshell.o elf.o $(LIBK)
+ disk.o vfs.o partition.o fat.o initrd.o keyboard.o kshell.o elf.o time.o \
+ $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
 initrd: initrd.rain
@@ -39,8 +40,11 @@ iso: all initrd
 	cp $(OUT) iso/boot
 	grub-mkrescue -o $(ISO) iso/
 
-qemu: all
-	qemu-system-i386 -kernel $(OUT) -m 8 -monitor stdio
+qemu: all initrd
+	qemu-system-i386 -kernel $(OUT) -initrd initrd.rain -m 8 -monitor stdio
+
+serial: all initrd
+	qemu-system-i386 -kernel $(OUT) -initrd initrd.rain -m 8 -serial stdio
 
 clean: *.o
 	rm -f *.o
@@ -55,6 +59,7 @@ C_SOURCE_WITH_H(kernel/arch/i386/devices/,vga)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,ioport)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,pit)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,serial)
+C_SOURCE_WITH_H(kernel/arch/i386/devices/,floppy)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,pci)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,8259)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,8042)
@@ -74,6 +79,7 @@ C_SOURCE_WITH_H(kernel/arch/i386/,fault)
 C_SOURCE_WITH_H(kernel/vfs/,vfs)
 C_SOURCE_WITH_H(kernel/vfs/,partition)
 C_SOURCE_WITH_H(kernel/vfs/,fat)
+C_SOURCE_WITH_H(kernel/vfs/,sfs)
 C_SOURCE_WITH_H(kernel/,terminal)
 C_SOURCE_WITH_H(kernel/,ttys)
 C_SOURCE_WITH_H(kernel/,kheap)
@@ -82,6 +88,7 @@ C_SOURCE_WITH_H(kernel/,dev)
 C_SOURCE_WITH_H(kernel/,disk)
 C_SOURCE_WITH_H(kernel/,initrd)
 C_SOURCE_WITH_H(kernel/,keyboard)
+C_SOURCE_WITH_H(kernel/,time)
 C_SOURCE_WITH_H(kernel/,kshell)
 C_SOURCE(kernel/,main)
 C_SOURCE(kernel/,stackguard)

@@ -13,6 +13,7 @@
 #include "arch/i386/devices/pit.h"
 #include "arch/i386/devices/ps2_kbd.h"
 #include "arch/i386/devices/pci.h"
+#include "arch/i386/devices/floppy.h"
 #include "arch/i386/devices/ata.h"
 #include "arch/i386/multiboot.h"
 #include "arch/i386/vmm.h"
@@ -22,6 +23,7 @@
 #include "arch/i386/pages.h"
 #include "arch/i386/fault.h"
 #include "terminal.h"
+#include "time.h"
 #include "ttys.h"
 #include "mmap.h"
 #include "pmm.h"
@@ -33,6 +35,7 @@
 #include "vfs/vfs.h"
 #include "vfs/partition.h"
 #include "vfs/fat.h"
+#include "vfs/sfs.h"
 
 volatile int _timer = 0;
 void timer(regs_t* regs) {
@@ -179,7 +182,8 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     }
 
     if (!initrd) {
-        kerror("initrd not found! This may cause problems");
+        kerror("Couldn't find initrd.rain");
+        panic("FATAL: initrd not found! Can't continue.");
     }
 
 
@@ -234,6 +238,12 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     kprintf(" \n  serial");
     serial_init();
     kprintf("\tok!");
+
+    kprintf(" \n  floppy");
+    if (floppy_init())
+        kprintf("\tok!");
+    else
+        kprintf("\tfail!");
 
     kprintf(" \n  pci");
     pci_init();
@@ -296,12 +306,13 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 //        kprintf("\n\n Nothing to do. Starting kernel shell... \n");
 
     WRITE_STATUS("Jumping to user mode (will call init on the future)");
+
     tss_init(page_dir_phys);
 
-    uint8_t* newfunc = vmm_alloc_page(VMM_AREA_USER, 3);
-    void* newstack = (vmm_alloc_page(VMM_AREA_USER, 1) + VMM_PAGE_SIZE - 16);
-
+    uint8_t* newfunc = kmalloc(4096); //vmm_alloc_page(VMM_AREA_USER, 3);
+    void* newstack = kmalloc(256); //(vmm_alloc_page(VMM_AREA_USER, 1) + VMM_PAGE_SIZE - 16);
     knotice("opening bintest.bin");
+
     vfs_node_t* node_file = vfs_find_node("/dir/bintest.bin");
 
     if (!node_file) {
@@ -357,6 +368,25 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     }
 
     WRITE_FAIL();
+    /* for(;;) {
+        terminal_setcolor(0x0f);
+        terminal_puts("kernsh> ");
+        terminal_restorecolor();
+        char s[128];
+        kgets(s, 128);
+
+        kprintf("You typed: %s", s);
+
+    } */
+
+    struct time_tm t;
+    t.second = 0;
+    t.minute = 0;
+    t.hour = 0;
+    t.day = 0;
+    t.month = 0;
+    t.year = 0;
+    time_init(t);
 
     kshell_init();
 }

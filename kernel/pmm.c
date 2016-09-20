@@ -287,7 +287,9 @@ physaddr_t pmm_alloc(size_t pages, int type)
 
     /* Could not find suitable region */
     if (!reg) {
-        panic("Could not allocate %d pages of memory !", pages);
+        kerror("Could not allocate %d pages of memory !", pages);
+        panic("Out of memory!");
+        /* TODO: invalidate pages? */
         return NULL;
     }
 

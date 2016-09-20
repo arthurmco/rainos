@@ -11,11 +11,11 @@ void vmm_init(uintptr_t kernel_start, uintptr_t kernel_end,
         /* TODO: remove this when you go to higher half */
         kernel_virt_offset = 0xc0000000;
 
-        max_virt[VMM_AREA_USER] = 0x0;
+        max_virt[VMM_AREA_USER] = kernel_end + VMM_PAGE_SIZE;
         max_virt[VMM_AREA_KERNEL] = (kernel_virt_offset + kernel_end);
 
         cur_virt[VMM_AREA_USER] = max_virt[VMM_AREA_USER];
-        cur_virt[VMM_AREA_KERNEL] == max_virt[VMM_AREA_KERNEL];
+        cur_virt[VMM_AREA_KERNEL] = max_virt[VMM_AREA_KERNEL];
     }
 
 /*  Check if some pages are allocated.
@@ -101,7 +101,7 @@ virtaddr_t vmm_alloc_page(unsigned int vmm_area, size_t count)
     virtaddr_t addr = max_virt[vmm_area];
     unsigned dir = (addr >> 22) & 0x3ff;
     unsigned page = (addr >> 12) & 0x3ff;
-    //knotice("actual dir = %x, %x (%x)", dir, page, addr);
+    knotice("actual dir = %x, %x (%x)", dir, page, addr);
 
     if (!vmm_check_if_page_allocated(&dir, &page, count)) {
         return NULL; // No more pages.
@@ -172,7 +172,9 @@ virtaddr_t vmm_alloc_page(unsigned int vmm_area, size_t count)
         }
     }
 
-    max_virt[vmm_area] += (count * VMM_PAGE_SIZE);
+    if (max_virt[vmm_area] < addr)
+      max_virt[vmm_area] += (count * VMM_PAGE_SIZE);
+
     knotice("VMM: Allocated %d pages at virtaddr 0x%x", count, addr);
     return addr;
 }
@@ -306,6 +308,7 @@ virtaddr_t vmm_alloc_physical(unsigned int vmm_area,
             allocPhys += VMM_PAGE_SIZE;
         }
 
+
         max_virt[vmm_area] += (count * VMM_PAGE_SIZE);
 
         knotice("VMM: Allocated %d pages at virtaddr 0x%x, "
@@ -326,7 +329,7 @@ virtaddr_t vmm_map_physical(unsigned int vmm_area,
         unsigned dir = (addr >> 22) & 0x3ff;
         unsigned page = (addr >> 12) & 0x3ff;
         knotice("(phys) actual dir = %x, %x (%x)", dir, page, addr);
-    
+
         if (!vmm_check_if_page_allocated(&dir, &page, count)) {
             return NULL; // No more pages.
         }
@@ -400,7 +403,8 @@ virtaddr_t vmm_map_physical(unsigned int vmm_area,
             allocPhys += VMM_PAGE_SIZE;
         }
 
-        max_virt[vmm_area] += (count * VMM_PAGE_SIZE);
+        if (max_virt[vmm_area] < addr)
+          max_virt[vmm_area] += (count * VMM_PAGE_SIZE);
 
         knotice("VMM: Allocated %d pages at virtaddr 0x%x, "
             "mapped to physaddr 0x%x", count, addr, phys);
@@ -410,7 +414,7 @@ virtaddr_t vmm_map_physical(unsigned int vmm_area,
 
 /*  Map 'count' pages to 'addr' and return 'addr' or 0 on fail */
 virtaddr_t vmm_map_page(virtaddr_t addr, unsigned int vmm_area, size_t count)
-{ 
+{
     unsigned dir = (addr >> 22) & 0x3ff;
     unsigned page = (addr >> 12) & 0x3ff;
     //knotice("actual dir = %x, %x (%x)", dir, page, addr);

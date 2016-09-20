@@ -114,7 +114,7 @@ static int initrd_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
 
     if (!ptr) {
         kerror("initrd: %s has an invalid pointer to data", node->name);
-        return 0;
+        return -1;
     }
 
     if (off > node->size) {
@@ -243,8 +243,10 @@ int initrd_init(uintptr_t start, uintptr_t end)
             name = name+1;
 
         memcpy(name, file->name, 63);
+
         if (blk->typeflag == '5')
             file->flags |= VFS_FLAG_FOLDER;
+
         file->prev = prev;
         file->parent = parent;
 

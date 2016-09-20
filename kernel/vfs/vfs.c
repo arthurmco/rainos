@@ -177,7 +177,7 @@ vfs_node_t* vfs_find_node_relative(vfs_node_t* base, const char* path_rel)
         /* No childs */
         if (!n_end) {
             /* Over. It's him. No need to search */
-            return base;
+           // return base;
         } else {
             return NULL;
         }
@@ -249,13 +249,11 @@ int vfs_read(struct vfs_node* node, uint64_t off, size_t len,
 
         return -1;
     }
-
 void vfs_get_full_path(vfs_node_t* n, char* buf)
 {
     char tmp[256];
     int i = 0;
     vfs_node_t* p = n;
-
     /* First, get all parent names */
     while (p != vfs_get_root()) {
         size_t l = strlen(p->name);
@@ -265,15 +263,12 @@ void vfs_get_full_path(vfs_node_t* n, char* buf)
         tmp[i] = 0;
         p = p->parent;
     }
-
     tmp[i] = 0;
     /* Then reverse it */
     char *tok = strrtok_n(tmp, '/', strlen(tmp)-3);
     size_t soff, eoff = strlen(tmp)-1;
     size_t idx = 0;
-
     int notok = 0;
-
     do {
         if (tok) {
             soff = (tok - tmp);
@@ -282,11 +277,36 @@ void vfs_get_full_path(vfs_node_t* n, char* buf)
             soff = 0;
             notok = 1;
         }
-
         memcpy(&tmp[soff], &buf[idx], (eoff - soff));
         idx += (eoff-soff);
         eoff = soff;
     } while (!notok);
-
     buf[strlen(tmp)] = 0;
 }
+
+/* Utility conversion for unix timestamp to normal date */
+void vfs_unix_to_day(int64_t timestamp,
+    signed* year, unsigned* month, unsigned* day,
+    unsigned* hour, unsigned* minute, unsigned* second)
+    {
+
+        *second = timestamp % 60;
+        *minute = (timestamp % 3600) / 60;
+        *hour = (timestamp % (3600*24)) / 3600;
+        *day = (timestamp % (3600*24*30)) / (3600*24);
+        *month = (timestamp % (3600*24*365)) / (3600*24*30);
+        *year = 1970 + (timestamp / (3600*24*365));
+
+        /* Correction for leap years */
+        *day += ((*year-1968)/4);   //1972 is the first UNIX leap year
+        if (*day > 31) {
+            *day = *day - 31;
+            *month = *month + 1;
+        }
+        if (*month > 12) {
+            *month = *month - 12;
+            *year = *year + 1;
+        }
+        /* Correction for different day-count months */
+
+    }
