@@ -147,9 +147,11 @@ virtaddr_t kheap_allocate(size_t bytes)
     *canary = item->canary;
 
 
-    // kerror("t: 0x%x, s: 0x%x, b: 0x%x",
-    // addr_reserve_top, addr_reserve_bottom+(VMM_PAGE_SIZE*DEFAULT_ALLOC_SIZE),
-    // addr_reserve_bottom);
+     /*kerror("t: 0x%x, s: 0x%x, b: 0x%x",
+     addr_reserve_top, addr_reserve_bottom+(VMM_PAGE_SIZE*DEFAULT_ALLOC_SIZE),
+     addr_reserve_bottom);
+
+     knotice("ZZZ %x %d", item->addr, item->bytes); */
 
     if (((uintptr_t)item_reserve_top - (uintptr_t)item_reserve_bottom) >=
         item_alloc_size) {

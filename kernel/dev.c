@@ -28,7 +28,8 @@ device_t* device_get_by_name(char* name)
 
     while (d)
     {
-        if (!strncmp(d->devname, name, strlen(name)+1))
+        knotice("DEV: found %s searching for %s", d->devname, name);
+        if (!strcmp(d->devname, name))
         {
             return d;
         }

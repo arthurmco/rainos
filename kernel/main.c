@@ -244,7 +244,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         kprintf("\tok!");
     else
         kprintf("\tfail!");
-    
+
 
     kprintf(" \n  pci");
     pci_init();

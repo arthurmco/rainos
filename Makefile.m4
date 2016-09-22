@@ -14,7 +14,7 @@ define(`ASM_SOURCE',
 
 CC=/opt/cross/bin/i686-elf-gcc
 AS=/opt/cross/bin/i686-elf-as
-CFLAGS= -std=gnu99 -ffreestanding -fstack-protector -nostdlib -nostartfiles -Wall -Wextra 
+CFLAGS= -std=gnu99 -ffreestanding -fstack-protector-all -nostdlib -nostartfiles -Wall -O2
 CINCLUDES= -I$(CURDIR)/libk/include
 LDFLAGS=-lgcc -g
 OUT=rainos.elf

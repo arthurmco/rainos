@@ -16,11 +16,21 @@
 
 typedef uintptr_t virtaddr_t;
 
+/*  Delimites some virtual address region.
+    This is used for fast lookups */
+struct virt_region_t {
+    /* Minimum, maximum and first-free address of that region */
+    virtaddr_t min_addr, max_addr, first_free_addr;
+};
+
 enum VMMAreas {
     VMM_AREA_USER = 1,   // User virtual area, 0x0 -> 0xbfffffff
     VMM_AREA_KERNEL = 0, // Kernel virtual area, 0xc0000000 -> 0xffffffff
     VMM_AREA_COUNT = 2
 };
+
+#define GET_DIR(addr) (addr >> 22)
+#define GET_TABLE(addr) ((addr >> 12) & 0x3ff)
 
 #define VMM_PAGE_SIZE 4096
 
