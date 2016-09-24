@@ -35,8 +35,6 @@ pdir_t* page_dir_get(unsigned dir_index)
     if (dir_index >= MAX_DIR_COUNT)
         return NULL;
 
-    knotice("| %d dt=%x", dir_index, dir_table);
-
     if (dir_table[dir_index].options.present)
         return &dir_table[dir_index];
     else
@@ -48,7 +46,6 @@ ptable_t* page_table_get(pdir_t* dir, unsigned table_index)
     /* Get the directory's page table address */
     uintptr_t ptable_addr = (dir->addr & ~0xfff);
     ptable_t* ptable = (ptable_t*)ptable_addr;
-    knotice("|> %x %x %x", dir, ptable_addr, table_index);
     return &ptable[table_index];
 }
 
@@ -58,8 +55,6 @@ pdir_t* page_dir_create(unsigned dir, unsigned options)
         return NULL;
 
     pdir_t* pdir = &dir_table[dir];
-    knotice("|||> %d %x", dir, dir);
-
 
     /* create the table in the end of virtual memory */
     uintptr_t addr = pmm_alloc(1, PMM_REG_DEFAULT);

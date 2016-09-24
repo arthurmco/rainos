@@ -35,7 +35,7 @@ static int vmm_check_if_page_allocated(unsigned int dir, unsigned int table,
                 pd = page_dir_create(d, 0x3); //present and writeable
             }
 
-            knotice("pdir for %d - %x (%x)", dir, pd, pd->addr);
+            //knotice("pdir for %d - %x (%x)", dir, pd, pd->addr);
 
             if (area == VMM_AREA_USER) {
                 pd->options.user = 1;
@@ -43,7 +43,7 @@ static int vmm_check_if_page_allocated(unsigned int dir, unsigned int table,
 
             for (unsigned t = table; t < 1024; t++) {
                 ptable_t* pt = page_table_get(pd, t);
-                knotice("ptable of %x is %x for %d", pd, pt, t);
+                //knotice("ptable of %x is %x for %d", pd, pt, t);
 
                 /* If table doesn't exist, create it */
                 if (!pt || !pt->options.present) {
@@ -56,7 +56,7 @@ static int vmm_check_if_page_allocated(unsigned int dir, unsigned int table,
                 }
                 p++;
 
-                knotice("#%d: %x (at 0x%x)", p, pt->addr, pt);
+                //knotice("#%d: %x (at 0x%x)", p, pt->addr, pt);
 
                 if (p == pages) {
                     return 1;
