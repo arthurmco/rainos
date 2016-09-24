@@ -137,16 +137,14 @@ int strcmp(const char* s1, const char* s2)
 {
     size_t len1 = strlen(s1);
     size_t len2 = strlen(s2);
-    knotice("<< %d %d >>", len1, len2);
 
-    return strncmp(s1, s2, len1 > len2 ? len2 : len1);
+    return strncmp(s1, s2, len1 > len2 ? len2+1 : len1+1);
 }
 
 int strncmp(const char* s1, const char* s2, size_t len)
 {
     for (size_t i = 0; i < len; i++)
     {
-        knotice("%x %x %s %d %d", s1, s2, s1, i, len);
         if (s1[i] != s2[i]) {
             return len-i;
         }

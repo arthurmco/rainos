@@ -55,11 +55,13 @@ typedef union page_table {
 
 /* Page table virtual to physical translation structs */
 struct table_virt {
-    unsigned dir, table;
+    unsigned dir;
     physaddr_t phys;
-    virtaddr_t virt;
-    struct table_virt *prev, *next;
+    unsigned int virt;
 };
+
+/* Virtual address where we mapped all pages */
+#define RECURSIVE_PAGE_ADDR 0xffc00000
 
 void pages_init(uintptr_t dir_table_addr, uintptr_t kernel_vaddr);
 

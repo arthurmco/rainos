@@ -43,7 +43,7 @@ static int vmm_check_if_page_allocated(unsigned int dir, unsigned int table,
 
             for (unsigned t = table; t < 1024; t++) {
                 ptable_t* pt = page_table_get(pd, t);
-                knotice("ptable is %x for %d", pt, t);
+                knotice("ptable of %x is %x for %d", pd, pt, t);
 
                 /* If table doesn't exist, create it */
                 if (!pt || !pt->options.present) {

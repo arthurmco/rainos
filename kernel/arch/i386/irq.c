@@ -26,7 +26,7 @@ void irq_init() {
 
 }
 
-#define MAX_IRQS 15
+#define MAX_IRQS 16
 #define MAX_HANDLERS 15
 static irq_handler_f handlers[MAX_IRQS][MAX_HANDLERS];
 static int handler_pos[MAX_IRQS] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
