@@ -220,21 +220,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     WRITE_STATUS("Starting virtual memory manager...");
 
-
-    /* Create the virtual-to-physical page pool */
-    void* vp_page_pool = (void*)((kend + 3) & ~3);
-    size_t mem = (pmm_get_mem_total(PMM_REG_DEFAULT) +
-        pmm_get_mem_total(PMM_REG_HARDWARE) +
-        pmm_get_mem_total(PMM_REG_LEGACY) +
-        pmm_get_mem_total(PMM_REG_ROM)) / (PMM_PAGE_SIZE*4);
-    mem += 4;
-    kend += mem;
-
-    knotice("KERNEL: allocating page virtual-to-physical translation buffer: "
-        "%d bytes", mem);
-    knotice("KERNEL: kernel end is now 0x%x", kend);
-
-    pages_init(page_dir_phys, 0x0, vp_page_pool);
+    pages_init(page_dir_phys, 0x0);
     vmm_init(kstart, kend, page_dir_phys);
 
     WRITE_SUCCESS();
