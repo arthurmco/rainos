@@ -78,10 +78,18 @@ void fault_handler(regs_t* r) {
     asm("cli");
     kputs("\n");
     kerror("Processor Exception: %s\n", fault_names[r->int_no]);
+
     kprintf("eax: %08x\t ebx: %08x\t ecx: %08x\t edx:%08x\n", r->eax, r->ebx, r->ecx, r->edx);
+    knotice("eax: %08x\t ebx: %08x\t ecx: %08x\t edx:%08x", r->eax, r->ebx, r->ecx, r->edx);
+
     kprintf("eip: %08x\t esp: %08x\t ebp: %08x \n", r->eip, r->esp, r->ebp);
+    knotice("eip: %08x\t esp: %08x\t ebp: %08x ", r->eip, r->esp, r->ebp);
+
     kprintf("esi: %08x\t edi: %08x \n", r->esi, r->edi);
+    knotice("esi: %08x\t edi: %08x", r->esi, r->edi);
+
     kprintf("eflags: %08x \n", r->eflags);
+    knotice("eflags: %08x", r->eflags);
 
     if (r->int_no == 14) {
         /* if page fault, get CR2 */
@@ -90,6 +98,7 @@ void fault_handler(regs_t* r) {
         asm volatile("mov %%cr3, %%eax" : "=a"(_cr3));
 
         kprintf("cr2: %08x\t cr3: %08x\n", _cr2, _cr3);
+        knotice("eip: %08x\t cr2: %08x\t cr3: %08x\n", _cr2, _cr3);
     }
 
     kprintf("\nexception code: %08x", r->err_code);
