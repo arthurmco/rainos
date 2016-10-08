@@ -31,7 +31,12 @@ struct HeapList {
 };
 
 void kheap_init();
+
 virtaddr_t kheap_allocate(size_t bytes);
+
+/* Allocate memory with an alignment of '2^align' bytes */
+virtaddr_t kheap_allocate_align(size_t bytes, size_t align);
+
 virtaddr_t kheap_allocate_phys(physaddr_t phys, size_t bytes);
 void kheap_deallocate(virtaddr_t addr);
 

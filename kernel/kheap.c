@@ -83,6 +83,24 @@ void kheap_init()
     kshell_add("heap", "Show heap memory list data", &kheap_show);
 }
 
+
+/* Allocate memory with an alignment of '2^align' bytes */
+virtaddr_t kheap_allocate_align(size_t bytes, size_t align)
+{
+    virtaddr_t addr = 0;
+    virtaddr_t quant = (1 << align);
+    virtaddr_t mask = quant - 1;
+
+    /* The heap allocator hands us 4-byte aligned memory already */
+    if (align <= 2) return kheap_allocate(bytes);
+
+    size_t truesize = (bytes + quant);
+    addr = kheap_allocate(truesize);
+
+    return (addr + quant) & ~mask;
+
+}
+
 virtaddr_t kheap_allocate(size_t bytes)
 {
     // knotice("TA DE BRINKS UNA SKILL %d CIENTO DANO", bytes);

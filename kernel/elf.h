@@ -72,11 +72,33 @@ struct ELFSection {
     uint32_t entsize;       /* Entry size */
 };
 
+struct ELFProgHeader {
+    uint32_t type;      /* The segment type */
+    uint32_t offset;    /* Program offset, from the beginning of the file */
+    virtaddr_t vaddr;   /* Virtual address to where this should be loaded */
+    uintptr_t paddr;    /* Physical address. Ignore */
+    uint32_t file_size;   /* Segment size on file */
+    uint32_t memory_size; /* Segment size on memory */
+    uint32_t flags;
+    uint32_t align; /* Byte alignment of virtual address */
+};
+
+enum ELFPHFlags {
+    PT_NULL =       0,  /* Null */
+    PT_LOAD =       1,  /* Loadable segment */
+    PT_DYNAMIC =    2,  /* Dynamic linking information */
+    PT_INTERP =     3,  /* Path of an interpreter */
+    PT_NOTE =       4,  /* Auxiliary information */
+    PT_SHLIB =      5,  /* Not conforming */
+    PT_PHDR =       6,  /* Pointer to the program header */
+};
+
 typedef struct {
     vfs_node_t* node;
     struct ELFHeader* hdr;
-    size_t section_count;
+    size_t section_count, phdr_count;
     struct ELFSection* sections;
+    struct ELFProgHeader* programs;
     char* strtab;
 } elf_exec_t;
 
@@ -85,6 +107,10 @@ elf_exec_t* elf_open_file(vfs_node_t* node);
 /*  Parse the sections from the file
     Returns the number of sections, or 0 if no section */
 int elf_parse_sections(elf_exec_t* elf);
+
+/*  Parse the program headers from the file
+    Returns the number of phs or 0 if no phs    */
+int elf_parse_phs(elf_exec_t* elf);
 
 /* Load an section to some address */
 uintptr_t elf_load_section(struct ELFSection* sec, uintptr_t addr);

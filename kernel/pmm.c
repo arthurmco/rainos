@@ -10,11 +10,13 @@ static uintptr_t _kernel_end;
 
 static int pmm_shell_cmd(int argc, char* argv[0]) {
     kprintf("Memory: \n");
-    kprintf("total: %d kB | used: %d kB | free: %d kB\n\n",
+    kprintf("total: %d kB | used: %d kB | free: %d kB\n",
         (pmm_get_mem_total(PMM_REG_DEFAULT) + pmm_get_mem_total(PMM_REG_LEGACY)) / 1024,
         (pmm_get_mem_used(PMM_REG_DEFAULT) + pmm_get_mem_used(PMM_REG_LEGACY)) / 1024,
         (pmm_get_mem_free(PMM_REG_DEFAULT) + pmm_get_mem_free(PMM_REG_LEGACY)) / 1024);
 
+    kprintf("hardware used memory: %d kB (Might not be physical RAM)\n\n",
+        (pmm_get_mem_total(PMM_REG_HARDWARE) + pmm_get_mem_total(PMM_REG_ROM)) / 1024);
 }
 
 /*  Initialize physical memory manager.
@@ -199,7 +201,7 @@ static physaddr_t _pmm_set_addr(physaddr_t addr, size_t pages, struct MMAPRegion
     int force_addr) {
     uint32_t startpage = (addr - reg->start) / PMM_PAGE_SIZE;
     uint32_t limit = startpage + (reg->len / PMM_PAGE_SIZE);
-//    knotice("<<%x>>",addr);
+    knotice("<<%x>>",addr);
 
     while (startpage < limit) {
         if (BITSET_ISSET(reg->region_bitset, startpage/8, startpage%8)) {
@@ -245,6 +247,7 @@ static physaddr_t _pmm_set_addr(physaddr_t addr, size_t pages, struct MMAPRegion
     if (!force_addr)
         reg->first_free_addr = addr + (pages * PMM_PAGE_SIZE);
 
+    knotice("[%x]", addr);
     return addr;
 }
 

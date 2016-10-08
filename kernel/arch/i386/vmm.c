@@ -90,9 +90,9 @@ void vmm_dealloc_page(virtaddr_t addr, size_t count)
 
     size_t page = 0;
     for (unsigned int d = pdir; d < 1024; d++) {
-        pdir_t* pd = page_dir_get(pdir);
+        pdir_t* pd = page_dir_get(d);
         for (unsigned int t = ptbl; t < 1024; t++) {
-            ptable_t* pt = page_table_get(pd, ptbl);
+            ptable_t* pt = page_table_get(pd, t);
 
             if (pt->options.present) {
                 pt->options.present = 0;
@@ -101,6 +101,9 @@ void vmm_dealloc_page(virtaddr_t addr, size_t count)
                     "dir %x tbl %x (addr 0x%x) [%x]", pdir, ptbl, addr,
                     *((unsigned int*)pt));
             }
+
+            page++;
+            if (page == count) return;
         }
         ptbl = 0;
     }
@@ -136,9 +139,6 @@ virtaddr_t vmm_alloc_physical(unsigned int vmm_area,
 
         }
 
-
-        knotice("%x %x %x", pdir, ptbl, addr);
-
         *phys = 0;
         physaddr_t ph = pmm_alloc(count, pmm_type);
 
@@ -147,21 +147,16 @@ virtaddr_t vmm_alloc_physical(unsigned int vmm_area,
 
         size_t page = 0;
         for (unsigned int d = pdir; d < 1024; d++) {
-            pdir_t* pd = page_dir_get(pdir);
+            pdir_t* pd = page_dir_get(d);
             for (unsigned int t = ptbl; t < 1024; t++) {
-                ptable_t* pt = page_table_get(pd, ptbl);
+                ptable_t* pt = page_table_get(pd, t);
                 knotice("--> %d of %d", page, count);
 
                 /* Fills the memory physical addresses */
-                pt->options.dir_location = ((ph << 12) + page);
+                pt->options.dir_location = ((ph >> 12) + page);
 
                 if (vmm_area == VMM_AREA_USER)
                     pt->options.user = 1;
-
-                pt->options.chained_next = 1;
-                if (page > 0)
-                    pt->options.chained_prev = 1;
-
 
                 page++;
 
@@ -175,7 +170,8 @@ virtaddr_t vmm_alloc_physical(unsigned int vmm_area,
                         areas[vmm_area].first_free_addr = nfree;
                     }
 
-                    knotice("VMM: allocated address 0x%x", naddr);
+                    knotice("VMM: allocated address 0x%x, first free is %x",
+                        naddr, nfree);
                     return naddr;
                 }
             }
@@ -222,13 +218,13 @@ virtaddr_t vmm_map_physical(unsigned int vmm_area,
 
         size_t page = 0;
         for (unsigned int d = pdir; d < 1024; d++) {
-            pdir_t* pd = page_dir_get(pdir);
+            pdir_t* pd = page_dir_get(d);
             for (unsigned int t = ptbl; t < 1024; t++) {
-                ptable_t* pt = page_table_get(pd, ptbl);
+                ptable_t* pt = page_table_get(pd, t);
                 knotice("---> %d of %d", page, count);
 
                 /* Fills the memory physical addresses */
-                pt->options.dir_location - ((ph << 12) + page);
+                pt->options.dir_location = ((ph >> 12) + page);
 
                 if (vmm_area == VMM_AREA_USER)
                     pt->options.user = 1;
@@ -268,14 +264,18 @@ virtaddr_t vmm_map_page(virtaddr_t addr, unsigned int vmm_area, size_t count)
             pmm_alloc(1, PMM_REG_DEFAULT), 0x3);
     }
 
-
     /* Allocate physical addresses */
-    physaddr_t ph = pmm_alloc(count, PMM_REG_DEFAULT);
     for (int i = 0; i < count; i++) {
-        pt->options.dir_location - ((ph << 12) + i);
+        physaddr_t ph = pmm_alloc(1, PMM_REG_DEFAULT);
+
+        ptable_t* pt = page_table_get(pd, ptbl+i);
+        if (!pt) {
+            pt = page_table_create(pd, ptbl+i,
+                ph, 0x3);
+        }
 
         if (vmm_area = VMM_AREA_USER)
-            pt->options.user = 1;
+            pt[i].options.user = 1;
     }
 
     return addr;

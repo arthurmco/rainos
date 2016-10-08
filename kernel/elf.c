@@ -56,6 +56,42 @@ static int elf_check_ident(struct ELFHeader* ehdr)
     return 1;
 }
 
+/*  Parse the program headers from the file
+    Returns the number of phs or 0 if no phs    */
+int elf_parse_phs(elf_exec_t* elf)
+{
+    knotice("elf_parser: program header table is at file off %x",
+        elf->hdr->phoff);
+
+    if (elf->hdr->phnum == 0) {
+        kerror("elf_parser: no program headers found");
+        return 0;
+    }
+
+    if (elf->hdr->phentsize < sizeof(struct ELFProgHeader)) {
+        kerror("elf_parser: program header size is smaller than supported");
+        return 0;
+    }
+
+    /* Load program hdrs into memory */
+    elf->programs = (struct ELFProgHeader*)kcalloc(elf->hdr->phentsize,
+        elf->hdr->phnum);
+    vfs_read(elf->node, elf->hdr->phoff, (elf->hdr->phentsize * elf->hdr->phnum),
+        elf->programs);
+    elf->phdr_count = elf->hdr->phnum;
+
+    knotice("elf_parse_phs: %d program segments detected", elf->phdr_count);
+
+    for (int i = 0; i < elf->phdr_count; i++) {
+        knotice("\t#%d: vaddr 0x%x, off %x, file size: %d, memory size %d, flags %x",
+        i+1, elf->programs[i].vaddr, elf->programs[i].offset,
+        elf->programs[i].file_size,
+        elf->programs[i].memory_size, elf->programs[i].flags);
+    }
+
+    return elf->phdr_count;
+}
+
 /*  Parse the sections from the file
     Returns the number of sections, or 0 if no section */
 int elf_parse_sections(elf_exec_t* elf)
@@ -96,8 +132,8 @@ int elf_parse_sections(elf_exec_t* elf)
     for (size_t i = 1; i < elf->hdr->shnum; i++) {
         char* types;
         char flags[64];
-        flags[0] = 0;    
- 
+        flags[0] = 0;
+
         switch (elf->sections[i].type & 0x7fffffff) {
             case  SHT_PROGBITS: types = "PROGBITS";  break;
             case  SHT_SYMTAB  : types = "SYMTAB";    break;
@@ -116,7 +152,7 @@ int elf_parse_sections(elf_exec_t* elf)
         if (elf->sections[i].flags & SHF_WRITE) strcat(flags, "write ");
         if (elf->sections[i].flags & SHF_ALLOC) strcat(flags, "alloc ");
         if (elf->sections[i].flags & SHF_EXECINSTR) strcat(flags, "exec ");
-    
+
         knotice("\t#%d: name %s (off %d) type %x (%s) flags %x (%s) "
                 "laddr %08x fileoff %x filesize %d", i,
          (elf->strtab) ? &elf->strtab[elf->sections[i].name_off] : "<NULL>",
@@ -138,20 +174,29 @@ uintptr_t elf_load_section(struct ELFSection* sec, uintptr_t addr)
     return vmm_map_page(addr, VMM_AREA_USER, (sec->size/4096)+1);
 }
 
+#define max(a, b) ((a > b) ? a : b)
+
 /* Execute an ELF file */
 int elf_execute_file(elf_exec_t* elf)
 {
-    for (int i = 1; i < elf->section_count; i++) {
-        struct ELFSection* sec = &elf->sections[i];
-        
-        if (sec->flags & SHF_ALLOC) {
-            knotice("elf_execute: allocating memory for section %s",
-                elf->strtab ? &elf->strtab[elf->sections[i].name_off] : "<null>");
-            elf_load_section(sec, sec->addr);
-        }
+    for (int i = 0; i < elf->phdr_count; i++) {
+        knotice("Loaded program segment %d at addr %x",
+            i+1, elf->programs[i].vaddr);
+
+        size_t pagect = (elf->programs[i].memory_size/VMM_PAGE_SIZE)+1;
+
+        vmm_dealloc_page(elf->programs[i].vaddr, pagect);
+        void* v = (void*)vmm_map_page(elf->programs[i].vaddr, VMM_AREA_USER,
+            pagect);
+        knotice("Allocating at addr %x", v);
+
+        if(vfs_read(elf->node, elf->programs[i].offset,
+            elf->programs[i].file_size, v) < 0) {
+                panic("Failure while reading elf (ph segment %d)", i);
+        };
+
     }
 
     return 1;
- 
-}
 
+}

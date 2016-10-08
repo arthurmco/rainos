@@ -365,8 +365,9 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     elf_exec_t* elf_exec = elf_open_file(elfnode);
     if (elf_exec) {
         int s = elf_parse_sections(elf_exec);
-        kprintf("\t %d sections found", s);
-        elf_execute_file(elf_exec);
+        int p = elf_parse_phs(elf_exec);
+        kprintf("\t %d sections and %d program segments found", s, p);
+        //elf_execute_file(elf_exec);
     }
 
     WRITE_FAIL();
