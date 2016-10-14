@@ -12,7 +12,7 @@ void vmm_init(uintptr_t kernel_start, uintptr_t kernel_end,
 
         areas[VMM_AREA_USER].min_addr = 0;
         areas[VMM_AREA_USER].max_addr = kernel_virt_offset-1;
-        areas[VMM_AREA_USER].first_free_addr = kernel_end;
+        areas[VMM_AREA_USER].first_free_addr = (kernel_end + 0x1000) & ~0xfff;
 
         areas[VMM_AREA_KERNEL].min_addr = kernel_virt_offset;
         areas[VMM_AREA_KERNEL].max_addr = 0xffffffff;
@@ -77,7 +77,10 @@ virtaddr_t vmm_alloc_page(unsigned int vmm_area, size_t count)
     /*  Same as vmm_alloc_physical, but without need of getting the physical
         addr back */
     physaddr_t p;
-    vmm_alloc_physical(vmm_area, &p, count, PMM_REG_DEFAULT);
+    virtaddr_t v = vmm_alloc_physical(vmm_area, &p, count, PMM_REG_DEFAULT);
+    areas[vmm_area].first_free_addr = v + (count * VMM_PAGE_SIZE);
+    knotice("VMM: Allocated %x -> %x", v, p);
+    return v;
 }
 
 /*  Deallocate pages .
@@ -226,8 +229,10 @@ virtaddr_t vmm_map_physical(unsigned int vmm_area,
                 /* Fills the memory physical addresses */
                 pt->options.dir_location = ((ph >> 12) + page);
 
-                if (vmm_area == VMM_AREA_USER)
+                if (vmm_area == VMM_AREA_USER) {
+                    pd->options.user = 1;
                     pt->options.user = 1;
+                }
 
                 pt->options.chained_next = 1;
                 if (page > 0)

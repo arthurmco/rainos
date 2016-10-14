@@ -98,7 +98,7 @@ void fault_handler(regs_t* r) {
         asm volatile("mov %%cr3, %%eax" : "=a"(_cr3));
 
         kprintf("cr2: %08x\t cr3: %08x\n", _cr2, _cr3);
-        knotice("eip: %08x\t cr2: %08x\t cr3: %08x\n", _cr2, _cr3);
+        knotice("cr2: %08x\t cr3: %08x\n", _cr2, _cr3);
     }
 
     kprintf("\nexception code: %08x", r->err_code);

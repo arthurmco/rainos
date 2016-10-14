@@ -311,9 +311,9 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     tss_init(page_dir_phys);
 
-    uint8_t* newfunc = vmm_alloc_page(VMM_AREA_USER, 3);
-    void* newstack = (vmm_alloc_page(VMM_AREA_USER, 1) + VMM_PAGE_SIZE - 16);
-    knotice("opening bintest.bin");
+    uint8_t* newfunc = (uint8_t*)vmm_alloc_page(VMM_AREA_USER, 3);
+    void* newstack = (vmm_alloc_page(VMM_AREA_USER, 1) + (VMM_PAGE_SIZE)-16);
+    knotice("opening bintest.bin at %x", newfunc);
 
     vfs_node_t* node_file = vfs_find_node("/dir/bintest.bin");
 
@@ -352,8 +352,8 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     char buf[64];
     vfs_get_full_path(node_file, buf);
-    kprintf("File: %s\n\n", buf);
-    //jump_usermode((uintptr_t)newstack, (uintptr_t)newfunc);
+    kprintf("File: %s <0x%x 0x%x>\n\n", buf, newfunc, newstack);
+    jump_usermode((uintptr_t)newstack, (uintptr_t)newfunc);
 
     vfs_node_t* elfnode = vfs_find_node("/dir/bintest.elf");
     if (!elfnode) {
