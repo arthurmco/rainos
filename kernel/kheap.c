@@ -210,6 +210,11 @@ virtaddr_t kheap_allocate_phys(physaddr_t phys, size_t bytes)
 }
 void kheap_deallocate(virtaddr_t addr)
 {
+    if (!addr) {
+        kerror("HEAP: returning a NULL address (freeing NULL pointer?)");
+        return;
+    }
+
     /* Remove this from the used list and put them on the free list */
     heap_item_t* item = _kheap_find_item(&hUsed, addr, NULL);
     //panic("%x (%x) | %x", item, (item) ? item->addr : 0x0, addr);
@@ -220,7 +225,7 @@ void kheap_deallocate(virtaddr_t addr)
         return; //No item there
 
     if (item->addr != addr) {
-        kerror("HEAP: didn't found correct address, doing nothing for safe");
+        kerror("HEAP: didn't found correct address, doing nothing (double free?)");
         return;
     }
 
@@ -439,10 +444,19 @@ heap_item_t* _kheap_find_item(struct HeapList* const list, virtaddr_t addr, int 
     //     end->addr, end, half->addr, half);
     //
 
+    //Detect loops
+    size_t prev_step = 0;
     while (step >= 2) {
-        // knotice("-- %d ~ %d (%x) <<%08x>> %08x %08x %08x", step, list->count, mode,
-        //     addr, start->addr, half->addr, end->addr);
+         knotice("-- %d ~ %d (%x) <<%08x>> %08x %08x %08x", step, list->count, mode,
+             addr, start->addr, half->addr, end->addr);
 
+        if (step == prev_step) {
+            kerror("HEAP: detected loop while finding a heap address\n"
+                "Possible double free or heap corruption");
+            return NULL;
+        }
+
+        step = prev_step;
         if (!mode) {
             /* Detect exactly equal addresses */
             if (start->addr == addr) {

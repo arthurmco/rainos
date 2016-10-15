@@ -73,8 +73,9 @@ struct floppy_data {
 
 #define LBA2CHS(fdata, lba, sec, head, cyl) do { \
     cyl = (lba / (2 * fdata->sectors)); \
-    head = ((lba / (fdata->sectors * fdata->cylinders))); \
-    sec = ((lba % (2 * fdata->sectors)) % fdata->sectors + 1); \
+    int __lba = (lba % (fdata->cylinders * fdata->sectors)); \
+    head = (__lba / fdata->sectors) & 1;      \
+    sec = (__lba % fdata->sectors) + 1; \
 } while (0); \
 
 /*((lba % (2 * fdata->sectors)) / fdata->sectors); */

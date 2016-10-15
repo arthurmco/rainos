@@ -22,6 +22,7 @@
 #include "arch/i386/idt.h"
 #include "arch/i386/pages.h"
 #include "arch/i386/fault.h"
+#include "arch/i386/ebda.h"
 #include "terminal.h"
 #include "time.h"
 #include "ttys.h"
@@ -369,20 +370,10 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         int s = elf_parse_sections(elf_exec);
         int p = elf_parse_phs(elf_exec);
         kprintf("\t %d sections and %d program segments found", s, p);
-        //elf_execute_file(elf_exec);
+        elf_execute_file(elf_exec);
     }
 
     WRITE_FAIL();
-    /* for(;;) {
-        terminal_setcolor(0x0f);
-        terminal_puts("kernsh> ");
-        terminal_restorecolor();
-        char s[128];
-        kgets(s, 128);
-
-        kprintf("You typed: %s", s);
-
-    } */
 
     struct time_tm t;
     t.second = 0;
@@ -392,6 +383,20 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     t.month = 0;
     t.year = 0;
     time_init(t);
+
+    knotice("BIOS: Extended BDA is at addr 0x%x", ebda_get_base());
+    uintptr_t rsdptr;
+    rsdptr = ebda_search_string("RSD PTR", 16);
+    if (rsdptr) {
+        knotice("BIOS: RSDP is at addr 0x%x", rsdptr);
+    } else {
+        knotice("BIOS: RSDP not found, no ACPI support");
+    }
+
+    rsdptr = ebda_search_string("SeaBIOS", 1);
+    if (rsdptr) {
+        knotice("BIOS: running on Bochs/QEMU (%x)", rsdptr);
+    }
 
     kshell_init();
 }

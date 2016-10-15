@@ -93,7 +93,16 @@ void fat_get_fat_cluster_entry(struct fat_superblock* sb, uint32_t cluster,
 
         } else {
             /* Specific bullshits for fat12 */
-            kerror("fat: fat12 cluster chain traversing is unsupported");
+            kwarn("fat: fat12 cluster chain traversing is experimental");
+            unsigned f_offset = cluster + (cluster / 2);
+            *sector = sb->rsvd_secs + (f_offset / sb->bytes_sec);
+            *offset = f_offset % sb->bytes_sec;
+
+            /*  Trick to store what we need to do with fat12 cluster, since
+                a cluster can be in a middle of a byte. */
+            if (cluster & 1)
+                *offset |= 0x80000000;
+
         }
     }
 
@@ -119,8 +128,24 @@ int fat_get_next_cluster(char* fat_sec_buffer, uint32_t offset,
             return ((fat_cluster_content >= 0x0ffffff8) ? -2 : fat_cluster_content);
         }
     } else {
-        kerror("fat: fat12 cluster chain traversing is unsupported");
-        return -1;
+        kwarn("fat: fat12 cluster chain traversing is experimental");
+        uint16_t fat_cluster_content;
+
+        fat_cluster_content = *(uint16_t*)&fat_sec_buffer[offset & 0x7fffffff];
+        uint16_t fat_cluster_next;
+
+        if (offset & 0x80000000)
+            fat_cluster_next = (fat_cluster_content >> 4);
+        else
+            fat_cluster_next = (fat_cluster_content & 0xfff);
+
+        if (fat_cluster_content == 0x0ff7) return -1;
+
+        if (fat_cluster_content >= 0x0ff8)
+            return -2;
+        else
+            return fat_cluster_content;
+
     }
 
     return -1;
@@ -419,7 +444,7 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
             uint32_t next_clus_sec, next_clus_off;
             fat_get_fat_cluster_entry(fs->sb, clus, &next_clus_sec, &next_clus_off);
 
-            // knotice(">>> clus %d, nextsec: %d, nextoff: %d", clus, next_clus_sec, next_clus_off);
+            knotice(">>> clus %d, nextsec: %d, nextoff: %d (%x)", clus, next_clus_sec, next_clus_off, next_clus_off);
             /* Don't mind reusing buffers */
             r = device_read(d, next_clus_sec * fs->sb->bytes_sec, fs->sb->bytes_sec,
                 clus_buf);
