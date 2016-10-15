@@ -23,7 +23,7 @@ ISO=rainos.iso
 LIBK=kstdio.o kstdlib.o kstring.o kstdlog.o
 ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o 8042.o \
  ps2_kbd.o pit.o pci.o ata.o irq.o irq_asm.o pages.o vmm.o tss.o usermode.o \
- specifics.o floppy.o
+ specifics.o floppy.o ebda.o
 
 all: $(ARCH_DEP) stackguard.o main.o terminal.o ttys.o pmm.o kheap.o dev.o \
  disk.o vfs.o partition.o fat.o sfs.o initrd.o keyboard.o kshell.o elf.o \
@@ -71,6 +71,7 @@ C_SOURCE_WITH_H(kernel/arch/i386/,tss)
 C_SOURCE_WITH_H(kernel/arch/i386/,idt)
 C_SOURCE_WITH_H(kernel/arch/i386/,irq)
 C_SOURCE_WITH_H(kernel/arch/i386/,vmm)
+C_SOURCE_WITH_H(kernel/arch/i386/,ebda)
 C_SOURCE_WITH_H(kernel/arch/i386/,pages)
 C_SOURCE_WITH_H(kernel/,pmm)
 ASM_SOURCE(kernel/arch/i386/,idt_asm)

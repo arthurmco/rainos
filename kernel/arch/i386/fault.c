@@ -88,9 +88,28 @@ void fault_handler(regs_t* r) {
     kprintf("esi: %08x\t edi: %08x \n", r->esi, r->edi);
     knotice("esi: %08x\t edi: %08x", r->esi, r->edi);
 
-    kprintf("eflags: %08x \n", r->eflags);
-    knotice("eflags: %08x", r->eflags);
+    /* Parse EFLAGS */
+    char str_eflags[128];    str_eflags[0] = 0;
+    sprintf(str_eflags, "IOPL(%d) |", (r->eflags >> 12) & 3);
 
+    if (r->eflags & 0x1)        strcat(str_eflags, "CF ");  //carry flag
+    if (r->eflags & 0x4)        strcat(str_eflags, "PF ");  // parity flag
+    if (r->eflags & 0x10)       strcat(str_eflags, "AF "); // arithmetic flag
+    if (r->eflags & 0x40)       strcat(str_eflags, "ZF "); // zero flag
+    if (r->eflags & 0x80)       strcat(str_eflags, "SF "); // sign flag
+    if (r->eflags & 0x100)      strcat(str_eflags, "TF "); // trap flag
+    if (r->eflags & 0x200)      strcat(str_eflags, "IF "); // Interrupt enable flag
+    if (r->eflags & 0x400)      strcat(str_eflags, "DF "); // direction flag
+    if (r->eflags & 0x800)      strcat(str_eflags, "OF "); // overflow flag
+    if (r->eflags & 0x4000)     strcat(str_eflags, "NT "); //nested task flag
+    if (r->eflags & 0x10000)    strcat(str_eflags, "RF "); // resume flag
+    if (r->eflags & 0x20000)    strcat(str_eflags, "VM "); //vm8086 flag
+
+    kprintf("eflags: %08x (%s)\n", r->eflags, str_eflags);
+    knotice("eflags: %08x (%s)", r->eflags, str_eflags);
+
+
+    /** TODO: make special handles for faults, like how was made on IRQs */
     if (r->int_no == 14) {
         /* if page fault, get CR2 */
         uint32_t _cr2 = 0x0, _cr3 = 0x0;
