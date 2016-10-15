@@ -70,7 +70,8 @@ int sfs_get_root_dir(device_t* dev, vfs_node_t** root_childs)
         get the root dir we'll get all directories.
 
         This will cost us time for the first access, but will save us a lot of
-        unneeded disk reads
+        unneeded disk reads, because the VFS will cache the directories for
+        us
     */
 
     struct sfs_fs* fs = NULL;
@@ -102,9 +103,7 @@ int sfs_get_root_dir(device_t* dev, vfs_node_t** root_childs)
         return 0;
     }
 
-    sfs_parse_index_area(fs, root_childs);
-
-    return 0;
+    return sfs_parse_index_area(fs, root_childs);
 }
 
 int sfs_parse_index_area(struct sfs_fs* fs, vfs_node_t** root)
@@ -117,27 +116,62 @@ int sfs_parse_index_area(struct sfs_fs* fs, vfs_node_t** root)
         sizeof(struct sfs_index));
     struct sfs_index* indices = (struct sfs_index*) fs->index_area;
 
+    *root = NULL;
+    vfs_node_t* prev = NULL;
     for (size_t i = 0; i < index_count; i++) {
         if (!indices[i].entry_type) continue;
         knotice("\t entry type %02x", indices[i].entry_type);
+        vfs_node_t* node = NULL;
 
+        /* We must convert them to the vfs format */
         switch (indices[i].entry_type) {
             case SFS_ENTRY_DIRECTORY:
                 knotice("\t\tdir name: %s",
                     indices[i].entry_data.direntry.dirname);
-            break;
+
+                node = kcalloc(sizeof(vfs_node_t), 1);
+                node->flags = VFS_FLAG_FOLDER;
+                memcpy(indices[i].entry_data.direntry.dirname, node->name,
+                    54);
+                node->block = ((uint32_t)fs->index_area) & 0xffffffff;
+
+                if (prev) prev->next = node;
+                node->prev = prev;
+                prev = node;
+
+                goto sfs_map_list;
+                break;
             case SFS_ENTRY_FILE:
                 knotice("\t\tfile name: %s, blocks %d to %d, %d bytes",
                     indices[i].entry_data.fileentry.dirname,
                     (uint32_t) indices[i].entry_data.fileentry.starting_block,
                     (uint32_t) indices[i].entry_data.fileentry.ending_block,
                     (uint32_t) indices[i].entry_data.fileentry.file_size);
+
+                node = kcalloc(sizeof(vfs_node_t), 1);
+                memcpy(indices[i].entry_data.fileentry.dirname, node->name,
+                    54);
+                node->size = indices[i].entry_data.fileentry.file_size;
+                node->block = indices[i].entry_data.fileentry.starting_block;
+
+                if (prev) prev->next = node;
+                node->prev = prev;
+                prev = node;
+
+                goto sfs_map_list;
                 break;
             case SFS_ENTRY_VOLUMEID:
                 knotice("\t\tvolume: %s",
                     indices[i].entry_data.volumeid.volume_name);
                 break;
         }
+
+        sfs_map_list:
+        if (!*root) {
+            *root = prev;
+        }
+
+
     }
 
     return 1;
