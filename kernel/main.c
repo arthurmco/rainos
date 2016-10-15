@@ -285,6 +285,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     //init filesystems
     fat_init();
+    sfs_init();
 
     WRITE_SUCCESS();
 

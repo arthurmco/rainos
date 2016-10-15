@@ -51,7 +51,7 @@ ptable_t* page_table_get(pdir_t* dir, unsigned table_index)
 
     /* Get the directory's page table address */
     ptable_t* ptable = ptbl;
-    knotice(">%x %d<\n", ptable, table_index);
+    //knotice(">%x %d<\n", ptable, table_index);
     return &ptable[table_index];
 }
 
@@ -84,12 +84,12 @@ ptable_t* page_table_create(pdir_t* dir, unsigned table, physaddr_t addr,
         size_t dir_index = (((uintptr_t)dir) - ((uintptr_t)dir_table)) / 4;
         ptbl += (dir_index * 4096);
 
-        knotice("- %x %x ", ptbl, dir_index);
+        //knotice("- %x %x ", ptbl, dir_index);
 
         ptable_t* ptable = ptbl;
         ptable[table].addr = addr | (options & 0xfff);
 
-        knotice("  %x %x", table, &ptable[table]);
+        //knotice("  %x %x", table, &ptable[table]);
 
         return &ptable[table];
     }

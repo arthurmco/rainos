@@ -153,7 +153,7 @@ virtaddr_t vmm_alloc_physical(unsigned int vmm_area,
             pdir_t* pd = page_dir_get(d);
             for (unsigned int t = ptbl; t < 1024; t++) {
                 ptable_t* pt = page_table_get(pd, t);
-                knotice("--> %d of %d", page, count);
+                //knotice("--> %d of %d", page, count);
 
                 /* Fills the memory physical addresses */
                 pt->options.dir_location = ((ph >> 12) + page);
@@ -224,7 +224,7 @@ virtaddr_t vmm_map_physical(unsigned int vmm_area,
             pdir_t* pd = page_dir_get(d);
             for (unsigned int t = ptbl; t < 1024; t++) {
                 ptable_t* pt = page_table_get(pd, t);
-                knotice("---> %d of %d", page, count);
+                //knotice("---> %d of %d", page, count);
 
                 /* Fills the memory physical addresses */
                 pt->options.dir_location = ((ph >> 12) + page);
