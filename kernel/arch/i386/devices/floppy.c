@@ -228,6 +228,7 @@ int floppy_init()
         floppies[0].num = 0;
         /* Prepare device */
         device_t* fdev = device_create(0x820AA, "floppy0", DEVTYPE_BLOCK, NULL);
+        device_set_description(fdev, "Floppy disk drive");
         fdev->b_size = 512;
         fdev->__dev_read = &dev_floppy_read;
     }

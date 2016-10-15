@@ -39,6 +39,7 @@ device_t* device_get_by_name(char* name)
     return NULL;
 }
 
+
 static int dev_cmd_created = 0;
 static void kshell_lsdev(int argc, char* argv[]) {
     kprintf("Device list:\n");
@@ -46,10 +47,11 @@ static void kshell_lsdev(int argc, char* argv[]) {
 
     while (d)
     {
-        kprintf("id: %08x%08x, name: %s\n",
+        kprintf(" %s (id %08x%08x):  %s\n",
+            d->devname,
             ((uint32_t)(d->devid >> 32)),
             (uint32_t)d->devid & 0xffffffff,
-            d->devname);
+            d->devdesc);
         d = d->prev;
     }
 
@@ -66,6 +68,7 @@ device_t* device_create(uint64_t id, const char* name,
 
         device_t* dev = kcalloc(sizeof(device_t), 1);
         dev->devname = kmalloc(strlen(name)+1);
+        dev->devdesc = "(unknown)";
         dev->devtype = devtype;
         memcpy(name, dev->devname, strlen(name)+1);
         dev->devid = id;
@@ -110,4 +113,13 @@ int device_read(device_t* dev, uint64_t off, size_t len, void* buf)
 {
     if (!dev) return 0;
     return dev->__dev_read(dev, off, len, buf);
+}
+
+/* Set a device description */
+void device_set_description(device_t* dev, const char* desc)
+{
+    size_t l = strlen(desc)+1;
+    char* d = kmalloc(l);
+    memcpy(desc, d, l);
+    dev->devdesc = d;
 }

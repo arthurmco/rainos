@@ -20,6 +20,7 @@ typedef struct device {
     uint64_t devid;
     char* devname;
     uint8_t devtype;
+    char* devdesc;
 
     /* fill these if device is DEVTYPE_BLOCK */
     size_t b_size;
@@ -44,6 +45,9 @@ typedef struct device {
     Returns NULL if device hasn't been found */
 device_t* device_get_by_id(uint64_t devid);
 device_t* device_get_by_name(char* name);
+
+/* Set a device description */
+void device_set_description(device_t* dev, const char* desc);
 
 /* Creates a device. Returns pointer */
 device_t* device_create(uint64_t id, const char* name,

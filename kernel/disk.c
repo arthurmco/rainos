@@ -83,6 +83,8 @@ int disk_add(struct disk* d)
     device_t* dev = device_create(0x8000 | d->id, d->sysname,
         DEVTYPE_BLOCK | DEVTYPE_SEEKABLE, NULL);
     d->dev = dev;
+    
+    device_set_description(dev, d->disklabel);
 
     d->b_size = (d->b_size == 0) ? 512 : d->b_size;
     dev->b_size = d->b_size;

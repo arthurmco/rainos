@@ -1,6 +1,8 @@
 #include "ata.h"
 #include "atapi.h"
 
+#include <kstring.h>
+
 static int atapi_pkt_irq = 0;
 int ata_irq(regs_t* registers)
 {
@@ -479,6 +481,7 @@ int ata_initialize(struct PciDevice* dev)
                 di.b_count = devices[devcount].ident->sector_count;
                 di.b_size = 512;
                 di.specific = devcount;
+                memcpy(devname, di.disklabel, strlen(devname)+1);
 
                 if (devices[devcount].atapi) {
                     /* Get media size using ATAPI READ CAPACITY command */
