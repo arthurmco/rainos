@@ -393,5 +393,9 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     t.year = 0;
     time_init(t);
 
+    char* c = 0xc017d090;
+    kprintf("Testing double free for %x\n", c);
+    kfree(c);
+
     kshell_init();
 }
