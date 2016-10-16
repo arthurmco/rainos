@@ -7,6 +7,8 @@
 #include <stdarg.h>
 #include <kstdlib.h>
 
+#include "dev_ioctl.h"
+
 #ifndef _DEV_H
 #define _DEV_H
 
@@ -35,6 +37,10 @@ typedef struct device {
     /* fill this if device is DEVTYPE_SEEKABLE */
     int (*__dev_seek)(struct device*, uint64_t off);
 
+    /* fill this in any case */
+    int (*__dev_ioctl)(struct device*, uint32_t op, uint32_t* ret,
+        uint32_t data1,  uint64_t data2);
+
     struct device* next;
     struct device* prev;
     struct device* first_child;
@@ -57,5 +63,6 @@ device_t* device_create(uint64_t id, const char* name,
 void device_destroy(device_t* dev);
 
 int device_read(device_t* dev, uint64_t off, size_t len, void* buf);
+int device_ioctl(device_t* dev, uint32_t op, uint32_t* ret, uint32_t data1, uint64_t data2);
 
 #endif /* end of include guard: _DEV_H */

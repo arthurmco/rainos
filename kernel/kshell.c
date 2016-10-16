@@ -155,6 +155,38 @@ static int kshell_cat(int argc, char* argv[])
 
     kprintf("\n %s - %d bytes\n", node->name, node->size);
     size_t pos = 0;
+    char* file = kcalloc(node->size + 1,1);
+    int rx = vfs_read(node, pos, -1, file);
+
+    if (rx >= 0) {
+        kputs(file);
+    }
+
+    kfree(file);
+    return 0;
+}
+
+static int kshell_hexdump(int argc, char* argv[])
+{
+    if (argc < 2) {
+        kprintf("\n Usage: hexdump <filename> \n");
+        return 2;
+    }
+
+    vfs_node_t* node = vfs_find_node_relative(cwd, argv[1]);
+
+    if (!node) {
+        kprintf("\n\t%s doesn't exist\n", argv[1]);
+        return -1;
+    }
+
+    if (node->flags & VFS_FLAG_FOLDER) {
+        kprintf("\n\t%s is a folder\n", node->name);
+        return 2;
+    }
+
+    kprintf("\n %s - %d bytes\n", node->name, node->size);
+    size_t pos = 0;
     char* file = kcalloc(node->size,1);
     int rx = vfs_read(node, pos, -1, file);
 
@@ -189,7 +221,7 @@ static int kshell_cat(int argc, char* argv[])
     return 0;
 }
 
-static int kshell_date(int argc, char** argv) 
+static int kshell_date(int argc, char** argv)
 {
     struct time_tm time;
     time_gettime(&time);
@@ -197,7 +229,7 @@ static int kshell_date(int argc, char** argv)
     kprintf("\n%02d/%02d/%04d %02d:%02d:%02d\n",
         time.day, time.month, time.year,
         time.hour, time.minute, time.second);
-    
+
 }
 
 void kshell_init()
@@ -209,6 +241,7 @@ void kshell_init()
     kshell_add("mount", "Mount a filesystem", &kshell_mount);
     kshell_add("clear", "Clears the screen", &terminal_clear);
     kshell_add("cat", "Read the content", &kshell_cat);
+    kshell_add("hexdump", "Dumps file binary data", &kshell_hexdump);
     kshell_add("date", "Show date and time", &kshell_date);
 
     knotice("KSHELL: Starting kernel shell, %d commands", kcmd_count);

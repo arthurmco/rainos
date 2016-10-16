@@ -31,7 +31,7 @@ If you want, you can help me with these tasks
 - [ ] Add virtual 8086 support
 - [ ] Add VBE support (for creating framebuffers in BIOS systems)  
 - [ ] Add DMA support in ATA driver
-- [ ] Add an ELF parser
+- [X] Add an ELF parser
   - [ ] Launch ELF code in usermode
 - [ ] Create some syscalls
 - [ ] Support x86-64
