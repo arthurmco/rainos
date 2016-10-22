@@ -118,6 +118,10 @@ int device_read(device_t* dev, uint64_t off, size_t len, void* buf)
 int device_ioctl(device_t* dev, uint32_t op, uint32_t* ret, uint32_t data1, uint64_t data2)
 {
     if (!dev) return 0;
+    if (!dev->__dev_ioctl) {
+        kwarn("DEV: No ioctl support for %s", dev->devname);
+        return 0;
+    }
     return dev->__dev_ioctl(dev, op, ret, data1, data2);
 }
 

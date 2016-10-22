@@ -98,6 +98,36 @@ int vfs_mount(vfs_node_t* node, device_t* dev, struct vfs_filesystem* fs)
     return 1;
 }
 
+/* Free the sons recursively */
+int vfs_free_sons(vfs_node_t* daddy, int sons_are_mounted) {
+    vfs_node_t* first_son = (sons_are_mounted) ? daddy->ptr : daddy->child;
+
+    if (first_son) {
+        vfs_node_t* bros = first_son;
+        vfs_node_t* next;
+        while (bros) {
+            if (bros->next)
+                next = bros->next;
+            else
+                next = NULL;
+
+            if (!vfs_free_sons(daddy->child, 0)) {
+                char p[128];
+                vfs_get_full_path(daddy, p);
+                kerror("VFS: failed to free vfs node at %s\n"
+                    "You should restart now.", p);
+                return 0;
+            }
+            bros->prev = 0;
+
+            kfree(bros);
+            bros = next;
+        }
+    }
+
+    return 1;
+}
+
 /*  Read the childs
         Return < 0 if error
         Return 0 if no child
@@ -107,6 +137,28 @@ int vfs_readdir(vfs_node_t* node, vfs_node_t** childs)
 {
     /* If node isn't folder, return -1 */
     if (!(node->flags & VFS_FLAG_FOLDER)) return -1;
+
+    /* Check if the media changed */
+    vfs_mount_t* m = (vfs_mount_t*)node->mount;
+    if (m) {
+        uint32_t ret = 0;
+        if (device_ioctl(m->dev, IOCTL_CHANGED, &ret, 0, 0)) {
+            if (ret == 1 || ret == 0xffffffff) {
+                /* Free the node pointers */
+                if (!vfs_free_sons(node, 1)) {
+                    return 0;
+                }
+
+                if (ret == 0xffffffff) {
+                    /* Media removed */
+                    kerror("VFS: Media removed");
+                }
+            }
+        } else {
+            kwarn("dev: device can't change media");
+        }
+    }
+
 
     /* If node is a mount point, return the ptr pointer */
     if (node->flags & VFS_FLAG_MOUNTPOINT) {

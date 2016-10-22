@@ -60,6 +60,50 @@ static int dev_floppy_read(device_t* dev, uint64_t off, size_t len, void* buf)
     return 1;
 }
 
+static int is_media;            // Set to 1 if there's media on the drive.
+static int sector0chksum;       // Sum off all bytes of sector 0.
+static int dev_floppy_ioctl(device_t* dev, uint32_t op, uint32_t* ret,
+    uint32_t data1,  uint64_t data2)
+    {
+        /* TODO: Put a lock here */
+
+        if (dev->devid < 0x820AA && dev->devid > 0x820AF) {
+            kerror("floppy: invalid device %s", dev->devname);
+            return 0;
+        }
+
+        struct floppy_data* f = &floppies[(dev->devid-0x820AA) & 3];
+
+        switch (op) {
+            case IOCTL_CHANGED:
+                floppy_start_motor(f);
+                uint8_t dir = inb(FLOPPY0_BASE + FREG_DIR) & 0x80;
+                if (!dir) {
+                    // No media
+                    *ret = 0xffffffff;
+                    return 1;
+                }
+
+                if (dir) {
+                    int oldchksum = sector0chksum;
+
+                    char buf[512];
+                    /*  Read the first sector. The checksum will be recalculated
+                        and we win */
+                    floppy_read(f, 1, 0, 0, 1, buf);
+
+                    if (oldchksum != sector0chksum)
+                        *ret = 0x1;
+
+                    return 1;
+                }
+
+            default:
+                kerror("floppy: unsupported ioctl");
+                return 0;
+        }
+    }
+
 int floppy_init()
 {
     /* Read floppy data from CMOS */
@@ -231,6 +275,7 @@ int floppy_init()
         device_set_description(fdev, "Floppy disk drive");
         fdev->b_size = 512;
         fdev->__dev_read = &dev_floppy_read;
+        fdev->__dev_ioctl = &dev_floppy_ioctl;
     }
 
     return 1;
@@ -300,9 +345,16 @@ int floppy_read(struct floppy_data* f,
             kprintf("%d ", sleepamount);
 
             if (sleepamount > (2*seccount)*256) {
+
                 kerror("floppy: floppy%d timed out while reading "
                     "sector %d cylinder %d head %d",
                     f->num, sector, cylinder, head);
+
+                // timeout might mean no media
+                is_media = 0;
+
+                irq_io_ok = 0;
+                floppy_halt_motor(f);
                 return 0;
             }
         } while (irq_io_ok);
@@ -321,6 +373,7 @@ int floppy_read(struct floppy_data* f,
             kerror("floppy: error while reading floppy%d "
                 "sector %d cylinder %d head %d - ending result value not 2",
                 f->num, sector, cylinder, head);
+            floppy_halt_motor(f);
             return 0;
         }
 
@@ -328,6 +381,7 @@ int floppy_read(struct floppy_data* f,
             kerror("floppy: error while reading floppy%d "
                 "sector %d cylinder %d head %d - st0:%x, st1:%x, st2:%x",
                 f->num, sector, cylinder, head, st0, st1, st2);
+            floppy_halt_motor(f);
             return 0;
         }
 
@@ -341,6 +395,19 @@ int floppy_read(struct floppy_data* f,
         knotice("floppy: read setup (st0:%x, st1:%x, st2:%x, rcyl:%x, ehead:%x, esec:%x)",
             st0, st1, st2, rcyl, ehead, esec);
         memcpy(f->dma_buffer_virt, buffer, 512*seccount);
+
+        // Take account of that bit in DIR that informs
+        // if the drive is opened or closed
+        is_media = (inb(FLOPPY0_BASE + FREG_DIR) & 0x80);
+
+        // calculate checksum
+        if (sector == 1 && head == 0 && cylinder == 0) {
+            uint8_t* b = (uint8_t*)buffer;
+            sector0chksum = 0;
+            for (size_t i = 0; i < 512; i++)
+                sector0chksum += b[i];
+        }
+
         floppy_halt_motor(f);
 
         return 1;

@@ -12,11 +12,10 @@
     Can be useful for CDs
 
     If the media changed, *ret = 1.
+    If no media, *ret = 0xffffffff
     Otherwise, *ret is unchanged.
 */
 #define IOCTL_CHANGED   0x1
-
-
 
 
 
