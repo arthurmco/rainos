@@ -132,19 +132,19 @@ int fat_get_next_cluster(char* fat_sec_buffer, uint32_t offset,
         uint16_t fat_cluster_content;
 
         fat_cluster_content = *(uint16_t*)&fat_sec_buffer[offset & 0x7fffffff];
-        uint16_t fat_cluster_next;
+        uint16_t fat_cluster_next = 0;
 
         if (offset & 0x80000000)
             fat_cluster_next = (fat_cluster_content >> 4);
         else
             fat_cluster_next = (fat_cluster_content & 0xfff);
 
-        if (fat_cluster_content == 0x0ff7) return -1;
+        if (fat_cluster_next == 0x0ff7) return -1;
 
-        if (fat_cluster_content >= 0x0ff8)
+        if (fat_cluster_next >= 0x0ff8)
             return -2;
         else
-            return fat_cluster_content;
+            return fat_cluster_next;
 
     }
 
@@ -373,9 +373,11 @@ int fat_get_root_dir(device_t* dev, vfs_node_t** root_childs)
     if (r < 0) {
         kerror("fat: couldn't read root directory from device %s", dev->devname);
         return 0;
+        kfree(rootdir_sec);
     } else if (r == 0) {
         kerror("fat: empty root directory from device %s", dev->devname);
         return 0;
+        kfree(rootdir_sec);
     }
 
     knotice("Directories... ");
@@ -417,10 +419,12 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
     if (r < 0) {
         kerror("fat: couldn't read dir %s directory from device %s",
             parent->name, d->devname);
+        kfree(clus_buf);
         return 0;
     } else if (r == 0) {
         kerror("fat: empty directory %s from device %s",
             parent->name, d->devname);
+        kfree(clus_buf);
         return 0;
     }
 
@@ -444,23 +448,25 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
             uint32_t next_clus_sec, next_clus_off;
             fat_get_fat_cluster_entry(fs->sb, clus, &next_clus_sec, &next_clus_off);
 
-            knotice(">>> clus %d, nextsec: %d, nextoff: %d (%x)", clus, next_clus_sec, next_clus_off, next_clus_off);
+            knotice(">>> clus %d, nextsec: %d, nextoff: %d, buf %x",
+             clus, next_clus_sec, next_clus_off, clus_buf);
             /* Don't mind reusing buffers */
             r = device_read(d, next_clus_sec * fs->sb->bytes_sec, fs->sb->bytes_sec,
                 clus_buf);
-
             if (r < 0) {
                 kerror("fat: couldn't read dir %s directory from device %s",
                     parent->name, d->devname);
+                kfree(clus_buf);
                 return 0;
             } else if (r == 0) {
                 kerror("fat: empty directory %s from device %s",
                     parent->name, d->devname);
+                kfree(clus_buf);
                 return 0;
             }
 
             r = fat_get_next_cluster(clus_buf, next_clus_off, fs->fat_type);
-            // knotice("nextclus: %d", r);
+            knotice("nextclus: %d", r);
 
             switch (r) {
                 case -1:
@@ -530,16 +536,19 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
     if (r < 0) {
         kerror("fat: couldn't read file %s from device %s",
             node->name, d->devname);
+        kfree(clus_buf);
         return 0;
 
     } else if (r == 0) {
         kerror("fat: empty file %s from device %s",
             node->name, d->devname);
+        kfree(clus_buf);
         return 0;
     }
 
     if (off > node->size) {
         kwarn("fat: trying to read %s past its length", node->name);
+        kfree(clus_buf);
         return 0;
     }
 
@@ -588,6 +597,7 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
 
         if (r <= 0) {
             kerror("fat: couldn't read cluster entry on FAT for clus %d", clus);
+            kfree(clus_buf);
             return 0;
         }
 
@@ -617,6 +627,7 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
         r = device_read(d, sec * fs->sb->bytes_sec, bytes_per_clus, clus_buf);
         if (r <= 0) {
             kerror("fat: error while reading cluster %d", clus);
+            kfree(clus_buf);
             return r;
         }
 

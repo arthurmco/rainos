@@ -154,9 +154,7 @@ int vfs_readdir(vfs_node_t* node, vfs_node_t** childs)
                     kerror("VFS: Media removed");
                 }
             }
-        } else {
-            kwarn("dev: device can't change media");
-        }
+        } 
     }
 
 

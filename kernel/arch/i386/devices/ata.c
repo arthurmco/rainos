@@ -73,7 +73,7 @@ int atapi_identify(struct AtaDevice* atadev)
             timeout_out = 1;
             break;
         }
-        io_wait();
+        sleep(i*i);
     }
 
     if (!timeout_out) {
@@ -163,7 +163,7 @@ int atapi_packet(struct AtaDevice* atadev, uint16_t* packet,
         }
 
         timeout++;
-        io_wait();
+        sleep(timeout);
 
         if (IS_ERR(status)) {
             goto media_error;
@@ -311,7 +311,7 @@ int ata_identify(struct AtaDevice* atadev)
             timeout_out = 1;
             break;
         }
-        io_wait();
+        sleep(i*i);
     }
 
     if (!timeout_out) {
@@ -558,7 +558,7 @@ static int ata_wait_ready(struct AtaDevice* atadev)
             timeout_out = 1;
             break;
         }
-        io_wait();
+        sleep(1+i*i*i*i);
     }
 
     if (!timeout_out) {

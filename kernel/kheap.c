@@ -154,11 +154,13 @@ virtaddr_t kheap_allocate(size_t bytes)
     }
 
     if (item->bytes < 4) {
-        kwarn("heap: zero allocation at 0x%x {%d-%x-%x-%x-%x} (%x)", item->addr,
+        kwarn("heap: zero allocation at 0x%x {sz:%d canary:0x%x flags:%x n:%x p:%x} (%x)", item->addr,
             item->bytes, item->canary, item->flags, item->next, item->prev,
             item);
         item->bytes =  ((bytes + 3) & ~3) + sizeof(uint32_t);
+        kwarn("heap: zero alloc is now %d alloc", item->bytes);
     }
+
 
     uint32_t* canary = (uint32_t*)(item->addr + item->bytes - sizeof(uint32_t));
     // knotice("%x %d", item->addr, item->bytes);
@@ -250,6 +252,7 @@ heap_item_t* _kheap_alloc_item(size_t bytes)
 {
     if (hFree.count <= 0) {
         heap_item_t* ni = (heap_item_t*)item_reserve_top++;
+        memset((void*)ni, 0, sizeof(heap_item_t));
         ni->addr = 0;
         return ni;
     }
@@ -376,7 +379,9 @@ heap_item_t* _kheap_alloc_item(size_t bytes)
     }
 
     /* Last resort */
-    return item_reserve_top++;
+    heap_item_t* ni = item_reserve_top++;
+    memset((void*)ni, 0, sizeof(heap_item_t));
+    return ni;
 
 }
 
@@ -447,6 +452,9 @@ heap_item_t* _kheap_find_item(struct HeapList* const list, virtaddr_t addr, int 
     //Detect loops
     size_t prev_step = 0;
     while (step >= 2) {
+        /* Skip highly unlikely addresses */
+        if (addr < 0x100000) return NULL;
+
          knotice("-- %d ~ %d (%x) <<%08x>> %08x %08x %08x", step, list->count, mode,
              addr, start->addr, half->addr, end->addr);
 

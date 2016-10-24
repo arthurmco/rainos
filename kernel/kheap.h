@@ -11,8 +11,8 @@
 #ifndef _KHEAP_H
 #define _KHEAP_H
 
-#define DEFAULT_ALLOC_SIZE 64
-#define DEFAULT_DESCRIPTOR_SIZE 4
+#define DEFAULT_ALLOC_SIZE 4
+#define DEFAULT_DESCRIPTOR_SIZE 8
 
 typedef struct _HeapItem {
     virtaddr_t addr;
