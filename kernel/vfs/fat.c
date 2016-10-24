@@ -93,10 +93,11 @@ void fat_get_fat_cluster_entry(struct fat_superblock* sb, uint32_t cluster,
 
         } else {
             /* Specific bullshits for fat12 */
-            kwarn("fat: fat12 cluster chain traversing is experimental");
             unsigned f_offset = cluster + (cluster / 2);
             *sector = sb->rsvd_secs + (f_offset / sb->bytes_sec);
             *offset = f_offset % sb->bytes_sec;
+            kwarn("fat: fat12 cluster chain traversing is experimental "
+                "(s: %d, o %d)", *sector, *offset);
 
             /*  Trick to store what we need to do with fat12 cluster, since
                 a cluster can be in a middle of a byte. */
