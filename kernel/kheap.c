@@ -64,8 +64,8 @@ static int kheap_show(int argc, char** argv);
 void kheap_init()
 {
     // Allocate 2 pages for the item reserve
-    item_reserve_bottom = (heap_item_t*)vmm_alloc_page(VMM_AREA_KERNEL, 2);
-    memset(item_reserve_bottom, 0, 2*VMM_PAGE_SIZE);
+    item_reserve_bottom = (heap_item_t*)vmm_alloc_page(VMM_AREA_KERNEL, DEFAULT_DESCRIPTOR_SIZE);
+    memset(item_reserve_bottom, 0, DEFAULT_DESCRIPTOR_SIZE*VMM_PAGE_SIZE);
     item_reserve_top = item_reserve_bottom;
     item_alloc_size = DEFAULT_DESCRIPTOR_SIZE * VMM_PAGE_SIZE;
 
@@ -173,8 +173,8 @@ virtaddr_t kheap_allocate(size_t bytes)
 
      knotice("ZZZ %x %d", item->addr, item->bytes); */
 
-    if (((uintptr_t)item_reserve_top - (uintptr_t)item_reserve_bottom) >=
-        item_alloc_size) {
+    if (((uintptr_t)item_reserve_top - (uintptr_t)item_reserve_bottom) <=
+        sizeof(heap_item_t)) {
         kheap_get_more_descriptors();
     }
 
@@ -332,46 +332,46 @@ heap_item_t* _kheap_alloc_item(size_t bytes)
         //
         // }
 
-        if (it->bytes < real_bytes) {
-            /* Join smaller free pieces */
-            int complete = 0;
-            //knotice("joining pieces");
-
-            heap_item_t* nextit = it->next;
-            while (!complete) {
-
-                // knotice("piece of %d at 0x%x", it->bytes, it->addr);
-
-                if (!nextit) {
-                    break;
-                }
-
-                if (nextit->flags != HFLAGS_FREE) {
-                    break;
-                }
-
-                /* if free and valid, join both into one */
-                it->bytes += nextit->bytes;
-
-                // knotice("now has %d bytes", it->bytes);
-                /* TODO: put the now useless entry into a list,
-                    to be reallocated later */
-
-                /* remove the now useless item */
-                kheap_removeItem(nextit, &hFree);
-
-                if (it->bytes >= real_bytes) {
-                    complete = 1;
-                } else {
-                    nextit = it->next;
-                }
-            }
-
-            if (complete) {
-                goto retry_detect; //see if we can get some address now.
-            }
-
-        }
+        // if (it->bytes < real_bytes) {
+        //     /* Join smaller free pieces */
+        //     int complete = 0;
+        //     //knotice("joining pieces");
+        //
+        //     heap_item_t* nextit = it->next;
+        //     while (!complete) {
+        //
+        //         // knotice("piece of %d at 0x%x", it->bytes, it->addr);
+        //
+        //         if (!nextit) {
+        //             break;
+        //         }
+        //
+        //         if (nextit->flags != HFLAGS_FREE) {
+        //             break;
+        //         }
+        //
+        //         /* if free and valid, join both into one */
+        //         it->bytes += nextit->bytes;
+        //
+        //         // knotice("now has %d bytes", it->bytes);
+        //         /* TODO: put the now useless entry into a list,
+        //             to be reallocated later */
+        //
+        //         /* remove the now useless item */
+        //         kheap_removeItem(nextit, &hFree);
+        //
+        //         if (it->bytes >= real_bytes) {
+        //             complete = 1;
+        //         } else {
+        //             nextit = it->next;
+        //         }
+        //     }
+        //
+        //     if (complete) {
+        //         goto retry_detect; //see if we can get some address now.
+        //     }
+        //
+        // }
 
 
         it = it->next;

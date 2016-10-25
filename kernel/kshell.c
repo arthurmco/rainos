@@ -67,9 +67,7 @@ static int kshell_cd(int argc, char* argv[]) {
     } else if (!strcmp(argv[1], "..")) {
         /* Browse into parent */
         if (cwd->parent) {
-            vfs_node_t* p = cwd;
             cwd = cwd->parent;
-            vfs_free_sons(p, p->flags & VFS_FLAG_MOUNTPOINT);
         }
         return 1;
     }

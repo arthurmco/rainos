@@ -79,7 +79,7 @@ uint8_t fat_get_type(struct fat_superblock* sb)
 void fat_get_fat_cluster_entry(struct fat_superblock* sb, uint32_t cluster,
     /*[out]*/ uint32_t* sector, /*[out]*/ uint32_t* offset)
     {
-        unsigned fat_size = FAT_GET_FAT_SIZE(sb);
+        unsigned fat_size = fat_get_type(sb);
 
         if (fat_size > 12) {
             unsigned f_offset;
@@ -180,6 +180,7 @@ static int _fat_read_directories(void* clusterbuf, unsigned int dir_sec_count,
     int long_off = 0;
     int has_long_name = 0;
 
+    knotice("reading %d entries", dir_sec_count*8);
     for (unsigned i = 0; i < dir_sec_count*8; i++) {
         if (((unsigned char)rootdir[i].name[0]) == 0xe5) {/* free directory, but can be more */
             long_off = 0;
@@ -208,6 +209,7 @@ static int _fat_read_directories(void* clusterbuf, unsigned int dir_sec_count,
             vfs_node_t* old_node = node;
 
             node = kcalloc(sizeof(vfs_node_t), 1);
+            knotice("<<<< null pls %x %x", node, *(uint32_t*)node);
 
             if (!old_node) {
                 //node was null, this means that this is the first node
@@ -316,9 +318,10 @@ static int _fat_read_directories(void* clusterbuf, unsigned int dir_sec_count,
             }
         /* And copy it */
 
-        memcpy(dirname, node->name, strlen(dirname)+1);
+        memcpy(dirname, node->name, 12);
         }
-        knotice("%s %d", node->name, rootdir[i].cluster_low);
+
+        knotice("#%d: %s %d", i, node->name, rootdir[i].cluster_low);
 
         node->__vfs_readdir = &fat_readdir;
         node->__vfs_read = &fat_read;
@@ -326,6 +329,8 @@ static int _fat_read_directories(void* clusterbuf, unsigned int dir_sec_count,
 
         if (parent) {
             node->mount = parent->mount;
+            device_t* d = ((vfs_mount_t*)node->mount)->dev;
+            knotice("<< DO NOT CHANGE PLS %x %s >>", d, d->devname);
         }
         next_inode = 1;
     }
@@ -446,7 +451,7 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
         // knotice("fat: more one cluster");
 
         if (not_over) {
-            uint32_t next_clus_sec, next_clus_off;
+            uint32_t next_clus_sec = 0, next_clus_off = 0;
             fat_get_fat_cluster_entry(fs->sb, clus, &next_clus_sec, &next_clus_off);
 
             knotice(">>> clus %d, nextsec: %d, nextoff: %d, buf %x",
