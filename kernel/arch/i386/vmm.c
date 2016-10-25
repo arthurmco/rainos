@@ -214,8 +214,8 @@ virtaddr_t vmm_map_physical(unsigned int vmm_area,
         }
 
 
-        knotice("Allocated at directory/table %x:%x to physaddr 0x%x",
-            pdir, ptbl, phys);
+        knotice("Allocated %d pages at directory/table %x:%x to physaddr 0x%x",
+            count, pdir, ptbl, phys);
 
         physaddr_t ph = phys;
 
@@ -234,19 +234,24 @@ virtaddr_t vmm_map_physical(unsigned int vmm_area,
                     pt->options.user = 1;
                 }
 
-                pt->options.chained_next = 1;
-                if (page > 0)
-                    pt->options.chained_prev = 1;
-
-
                 page++;
 
                 if (page == count) {
-                    pt->options.chained_next = 0;
-                    return areas[vmm_area].first_free_addr;
+
+                    virtaddr_t naddr = (pdir << 22) | (ptbl << 12);
+                    virtaddr_t nfree = (naddr) + (count * 4096);
+
+                    if (areas[vmm_area].first_free_addr < nfree) {
+                        areas[vmm_area].first_free_addr = nfree;
+                    }
+
+                    return naddr;
                 }
             }
             ptbl = 0;
+
+            count -= page;
+            page = 0;
         }
 
     }
