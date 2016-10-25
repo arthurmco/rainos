@@ -13,6 +13,7 @@
 #include "arch/i386/devices/pit.h"
 #include "arch/i386/devices/ps2_kbd.h"
 #include "arch/i386/devices/pci.h"
+#include "arch/i386/devices/floppy.h"
 #include "arch/i386/devices/ata.h"
 #include "arch/i386/multiboot.h"
 #include "arch/i386/vmm.h"
@@ -21,7 +22,9 @@
 #include "arch/i386/idt.h"
 #include "arch/i386/pages.h"
 #include "arch/i386/fault.h"
+#include "arch/i386/ebda.h"
 #include "terminal.h"
+#include "time.h"
 #include "ttys.h"
 #include "mmap.h"
 #include "pmm.h"
@@ -29,11 +32,13 @@
 #include "initrd.h"
 #include "keyboard.h"
 #include "kshell.h"
+#include "elf.h"
 #include "framebuffer.h"
 #include "fbcon.h"
 #include "vfs/vfs.h"
 #include "vfs/partition.h"
 #include "vfs/fat.h"
+#include "vfs/sfs.h"
 
 volatile int _timer = 0;
 void timer(regs_t* regs) {
@@ -76,7 +81,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     term_stdio.defaultColor = 0x07;
     terminal_set(&term_stdio);
     vga_init(&term_stdio);
-    // ttys_init(&term_stdio);
+    //ttys_init(&term_stdio);
 
     /* Initialize logging terminal device */
     static terminal_t term_log;
@@ -180,7 +185,8 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     }
 
     if (!initrd) {
-        kerror("initrd not found! This may cause problems");
+        kerror("Couldn't find initrd.rain");
+        panic("FATAL: initrd not found! Can't continue.");
     }
 
 
@@ -216,6 +222,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     knotice("KERNEL: kernel end is now 0x%x", kend);
 
     WRITE_STATUS("Starting virtual memory manager...");
+
     pages_init(page_dir_phys, 0x0);
     vmm_init(kstart, kend, page_dir_phys);
 
@@ -266,20 +273,30 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     serial_init();
     kprintf("\tok!");
 
+    kprintf(" \n  floppy");
+    if (floppy_init())
+        kprintf("\tok!");
+    else
+        kprintf("\tfail!");
+
+
     kprintf(" \n  pci");
     pci_init();
     kprintf("\tok!");
 
+
     if (!term_stdio.term_getc) {
     	kprintf(" \n keyboard");
     	if (!i8042_init()) {
-    		kprintf("\t fail!");
+            kprintf("\t fail!");
     	} else {
+            kbd_init();
             kbd_init();
             keyboard_init(&term_stdio);
     		kprintf("\t ok!");
     	}
     }
+
 
     size_t pci_count = pci_get_device_count();
     for (size_t i = 0; i < pci_count; i++) {
@@ -301,6 +318,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     //init filesystems
     fat_init();
+    sfs_init();
 
     WRITE_SUCCESS();
 
@@ -321,48 +339,96 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         WRITE_SUCCESS();
     }
 
-
     next3:
-        kprintf("\n\n Nothing to do. Starting kernel shell... \n");
-#if 0
+//        kprintf("\n\n Nothing to do. Starting kernel shell... \n");
 
     WRITE_STATUS("Jumping to user mode (will call init on the future)");
+
     tss_init(page_dir_phys);
 
-    uint8_t* newfunc = vmm_alloc_page(VMM_AREA_USER, 3);
-    void* newstack = vmm_alloc_page(VMM_AREA_USER, 1);
+    uint8_t* newfunc = (uint8_t*)vmm_alloc_page(VMM_AREA_USER, 3);
+    void* newstack = (vmm_alloc_page(VMM_AREA_USER, 1) + (VMM_PAGE_SIZE)-16);
+    knotice("opening bintest.bin at %x", newfunc);
 
-    // Usermode code will run
-    newfunc[0] = 0x66;
-    newfunc[1] = 0xb8;
-    newfunc[2] = 0xff;
-    newfunc[3] = 0xff;   //movw $0xffff, ax
-    newfunc[4] = 0xeb;
-    newfunc[5] = 0xfe;   //jmp -1
+    vfs_node_t* node_file = vfs_find_node("/dir/bintest.bin");
 
-    jump_usermode((uintptr_t)newstack, (uintptr_t)newfunc);
+    if (!node_file) {
+        knotice("not found");
+        WRITE_FAIL();
+        _halt();
+    }
 
+    size_t read = vfs_read(node_file, 0, -1, (void*)newfunc);
+    kprintf("\n%s - %d bytes\n", node_file->name, read);
+    kprintf("\n");
+    for (size_t i = 0; i <= (read/16); i++) {
+        for (size_t j = 0; j < 16; j++) {
+            kprintf("%02x ", newfunc[i*16+j]);
+        }
+
+        kprintf(" | ");
+
+        for (size_t j = 0; j < 16; j++) {
+            char c =  (char)newfunc[i*16+j];
+
+            if (c < 32) {
+                putc('.');
+            } else {
+                putc(c);
+            }
+        }
+
+        if (i % 8 == 0 && i > 0) {
+            kgetc();
+        }
+
+        kprintf("\n");
+    }
+
+    char buf[64];
+    vfs_get_full_path(node_file, buf);
+    kprintf("File: %s <0x%x 0x%x>\n\n", buf, newfunc, newstack);
+    //jump_usermode((uintptr_t)newstack, (uintptr_t)newfunc);
+
+    vfs_node_t* elfnode = vfs_find_node("/dir/bintest.elf");
+    if (!elfnode) {
+        kerror("Our test ELF file wasn't found");
+    }
+    vfs_get_full_path(elfnode, buf);
+    kprintf("Test ELF file: %s\n", buf);
+
+    elf_exec_t* elf_exec = elf_open_file(elfnode);
+    if (elf_exec) {
+        int s = elf_parse_sections(elf_exec);
+        int p = elf_parse_phs(elf_exec);
+        kprintf("\t %d sections and %d program segments found", s, p);
+        elf_execute_file(elf_exec);
+    }
 
     WRITE_FAIL();
-#endif
-    /* for(;;) {
-        terminal_setcolor(0x0f);
-        terminal_puts("kernsh> ");
-        terminal_restorecolor();
-        char s[128];
-        kgets(s, 128);
 
-        kprintf("You typed: %s", s);
+    struct time_tm t;
+    t.second = 0;
+    t.minute = 0;
+    t.hour = 0;
+    t.day = 0;
+    t.month = 0;
+    t.year = 0;
+    time_init(t);
 
-    } */
+    knotice("BIOS: Extended BDA is at addr 0x%x", ebda_get_base());
+    uintptr_t rsdptr;
+    rsdptr = ebda_search_string("RSD PTR", 16);
+    if (rsdptr) {
+        knotice("BIOS: RSDP is at addr 0x%x", rsdptr);
+    } else {
+        knotice("BIOS: RSDP not found, no ACPI support");
+    }
 
-    int64_t ts = 1209600;
-    int year;
-    unsigned mon, day, hour, min, sec;
-    vfs_unix_to_day(ts, &year, &mon, &day, &hour, &min, &sec);
-    kprintf("Timestamp %d%d is %d/%d/%d %d:%d:%d\n",
-        (uint32_t)(ts>>32), (uint32_t)(ts&0xffffffff),
-        day+1, mon+1, year, hour, min, sec);
+    rsdptr = ebda_search_string("SeaBIOS", 1);
+    if (rsdptr) {
+        knotice("BIOS: running on Bochs/QEMU (%x)", rsdptr);
+    }
 
     kshell_init();
 }

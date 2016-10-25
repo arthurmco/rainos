@@ -122,6 +122,7 @@ int serial_init()
         device_t* tty = device_create((0x2 << 8) | ttys_num, ttyname,
             DEVTYPE_CHAR, NULL);
 
+        device_set_description(tty, "Serial port");
         tty->__dev_getc = NULL;
         tty->__dev_putc = NULL;
 

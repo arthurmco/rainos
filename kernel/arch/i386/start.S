@@ -54,14 +54,16 @@ page_dir_table:
   .rept 4096
     .byte 0
   .endr
+  .align 4096
 page_table_identity:
   # Reserve for page tables used for identity map the first 4MB of kernel
   # in 0x0-0x400000
   .rept 4096
     .byte 0
   .endr
+  .align 4096
 page_table_kernel:
-  # Reserve for page tables used for identity map the first 4MB of kernel
+  # Reserve for page tables used for the higher half of kernel
   # in KERNEL_VADDR-KERNEL_VADDR+0x400000
   .rept 4096
     .byte 0

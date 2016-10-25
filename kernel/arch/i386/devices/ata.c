@@ -1,4 +1,16 @@
 #include "ata.h"
+#include "atapi.h"
+
+#include <kstring.h>
+
+static int atapi_pkt_irq = 0;
+int ata_irq(regs_t* registers)
+{
+    if (atapi_pkt_irq) {
+        atapi_pkt_irq = 0;
+    }
+
+}
 
 /* Check to see if it's a valid ATA device.
     Returns 1 if valid*/
@@ -26,6 +38,241 @@ static void ata_sendcommand(struct AtaDevice* dev, uint8_t cmd) {
     outb(dev->iobase + ATAREG_COMMANDPORT,  cmd);
     io_wait();
 }
+
+int atapi_identify(struct AtaDevice* atadev)
+{
+    if (inb(atadev->iobase + ATAREG_STATUS) == 0xff) {
+        return 0; // No device.
+    }
+
+    ata_change_drive(atadev);
+
+    outb(atadev->iobase + ATAREG_SECTORCOUNT,   0x0);
+    outb(atadev->iobase + ATAREG_LBALOW,        0x0);
+    outb(atadev->iobase + ATAREG_LBAMID,        0x0);
+    outb(atadev->iobase + ATAREG_LBAHIGH,       0x0);
+    ata_sendcommand(atadev, ATACMD_PKTIDENTIFY);
+
+    uint8_t status;
+    /* read port 5 times, so we can be sure status is valid */
+    for (unsigned i = 0; i < 5; i++) {
+        status = inb(atadev->iobase + ATAREG_STATUS);
+    }
+
+    status = inb(atadev->iobase + ATAREG_STATUS);
+
+    if (!status) {
+
+        return 0; // No drive
+    }
+
+    unsigned timeout_out = 0;
+    for (unsigned i = 0; i < 16; i++) {
+        status = inb(atadev->iobase + ATAREG_STATUS);
+        if (!IS_BSY(status)) {
+            timeout_out = 1;
+            break;
+        }
+        sleep(i*i);
+    }
+
+    if (!timeout_out) {
+        kwarn("Timeout while waiting for ATA %s %s",
+            (const char *[]){"Pri", "Sec", "Third", "Fourth"}[atadev->number],
+            (const char *[]){"Master", "Slave"}[atadev->slavery]);
+
+        return 0; /* Timeout expired */
+    }
+
+    status = inb(atadev->iobase + ATAREG_STATUS);
+    if (IS_ERR(status)) {
+        kerror("Error on ATA %s %s",
+            (const char *[]){"Pri", "Sec", "Third", "Fourth"}[atadev->number],
+            (const char *[]){"Master", "Slave"}[atadev->slavery]);
+        return 0;
+    }
+
+    status = inb(atadev->iobase + ATAREG_STATUS);
+    if (IS_DRQ(status) && !IS_ERR(status)) {
+        atadev->ident = kcalloc(sizeof(struct AtaIdentify),1);
+        uint16_t* store = (uint16_t*)atadev->ident;
+        for (unsigned i = 0; i < 256; i++) {
+            store[i] = inw(atadev->iobase + ATAREG_DATAPORT);
+            /* swap bytes on texts */
+            if (i*2 >= offsetof(struct AtaIdentify, serial_number) &&
+                i*2 <= offsetof(struct AtaIdentify, serial_number) + 10) {
+                    uint16_t lsb = store[i] & 0xff;
+                    uint16_t msb = store[i] >> 8;
+
+                    store[i] = (lsb << 8) | msb;
+
+            }
+
+            if (i*2 >= offsetof(struct AtaIdentify, firmware_rev) &&
+                i*2 <= offsetof(struct AtaIdentify, firmware_rev) + 4) {
+                    uint16_t lsb = store[i] & 0xff;
+                    uint16_t msb = store[i] >> 8;
+
+                    store[i] = (lsb << 8) | msb;
+
+            }
+
+            if (i*2 >= offsetof(struct AtaIdentify, model) &&
+                i*2 <= offsetof(struct AtaIdentify, model) + 20) {
+                    uint16_t lsb = store[i] & 0xff;
+                    uint16_t msb = store[i] >> 8;
+
+                    store[i] = (lsb << 8) | msb;
+            }
+
+
+
+        }
+        return 1;
+    }
+
+
+    return 0;
+}
+
+/* Send an ATAPI packet to the device */
+int atapi_packet(struct AtaDevice* atadev, uint16_t* packet,
+    uint16_t* bytecount, uint16_t* buffer, size_t buffersize)
+{
+    ata_change_drive(atadev);
+
+    outb(atadev->iobase + ATAREG_FEATURES,      0x0);
+    outb(atadev->iobase + ATAREG_LBAMID,        (buffersize & 0xff));
+    outb(atadev->iobase + ATAREG_LBAHIGH,       (buffersize >> 8) & 0xff);
+    ata_sendcommand(atadev, ATACMD_PACKET);
+
+    uint8_t status;
+    /* read port 5 times, so we can be sure status is valid */
+    for (unsigned i = 0; i < 5; i++) {
+        status = inb(atadev->iobase + ATAREG_STATUS);
+    }
+
+    status = inb(atadev->iobase + ATAREG_STATUS);
+
+    uint16_t timeout = 0;
+
+    while (timeout < 0xffff) {
+        status = inb(atadev->iobase + ATAREG_STATUS);
+        if (IS_DRQ(status) && !IS_BSY(status)) {
+            break;
+        }
+
+        timeout++;
+        sleep(timeout);
+
+        if (IS_ERR(status)) {
+            goto media_error;
+        }
+    }
+
+    if (timeout == 0xffff) {
+        kwarn("Timeout while waiting for ATAPI %s %s",
+            (const char *[]){"Pri", "Sec", "Third", "Fourth"}[atadev->number],
+            (const char *[]){"Master", "Slave"}[atadev->slavery]);
+        return 0;
+    }
+
+    knotice("atapi: sending packet {%x %x %x %x %x %x}",
+        packet[0], packet[1], packet[2], packet[3], packet[4], packet[5]);
+
+    atapi_pkt_irq = 1;
+
+    /* Send the packet data */
+    outw(atadev->iobase + ATAREG_DATAPORT, packet[0]);
+    outw(atadev->iobase + ATAREG_DATAPORT, packet[1]);
+    outw(atadev->iobase + ATAREG_DATAPORT, packet[2]);
+    outw(atadev->iobase + ATAREG_DATAPORT, packet[3]);
+    outw(atadev->iobase + ATAREG_DATAPORT, packet[4]);
+    outw(atadev->iobase + ATAREG_DATAPORT, packet[5]);
+
+    /* Wait IRQ */
+    uint16_t wait_sleep = 1;
+    while (wait_sleep < 1024) {
+        sleep(wait_sleep);
+        wait_sleep *= 2;
+
+        if (!atapi_pkt_irq) {
+            break;
+        }
+
+    }
+
+    if (wait_sleep > 1024) {
+        kerror("Timeout while waiting for IRQ on ATAPI %s %s",
+            (const char *[]){"Pri", "Sec", "Third", "Fourth"}[atadev->number],
+            (const char *[]){"Master", "Slave"}[atadev->slavery]);
+        return 0;
+    }
+
+    status  = inb(atadev->iobase + ATAREG_STATUS);
+
+    if (IS_ERR(status)) {
+        media_error:
+        kerror("Error on ATA %s %s ",
+            (const char *[]){"Pri", "Sec", "Third", "Fourth"}[atadev->number],
+            (const char *[]){"Master", "Slave"}[atadev->slavery]);
+
+        uint8_t err = inb(atadev->iobase + ATAREG_ERR);
+
+        char errs[256] = "";
+
+        if (err & 0x2)  strcat(errs, "No Media, ");
+        if (err & 0x4)  strcat(errs, "Command Aborted, ");
+        if (err & 0x8)  strcat(errs, "Media Change Request, ");
+        if (err & 0x10) strcat(errs, "Sector Beyond Limit, ");
+        if (err & 0x40) strcat(errs, "Uncorrectable error, ");
+        if (err & 0x20) strcat(errs, "Media Changed, ");
+
+        errs[strlen(errs)-2] = '.';
+
+        kerror("%s (%x) \n", errs, err);
+
+        return 0;
+    }
+
+    uint16_t sechi = inb(atadev->iobase + ATAREG_LBAHIGH);
+    uint16_t seclo = inb(atadev->iobase + ATAREG_LBAMID);
+    knotice("atapi: %d %d", sechi, seclo);
+
+    *bytecount = (sechi << 8) | seclo;
+
+    atapi_pkt_irq = 1;
+    for (size_t i = 0; i < (*bytecount / 2); i++) {
+        buffer[i] = inw(atadev->iobase + ATAREG_DATAPORT);
+        knotice("word: %04x", buffer[i]);
+    }
+
+    /* Wait another IRQ */
+    wait_sleep = 1;
+    while (wait_sleep < 1024) {
+        wait_sleep *= 2;
+        sleep(wait_sleep);
+
+        if (!atapi_pkt_irq) {
+            break;
+        }
+
+    }
+
+    if (wait_sleep > 1024) {
+        kerror("Timeout while waiting for IRQ on response of command on ATAPI %s %s",
+            (const char *[]){"Pri", "Sec", "Third", "Fourth"}[atadev->number],
+            (const char *[]){"Master", "Slave"}[atadev->slavery]);
+        return 0;
+    }
+
+    do {
+        status = inb(atadev->iobase + ATAREG_STATUS);
+    } while ((IS_BSY(status)) && (IS_DRQ(status)));
+
+    return 1;
+}
+
 
 /*  Identify a drive.
     Return 1 if drive is valid, 0 if not
@@ -64,7 +311,7 @@ int ata_identify(struct AtaDevice* atadev)
             timeout_out = 1;
             break;
         }
-        io_wait();
+        sleep(i*i);
     }
 
     if (!timeout_out) {
@@ -75,11 +322,23 @@ int ata_identify(struct AtaDevice* atadev)
         return 0; /* Timeout expired */
     }
 
-    if (inb(atadev->iobase + ATAREG_LBAMID)) {
-        kwarn("ATA device %s %s is not ATA",
-            (const char *[]){"Pri", "Sec", "Third", "Fourth"}[atadev->number],
-            (const char *[]){"Master", "Slave"}[atadev->slavery]);
+    uint8_t mid = inb(atadev->iobase + ATAREG_LBAMID);
+    atadev->atapi = 0;
+    if (mid) {
+        if (mid == 0x14) {
+            /* truly is 0x01 0x01 0x14 0xeb for sector count and all LBAs */
+            knotice("ATAPI device found: %s %s ",
+                (const char *[]){"Pri", "Sec", "Third", "Fourth"}[atadev->number],
+                (const char *[]){"Master", "Slave"}[atadev->slavery]);
+            atadev->atapi = 1;
 
+            return atapi_identify(atadev);
+
+        } else {
+            kwarn("ATA device %s %s is not ATA",
+                (const char *[]){"Pri", "Sec", "Third", "Fourth"}[atadev->number],
+                (const char *[]){"Master", "Slave"}[atadev->slavery]);
+        }
         return 0; // Non ata
     }
 
@@ -146,6 +405,11 @@ static int ata_dev_disk_read_wrapper(disk_t* d,
 
     struct AtaDevice* dev = &devices[d->specific];
 
+    if (dev->atapi) {
+        kerror("ata: reads from ATAPI aren't supported");
+        return 0;
+    }
+
     if (!dev)
         return 0; // Device is null
 
@@ -165,6 +429,9 @@ int ata_initialize(struct PciDevice* dev)
     uint16_t base_second =      (uint16_t)(dev->config.bar[2] & ~3);
     uint16_t base_alt_second =  (uint16_t)(dev->config.bar[3] & ~3);
 
+    /* Add handlers for both IRQs */
+    irq_add_handler(14, &ata_irq);
+    irq_add_handler(15, &ata_irq);
 
     /* on problems, default to standard addresses */
     if (base_first == 0)        base_first = 0x1f0;
@@ -207,16 +474,52 @@ int ata_initialize(struct PciDevice* dev)
                     ((uint64_t)devices[devcount].ident->sector_count) * 512;
 
                 knotice("\t %s, %d MB", devname,
-                    ((uint32_t)disk_size_bytes / 1048576) & 0xffffffff);
+                    ((uint32_t)(disk_size_bytes / 1048576)) & 0xffffffff);
 
-                disk_t d;
-                memset(&d, 0, sizeof(disk_t));
-                d.b_count = devices[devcount].ident->sector_count;
-                d.b_size = 512;
-                d.specific = devcount;
-                d.__disk_read = &ata_dev_disk_read_wrapper;
-                memcpy(devname, d.disk_name, strlen(devname));
-                disk_add(&d);
+                disk_t di;
+                memset(&di, 0, sizeof(disk_t));
+                di.b_count = devices[devcount].ident->sector_count;
+                di.b_size = 512;
+                di.specific = devcount;
+                memcpy(devname, di.disklabel, strlen(devname)+1);
+
+                if (devices[devcount].atapi) {
+                    /* Get media size using ATAPI READ CAPACITY command */
+
+                    uint8_t packet[12] = {0x25, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+                        0x0, 0x0, 0x0, 0x0, 0x0};
+                    uint8_t buf[8] = {0,0,0,0,0,0,0,0};
+                    uint16_t bsize;
+                    atapi_packet(&devices[devcount], (uint16_t*)&packet[0],
+                        &bsize, (uint16_t*)&buf[0], 8);
+
+                    uint32_t blsize, blcount;
+                    blcount = buf[3];
+                    blcount |= ((uint32_t)buf[2] << 8);
+                    blcount |= ((uint32_t)buf[1] << 16);
+                    blcount |= ((uint32_t)buf[0] << 24);
+                    blsize = buf[7];
+                    blsize |= ((uint32_t)buf[6] << 8);
+                    blsize |= ((uint32_t)buf[5] << 16);
+                    blsize |= ((uint32_t)buf[4] << 24);
+
+                    blcount++;
+
+                    knotice("atapi device has %d blocks of %d bytes",
+                        blcount, blsize);
+
+                    di.b_count = blcount;
+                    di.b_size = blsize;
+                }
+
+                if (devices[devcount].atapi) {
+                    kerror("ata: read from ATAPI device is not supported");
+                    di.__disk_read = &ata_dev_disk_read_wrapper;
+                } else {
+                    di.__disk_read = &ata_dev_disk_read_wrapper;
+                }
+                memcpy(devname, di.disk_name, strlen(devname));
+                disk_add(&di);
 
                 /* TODO: print disk info to log */
                 devcount++;
@@ -255,7 +558,7 @@ static int ata_wait_ready(struct AtaDevice* atadev)
             timeout_out = 1;
             break;
         }
-        io_wait();
+        sleep(1+i*i*i*i);
     }
 
     if (!timeout_out) {

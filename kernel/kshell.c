@@ -5,6 +5,7 @@
 #include <kstdlib.h>
 #include <kstdlog.h>
 #include "terminal.h"
+#include "time.h"
 
 static struct kernel_shell_cmd kcmds[MAX_SHELL_CMD];
 static size_t kcmd_count = 0;
@@ -34,7 +35,7 @@ static int kshell_ls(int argc, char** argv) {
         char csize[16];
         while (childs) {
             sprintf(csize, "%d bytes", (uint32_t)childs->size & 0xffffffff);
-            kprintf("%s\t\t%s\n", childs->name,
+            kprintf("(%x) %s\t\t%s\n", childs->flags, childs->name,
                 childs->flags & VFS_FLAG_FOLDER ? "[DIR]" : csize);
             bytes += (size_t)childs->size;
             childs = childs->next;
@@ -133,6 +134,104 @@ static int kshell_mount(int argc, char* argv[]) {
 
 }
 
+static int kshell_cat(int argc, char* argv[])
+{
+    if (argc < 2) {
+        kprintf("\n Usage: cat <filename> \n");
+        return 2;
+    }
+
+    vfs_node_t* node = vfs_find_node_relative(cwd, argv[1]);
+
+    if (!node) {
+        kprintf("\n\t%s doesn't exist\n", argv[1]);
+        return -1;
+    }
+
+    if (node->flags & VFS_FLAG_FOLDER) {
+        kprintf("\n\t%s is a folder\n", node->name);
+        return 2;
+    }
+
+    kprintf("\n %s - %d bytes\n", node->name, node->size);
+    size_t pos = 0;
+    char* file = kcalloc(node->size + 1,1);
+    int rx = vfs_read(node, pos, -1, file);
+
+    if (rx >= 0) {
+        kputs(file);
+    }
+
+    kfree(file);
+    return 0;
+}
+
+static int kshell_hexdump(int argc, char* argv[])
+{
+    if (argc < 2) {
+        kprintf("\n Usage: hexdump <filename> \n");
+        return 2;
+    }
+
+    vfs_node_t* node = vfs_find_node_relative(cwd, argv[1]);
+
+    if (!node) {
+        kprintf("\n\t%s doesn't exist\n", argv[1]);
+        return -1;
+    }
+
+    if (node->flags & VFS_FLAG_FOLDER) {
+        kprintf("\n\t%s is a folder\n", node->name);
+        return 2;
+    }
+
+    kprintf("\n %s - %d bytes\n", node->name, node->size);
+    size_t pos = 0;
+    char* file = kcalloc(node->size,1);
+    int rx = vfs_read(node, pos, -1, file);
+
+    if (rx >= 0) {
+        do {
+            for (size_t c = 0; c <= 320/16; c++) {
+                for (size_t r = 0; r < 16; r++) {
+                    uint8_t s = file[pos+(c*16+r)];
+                    kprintf("%02x ", s);
+                }
+                kprintf(" | ");
+                for (size_t r = 0; r < 16; r++) {
+                    unsigned char ch = (unsigned char)file[pos+(c*16+r)];
+                    if (ch < ' ')
+                        putc('.');
+                    else
+                        putc(ch);
+                }
+                kprintf("\n");
+            }
+
+            char x = kgetc();
+            if (x == 'q') {
+                break;
+            }
+
+            pos += 320;
+        } while (pos < node->size);
+    }
+
+    kfree(file);
+    return 0;
+}
+
+static int kshell_date(int argc, char** argv)
+{
+    struct time_tm time;
+    time_gettime(&time);
+
+    kprintf("\n%02d/%02d/%04d %02d:%02d:%02d\n",
+        time.day, time.month, time.year,
+        time.hour, time.minute, time.second);
+
+}
+
 void kshell_init()
 {
     cwd = vfs_get_root();
@@ -141,6 +240,9 @@ void kshell_init()
     kshell_add("cd", "Browse into a directory", &kshell_cd);
     kshell_add("mount", "Mount a filesystem", &kshell_mount);
     kshell_add("clear", "Clears the screen", &terminal_clear);
+    kshell_add("cat", "Read the content", &kshell_cat);
+    kshell_add("hexdump", "Dumps file binary data", &kshell_hexdump);
+    kshell_add("date", "Show date and time", &kshell_date);
 
     knotice("KSHELL: Starting kernel shell, %d commands", kcmd_count);
     char cmd[128];

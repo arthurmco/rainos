@@ -98,6 +98,43 @@ int vfs_mount(vfs_node_t* node, device_t* dev, struct vfs_filesystem* fs)
     return 1;
 }
 
+/* Free the sons recursively */
+int vfs_free_sons(vfs_node_t* daddy, int sons_are_mounted) {
+    if (!daddy) return 1; //no children
+
+    vfs_node_t* first_son = (sons_are_mounted) ? daddy->ptr : daddy->child;
+
+    if (first_son) {
+        vfs_node_t* bros = first_son;
+        vfs_node_t* next;
+        while (bros) {
+            char p[128];
+            vfs_get_full_path(bros, p);
+            knotice("VFS: Freeing %s", p);
+
+            next = bros->next;
+
+            if (!vfs_free_sons(bros->child, 0)) {
+
+                vfs_get_full_path(bros->child, p);
+                kerror("VFS: failed to free vfs node at %s\n"
+                    "You should restart now.", p);
+                return 0;
+            }
+            bros->prev = NULL;
+
+            kfree(bros);
+            bros = next;
+        }
+    }
+
+    /* avoid dangling pointers */
+    if (sons_are_mounted) daddy->ptr = NULL;
+    else daddy->child = NULL;
+
+    return 1;
+}
+
 /*  Read the childs
         Return < 0 if error
         Return 0 if no child
@@ -108,11 +145,76 @@ int vfs_readdir(vfs_node_t* node, vfs_node_t** childs)
     /* If node isn't folder, return -1 */
     if (!(node->flags & VFS_FLAG_FOLDER)) return -1;
 
+    /* Check if the media changed */
+    vfs_mount_t* m = (vfs_mount_t*)node->mount;
+    if (m) {
+        uint32_t ret = 0;
+        if (device_ioctl(m->dev, IOCTL_CHANGED, &ret, 0, 0)) {
+            if (ret == 1 || ret == 0xffffffff) {
+                /* Free the node pointers */
+                if (!vfs_free_sons(node, 1)) {
+                    return 0;
+                }
+
+                if (ret == 0xffffffff) {
+                    /* Media removed */
+                    kerror("VFS: Media removed");
+                }
+            }
+        }
+    }
+
+
     /* If node is a mount point, return the ptr pointer */
     if (node->flags & VFS_FLAG_MOUNTPOINT) {
         /* Null? Read the root of the mountpoint which has
             this node as a rootdir parameter */
         if (!node->ptr) {
+            uint64_t ino = node->inode;
+            knotice("Cache flush");
+
+            for (size_t m = 0; m < mount_count; m++) {
+                char n[200];
+
+                knotice("%s!!!!", n);
+                if (mounts[m].root_dir == node &&
+                    mounts[m].root_dir->inode == ino) {
+
+                    vfs_get_full_path(mounts[m].root_dir, n);
+                    knotice("Remounting %s at %s due to cache flushing",
+                        mounts[m].dev->devname, n);
+
+                    if (!mounts[m].fs->__vfs_get_root_dir(mounts[m].dev,
+                            &mounts[m].root_dir->ptr)) {
+
+                        kerror("VFS: couldn't read root dir, fs %s dev %s",
+                        mounts[m].fs->fsname, mounts[m].dev->devname );
+                        return 0;
+                    } else {
+                        *childs = mounts[m].root_dir->ptr;
+                        vfs_node_t* node_childs = *childs;
+
+                        while (node_childs) {
+                            node_childs->mount = (void*)&mounts[m];
+                            node_childs->parent = mounts[m].root_dir;
+                            node_childs = node_childs->next;
+                        }
+                    }
+                }
+
+
+                if (m == mount_count) {
+                    char n[128];
+                    vfs_get_full_path(node, n);
+                    kerror("Could not restore mount point in %s (unmounted?)",
+                        n);
+                    return 0;
+                }
+
+
+
+            }
+
 
         }
 
@@ -177,7 +279,7 @@ vfs_node_t* vfs_find_node_relative(vfs_node_t* base, const char* path_rel)
         /* No childs */
         if (!n_end) {
             /* Over. It's him. No need to search */
-            return base;
+           // return base;
         } else {
             return NULL;
         }
@@ -249,6 +351,42 @@ int vfs_read(struct vfs_node* node, uint64_t off, size_t len,
 
         return -1;
     }
+void vfs_get_full_path(vfs_node_t* n, char* buf)
+{
+    char tmp[256];
+    int i = 0;
+    vfs_node_t* p = n;
+    /* First, get all parent names */
+    while (p != vfs_get_root()) {
+        size_t l = strlen(p->name);
+        memcpy(p->name, &tmp[i], l);
+        i += l;
+        tmp[i++] = '/';
+        tmp[i] = 0;
+        p = p->parent;
+    }
+    tmp[i] = 0;
+    /* Then reverse it */
+    char *tok = strrtok_n(tmp, '/', strlen(tmp)-3);
+    size_t soff, eoff = strlen(tmp)-1;
+    size_t idx = 0;
+    int notok = 0;
+    do {
+        if (tok) {
+            soff = (tok - tmp);
+            tok = strrtok_n(tmp, '/', soff-1);
+        } else {
+            soff = 0;
+            notok = 1;
+        }
+        memcpy(&tmp[soff], &buf[idx], (eoff - soff));
+        knotice("<%s>", tmp);
+        idx += (eoff-soff);
+        if (notok) buf[idx++] = '/';
+        eoff = soff;
+    } while (!notok);
+    buf[strlen(tmp)-1] = 0;
+}
 
 /* Utility conversion for unix timestamp to normal date */
 void vfs_unix_to_day(int64_t timestamp,

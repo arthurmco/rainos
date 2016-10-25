@@ -53,6 +53,16 @@ typedef union page_table {
     } options;
 } ptable_t;
 
+/* Page table virtual to physical translation structs */
+struct table_virt {
+    unsigned dir;
+    physaddr_t phys;
+    unsigned int virt;
+};
+
+/* Virtual address where we mapped all pages */
+#define RECURSIVE_PAGE_ADDR 0xffc00000
+
 void pages_init(uintptr_t dir_table_addr, uintptr_t kernel_vaddr);
 
 pdir_t* page_dir_get(unsigned dir_index);

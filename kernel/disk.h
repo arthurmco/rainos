@@ -32,6 +32,9 @@ typedef struct disk {
 
     /* Disk system name (disk0, disk1...) */
     char sysname[8];
+
+    /* Disk label */
+    char disklabel[40];
 } disk_t;
 
 int disk_add(struct disk* d);

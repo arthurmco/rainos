@@ -79,7 +79,7 @@ uint8_t fat_get_type(struct fat_superblock* sb)
 void fat_get_fat_cluster_entry(struct fat_superblock* sb, uint32_t cluster,
     /*[out]*/ uint32_t* sector, /*[out]*/ uint32_t* offset)
     {
-        unsigned fat_size = FAT_GET_FAT_SIZE(sb);
+        unsigned fat_size = fat_get_type(sb);
 
         if (fat_size > 12) {
             unsigned f_offset;
@@ -93,7 +93,17 @@ void fat_get_fat_cluster_entry(struct fat_superblock* sb, uint32_t cluster,
 
         } else {
             /* Specific bullshits for fat12 */
-            kerror("fat: fat12 cluster chain traversing is unsupported");
+            unsigned f_offset = cluster + (cluster / 2);
+            *sector = sb->rsvd_secs + (f_offset / sb->bytes_sec);
+            *offset = f_offset % sb->bytes_sec;
+            kwarn("fat: fat12 cluster chain traversing is experimental "
+                "(s: %d, o %d)", *sector, *offset);
+
+            /*  Trick to store what we need to do with fat12 cluster, since
+                a cluster can be in a middle of a byte. */
+            if (cluster & 1)
+                *offset |= 0x80000000;
+
         }
     }
 
@@ -119,8 +129,24 @@ int fat_get_next_cluster(char* fat_sec_buffer, uint32_t offset,
             return ((fat_cluster_content >= 0x0ffffff8) ? -2 : fat_cluster_content);
         }
     } else {
-        kerror("fat: fat12 cluster chain traversing is unsupported");
-        return -1;
+        kwarn("fat: fat12 cluster chain traversing is experimental");
+        uint16_t fat_cluster_content;
+
+        fat_cluster_content = *(uint16_t*)&fat_sec_buffer[offset & 0x7fffffff];
+        uint16_t fat_cluster_next = 0;
+
+        if (offset & 0x80000000)
+            fat_cluster_next = (fat_cluster_content >> 4);
+        else
+            fat_cluster_next = (fat_cluster_content & 0xfff);
+
+        if (fat_cluster_next == 0x0ff7) return -1;
+
+        if (fat_cluster_next >= 0x0ff8)
+            return -2;
+        else
+            return fat_cluster_next;
+
     }
 
     return -1;
@@ -154,6 +180,7 @@ static int _fat_read_directories(void* clusterbuf, unsigned int dir_sec_count,
     int long_off = 0;
     int has_long_name = 0;
 
+    knotice("reading %d entries", dir_sec_count*8);
     for (unsigned i = 0; i < dir_sec_count*8; i++) {
         if (((unsigned char)rootdir[i].name[0]) == 0xe5) {/* free directory, but can be more */
             long_off = 0;
@@ -182,6 +209,7 @@ static int _fat_read_directories(void* clusterbuf, unsigned int dir_sec_count,
             vfs_node_t* old_node = node;
 
             node = kcalloc(sizeof(vfs_node_t), 1);
+            knotice("<<<< null pls %x %x", node, *(uint32_t*)node);
 
             if (!old_node) {
                 //node was null, this means that this is the first node
@@ -290,9 +318,10 @@ static int _fat_read_directories(void* clusterbuf, unsigned int dir_sec_count,
             }
         /* And copy it */
 
-        memcpy(dirname, node->name, strlen(dirname)+1);
+        memcpy(dirname, node->name, 12);
         }
-        knotice("%s %d", node->name, rootdir[i].cluster_low);
+
+        knotice("#%d: %s %d", i, node->name, rootdir[i].cluster_low);
 
         node->__vfs_readdir = &fat_readdir;
         node->__vfs_read = &fat_read;
@@ -300,6 +329,8 @@ static int _fat_read_directories(void* clusterbuf, unsigned int dir_sec_count,
 
         if (parent) {
             node->mount = parent->mount;
+            device_t* d = ((vfs_mount_t*)node->mount)->dev;
+            knotice("<< DO NOT CHANGE PLS %x %s >>", d, d->devname);
         }
         next_inode = 1;
     }
@@ -348,9 +379,11 @@ int fat_get_root_dir(device_t* dev, vfs_node_t** root_childs)
     if (r < 0) {
         kerror("fat: couldn't read root directory from device %s", dev->devname);
         return 0;
+        kfree(rootdir_sec);
     } else if (r == 0) {
         kerror("fat: empty root directory from device %s", dev->devname);
         return 0;
+        kfree(rootdir_sec);
     }
 
     knotice("Directories... ");
@@ -392,10 +425,12 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
     if (r < 0) {
         kerror("fat: couldn't read dir %s directory from device %s",
             parent->name, d->devname);
+        kfree(clus_buf);
         return 0;
     } else if (r == 0) {
         kerror("fat: empty directory %s from device %s",
             parent->name, d->devname);
+        kfree(clus_buf);
         return 0;
     }
 
@@ -416,26 +451,28 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
         // knotice("fat: more one cluster");
 
         if (not_over) {
-            uint32_t next_clus_sec, next_clus_off;
+            uint32_t next_clus_sec = 0, next_clus_off = 0;
             fat_get_fat_cluster_entry(fs->sb, clus, &next_clus_sec, &next_clus_off);
 
-            // knotice(">>> clus %d, nextsec: %d, nextoff: %d", clus, next_clus_sec, next_clus_off);
+            knotice(">>> clus %d, nextsec: %d, nextoff: %d, buf %x",
+             clus, next_clus_sec, next_clus_off, clus_buf);
             /* Don't mind reusing buffers */
             r = device_read(d, next_clus_sec * fs->sb->bytes_sec, fs->sb->bytes_sec,
                 clus_buf);
-
             if (r < 0) {
                 kerror("fat: couldn't read dir %s directory from device %s",
                     parent->name, d->devname);
+                kfree(clus_buf);
                 return 0;
             } else if (r == 0) {
                 kerror("fat: empty directory %s from device %s",
                     parent->name, d->devname);
+                kfree(clus_buf);
                 return 0;
             }
 
             r = fat_get_next_cluster(clus_buf, next_clus_off, fs->fat_type);
-            // knotice("nextclus: %d", r);
+            knotice("nextclus: %d", r);
 
             switch (r) {
                 case -1:
@@ -505,16 +542,19 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
     if (r < 0) {
         kerror("fat: couldn't read file %s from device %s",
             node->name, d->devname);
+        kfree(clus_buf);
         return 0;
 
     } else if (r == 0) {
         kerror("fat: empty file %s from device %s",
             node->name, d->devname);
+        kfree(clus_buf);
         return 0;
     }
 
     if (off > node->size) {
         kwarn("fat: trying to read %s past its length", node->name);
+        kfree(clus_buf);
         return 0;
     }
 
@@ -563,6 +603,7 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
 
         if (r <= 0) {
             kerror("fat: couldn't read cluster entry on FAT for clus %d", clus);
+            kfree(clus_buf);
             return 0;
         }
 
@@ -592,6 +633,7 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
         r = device_read(d, sec * fs->sb->bytes_sec, bytes_per_clus, clus_buf);
         if (r <= 0) {
             kerror("fat: error while reading cluster %d", clus);
+            kfree(clus_buf);
             return r;
         }
 

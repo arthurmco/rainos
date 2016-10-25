@@ -64,8 +64,8 @@ static int kheap_show(int argc, char** argv);
 void kheap_init()
 {
     // Allocate 2 pages for the item reserve
-    item_reserve_bottom = (heap_item_t*)vmm_alloc_page(VMM_AREA_KERNEL, 2);
-    memset(item_reserve_bottom, 0, 2*VMM_PAGE_SIZE);
+    item_reserve_bottom = (heap_item_t*)vmm_alloc_page(VMM_AREA_KERNEL, DEFAULT_DESCRIPTOR_SIZE);
+    memset(item_reserve_bottom, 0, DEFAULT_DESCRIPTOR_SIZE*VMM_PAGE_SIZE);
     item_reserve_top = item_reserve_bottom;
     item_alloc_size = DEFAULT_DESCRIPTOR_SIZE * VMM_PAGE_SIZE;
 
@@ -83,9 +83,27 @@ void kheap_init()
     kshell_add("heap", "Show heap memory list data", &kheap_show);
 }
 
+
+/* Allocate memory with an alignment of '2^align' bytes */
+virtaddr_t kheap_allocate_align(size_t bytes, size_t align)
+{
+    virtaddr_t addr = 0;
+    virtaddr_t quant = (1 << align);
+    virtaddr_t mask = quant - 1;
+
+    /* The heap allocator hands us 4-byte aligned memory already */
+    if (align <= 2) return kheap_allocate(bytes);
+
+    size_t truesize = (bytes + quant);
+    addr = kheap_allocate(truesize);
+
+    return (addr + quant) & ~mask;
+
+}
+
 virtaddr_t kheap_allocate(size_t bytes)
 {
-    knotice("TA DE BRINKS UNA SKILL %d CIENTO DANO", bytes);
+    // knotice("TA DE BRINKS UNA SKILL %d CIENTO DANO", bytes);
     if (bytes == 0) bytes = 4;
 
     heap_item_t* item = _kheap_alloc_item((bytes + 3) & ~3);
@@ -100,14 +118,14 @@ virtaddr_t kheap_allocate(size_t bytes)
         // and reserve space to store the canary
         item->bytes = ((bytes + 3) & ~3) + sizeof(uint32_t);
 
-        knotice("|%d %d|", addr_reserve_top-addr_reserve_bottom,
-            ((signed)addr_alloc_size)-item->bytes);
+        // knotice("|%d %d|", addr_reserve_top-addr_reserve_bottom,
+        //     ((signed)addr_alloc_size)-item->bytes);
         /* Check if we need more pages */
         signed sz = addr_alloc_size;
         sz -= item->bytes;
         if ((signed)(addr_reserve_top - addr_reserve_bottom) >= sz) {
-            knotice("HEAP: more space needed. %x %x %d", addr_reserve_bottom, addr_reserve_top,
-                item->bytes);
+            // knotice("HEAP: more space needed. %x %x %d", addr_reserve_bottom, addr_reserve_top,
+                // item->bytes);
             /* We will need */
             /*  Allocate the needed amount of pages to fill this space and
                 request more */
@@ -136,23 +154,27 @@ virtaddr_t kheap_allocate(size_t bytes)
     }
 
     if (item->bytes < 4) {
-        kwarn("heap: zero allocation at 0x%x {%d-%x-%x-%x-%x} (%x)", item->addr,
+        kwarn("heap: zero allocation at 0x%x {sz:%d canary:0x%x flags:%x n:%x p:%x} (%x)", item->addr,
             item->bytes, item->canary, item->flags, item->next, item->prev,
             item);
         item->bytes =  ((bytes + 3) & ~3) + sizeof(uint32_t);
+        kwarn("heap: zero alloc is now %d alloc", item->bytes);
     }
 
+
     uint32_t* canary = (uint32_t*)(item->addr + item->bytes - sizeof(uint32_t));
-    knotice("%x %d", item->addr, item->bytes);
+    // knotice("%x %d", item->addr, item->bytes);
     *canary = item->canary;
 
 
-    // kerror("t: 0x%x, s: 0x%x, b: 0x%x",
-    // addr_reserve_top, addr_reserve_bottom+(VMM_PAGE_SIZE*DEFAULT_ALLOC_SIZE),
-    // addr_reserve_bottom);
+     /*kerror("t: 0x%x, s: 0x%x, b: 0x%x",
+     addr_reserve_top, addr_reserve_bottom+(VMM_PAGE_SIZE*DEFAULT_ALLOC_SIZE),
+     addr_reserve_bottom);
 
-    if (((uintptr_t)item_reserve_top - (uintptr_t)item_reserve_bottom) >=
-        item_alloc_size) {
+     knotice("ZZZ %x %d", item->addr, item->bytes); */
+
+    if (((uintptr_t)item_reserve_top - (uintptr_t)item_reserve_bottom) <=
+        sizeof(heap_item_t)) {
         kheap_get_more_descriptors();
     }
 
@@ -190,6 +212,11 @@ virtaddr_t kheap_allocate_phys(physaddr_t phys, size_t bytes)
 }
 void kheap_deallocate(virtaddr_t addr)
 {
+    if (!addr) {
+        kerror("HEAP: returning a NULL address (freeing NULL pointer?)");
+        return;
+    }
+
     /* Remove this from the used list and put them on the free list */
     heap_item_t* item = _kheap_find_item(&hUsed, addr, NULL);
     //panic("%x (%x) | %x", item, (item) ? item->addr : 0x0, addr);
@@ -200,7 +227,7 @@ void kheap_deallocate(virtaddr_t addr)
         return; //No item there
 
     if (item->addr != addr) {
-        kerror("HEAP: didn't found correct address, doing nothing for safe");
+        kerror("HEAP: didn't found correct address, doing nothing (double free?)");
         return;
     }
 
@@ -225,7 +252,7 @@ heap_item_t* _kheap_alloc_item(size_t bytes)
 {
     if (hFree.count <= 0) {
         heap_item_t* ni = (heap_item_t*)item_reserve_top++;
-        item_alloc_size += sizeof(heap_item_t);
+        memset((void*)ni, 0, sizeof(heap_item_t));
         ni->addr = 0;
         return ni;
     }
@@ -305,46 +332,46 @@ heap_item_t* _kheap_alloc_item(size_t bytes)
         //
         // }
 
-        if (it->bytes < real_bytes) {
-            /* Join smaller free pieces */
-            int complete = 0;
-            //knotice("joining pieces");
-
-            heap_item_t* nextit = it->next;
-            while (!complete) {
-
-                // knotice("piece of %d at 0x%x", it->bytes, it->addr);
-
-                if (!nextit) {
-                    break;
-                }
-
-                if (nextit->flags != HFLAGS_FREE) {
-                    break;
-                }
-
-                /* if free and valid, join both into one */
-                it->bytes += nextit->bytes;
-
-                // knotice("now has %d bytes", it->bytes);
-                /* TODO: put the now useless entry into a list,
-                    to be reallocated later */
-
-                /* remove the now useless item */
-                kheap_removeItem(nextit, &hFree);
-
-                if (it->bytes >= real_bytes) {
-                    complete = 1;
-                } else {
-                    nextit = it->next;
-                }
-            }
-
-            if (complete) {
-                goto retry_detect; //see if we can get some address now.
-            }
-
-        }
+        // if (it->bytes < real_bytes) {
+        //     /* Join smaller free pieces */
+        //     int complete = 0;
+        //     //knotice("joining pieces");
+        //
+        //     heap_item_t* nextit = it->next;
+        //     while (!complete) {
+        //
+        //         // knotice("piece of %d at 0x%x", it->bytes, it->addr);
+        //
+        //         if (!nextit) {
+        //             break;
+        //         }
+        //
+        //         if (nextit->flags != HFLAGS_FREE) {
+        //             break;
+        //         }
+        //
+        //         /* if free and valid, join both into one */
+        //         it->bytes += nextit->bytes;
+        //
+        //         // knotice("now has %d bytes", it->bytes);
+        //         /* TODO: put the now useless entry into a list,
+        //             to be reallocated later */
+        //
+        //         /* remove the now useless item */
+        //         kheap_removeItem(nextit, &hFree);
+        //
+        //         if (it->bytes >= real_bytes) {
+        //             complete = 1;
+        //         } else {
+        //             nextit = it->next;
+        //         }
+        //     }
+        //
+        //     if (complete) {
+        //         goto retry_detect; //see if we can get some address now.
+        //     }
+        //
+        // }
 
 
         it = it->next;
@@ -352,8 +379,9 @@ heap_item_t* _kheap_alloc_item(size_t bytes)
     }
 
     /* Last resort */
-    item_alloc_size += sizeof(heap_item_t);
-    return item_reserve_top++;
+    heap_item_t* ni = item_reserve_top++;
+    memset((void*)ni, 0, sizeof(heap_item_t));
+    return ni;
 
 }
 
@@ -421,10 +449,22 @@ heap_item_t* _kheap_find_item(struct HeapList* const list, virtaddr_t addr, int 
     //     end->addr, end, half->addr, half);
     //
 
+    //Detect loops
+    size_t prev_step = 0;
     while (step >= 2) {
-        // knotice("-- %d ~ %d (%x) <<%08x>> %08x %08x %08x", step, list->count, mode,
-        //     addr, start->addr, half->addr, end->addr);
+        /* Skip highly unlikely addresses */
+        if (addr < 0x100000) return NULL;
 
+         knotice("-- %d ~ %d (%x) <<%08x>> %08x %08x %08x", step, list->count, mode,
+             addr, start->addr, half->addr, end->addr);
+
+        if (step == prev_step) {
+            kerror("HEAP: detected loop while finding a heap address\n"
+                "Possible double free or heap corruption");
+            return NULL;
+        }
+
+        step = prev_step;
         if (!mode) {
             /* Detect exactly equal addresses */
             if (start->addr == addr) {
