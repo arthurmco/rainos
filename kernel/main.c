@@ -38,10 +38,7 @@
 #include "vfs/fat.h"
 #include "vfs/sfs.h"
 
-volatile int _timer = 0;
-void timer(regs_t* regs) {
-    kprintf("Timer: %d\n", _timer++);
-}
+#include "task.h"
 
 extern void jump_usermode(uintptr_t stack, uintptr_t usermode_function);
 
@@ -73,6 +70,16 @@ extern void jump_usermode(uintptr_t stack, uintptr_t usermode_function);
 
 extern uintptr_t _kernel_start[];
 extern uintptr_t _kernel_end[];
+
+static void taskA() {
+    kprintf("A");
+    task_switch();
+}
+
+static void taskB() {
+    kprintf("B");
+    task_switch();
+}
 
 void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     static terminal_t term_stdio;
@@ -397,6 +404,13 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     if (rsdptr) {
         knotice("BIOS: running on Bochs/QEMU (%x)", rsdptr);
     }
+
+    task_init();
+    uint32_t pagedir, eflags;
+    asm volatile("movl %%cr3, %%eax; movl %%eax, %0;":"=m"(pagedir)::"%eax");
+    asm volatile("pushfl; movl (%%esp), %%eax; movl %%eax, %0; popfl;":"=m"(eflags)::"%eax");
+    task_create(&taskA, pagedir, eflags);
+    task_create(&taskB, pagedir, eflags);
 
     kshell_init();
 }

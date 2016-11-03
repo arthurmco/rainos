@@ -23,11 +23,11 @@ ISO=rainos.iso
 LIBK=kstdio.o kstdlib.o kstring.o kstdlog.o
 ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o 8042.o \
  ps2_kbd.o pit.o pci.o ata.o irq.o irq_asm.o pages.o vmm.o tss.o usermode.o \
- specifics.o floppy.o ebda.o
+ specifics.o floppy.o ebda.o taskswitch.o
 
 all: $(ARCH_DEP) stackguard.o main.o terminal.o ttys.o pmm.o kheap.o dev.o \
  disk.o vfs.o partition.o fat.o sfs.o initrd.o keyboard.o kshell.o elf.o \
- time.o \
+ time.o task.o \
  $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
@@ -77,6 +77,7 @@ C_SOURCE_WITH_H(kernel/,pmm)
 ASM_SOURCE(kernel/arch/i386/,idt_asm)
 ASM_SOURCE(kernel/arch/i386/,usermode)
 ASM_SOURCE(kernel/arch/i386/,irq_asm)
+ASM_SOURCE(kernel/arch/i386/,taskswitch)
 C_SOURCE_WITH_H(kernel/arch/i386/,fault)
 C_SOURCE_WITH_H(kernel/vfs/,vfs)
 C_SOURCE_WITH_H(kernel/vfs/,partition)
@@ -92,6 +93,7 @@ C_SOURCE_WITH_H(kernel/,initrd)
 C_SOURCE_WITH_H(kernel/,keyboard)
 C_SOURCE_WITH_H(kernel/,time)
 C_SOURCE_WITH_H(kernel/,kshell)
+C_SOURCE_WITH_H(kernel/,task)
 C_SOURCE(kernel/,main)
 C_SOURCE(kernel/,stackguard)
 
