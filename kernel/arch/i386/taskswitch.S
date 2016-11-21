@@ -13,7 +13,7 @@ old_eip: .long 0
 .type task_true_switch, @function
 .align 16
 task_true_switch:
-    cli                     # Disable interrupts
+                         # Disable interrupts
 
     /* The old register set */
 
@@ -22,25 +22,39 @@ task_true_switch:
     pushal
 
     mov (old_esp), %eax
-    mov %eax, 12(%esp)
+    mov %eax, -12(%esp)
 
     mov %cr3, %eax
     push %eax               # Copy the cr3
     pushfl
 
     mov $old_esp, %ebx
-    mov -4(%ebx), %eax
+    mov 4(%ebp), %eax
     push %eax               # Get EIP
+
+    cli
+    hlt
 
     /* The new register set */
     mov (old_esp), %esp
     movl 8(%esp), %esp
 
-    add $4, %esp            # Skip EIP, the return address is already on stack.
+    pop %eax            # Get the EIP and put it at the stack
+    mov 16(%esp), %ebx  # so, when we return back, we'll return to that function
+
+    movl %eax, (%ebx)   # Put the EIP
+    movl $0x08, 4(%ebx) # The SS
+    movl (%esp), %eax     # The EFLAGS
+    movl %eax, 8(%ebx)
+    movl 20(%esp), %eax     # The ESP
+    movl %eax, 12(%ebx)
+    movl $0x10, 16(%ebx)    # The SS
+
+
     popfl
     pop %eax
     mov %eax, %cr3
     popal
 
-    sti                     # Enable them again
-ret
+# Enable them again
+iret

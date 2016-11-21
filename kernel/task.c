@@ -3,7 +3,7 @@
 static struct task_list tasklist;
 static size_t taskID = 0;
 
-static struct task_list_item* task_curr_item;
+static struct task_list_item* task_curr_item = NULL;
 
 /* Init the tasking subsystem */
 void task_init()
@@ -51,10 +51,11 @@ task_t* task_create(uint32_t pc, uint32_t pagedir, uint32_t pflags)
     tsk->regs.eip = pc;
     tsk->regs.cr3 = pagedir;
     tsk->regs.eflags = pflags;
-    tsk->regs.esp = vmm_alloc_page(VMM_AREA_KERNEL, 1) + 0x1000;
+    tsk->regs.esp = vmm_alloc_page(VMM_AREA_KERNEL, 1) + 0xff0;
 
     knotice("task: Task created, id %x, new stack at %08x",
-        tsk->id, tsk->regs.esp-0x1000);
+        tsk->id, tsk->regs.esp-0xff0);
+    tli->item = tsk;
 
     return tsk;
 }
@@ -69,6 +70,10 @@ void task_switch()
     /* Emulate a circular list */
     struct task_list_item* old = task_curr_item;
     struct task_list_item* new = old->next ? old->next : tasklist.first;
+
+    knotice("from task %d [%x, %x] (pc %x) to task %d [%x %x] (pc %x)",
+        old->item->id, old->item, old, old->item->regs.eip,
+        new->item->id, new->item, new, new->item->regs.eip);
 
     task_true_switch(&old->item->regs, &new->item->regs);
 }
