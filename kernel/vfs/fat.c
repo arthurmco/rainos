@@ -372,18 +372,19 @@ int fat_get_root_dir(device_t* dev, vfs_node_t** root_childs)
     knotice("fat: reading root dir at sector %d, %d secs", rootdir_sec_num,
         rootdir_sec_count);
 
-    void* rootdir_sec = kcalloc(fat->sb->bytes_sec, rootdir_sec_count);
+    size_t pages = (fat->sb->bytes_sec * rootdir_sec_count) / 4096 + 1;
+    void* rootdir_sec = (void*)vmm_alloc_page(VMM_AREA_KERNEL, pages);
     int r = device_read(fat->dev, rootdir_sec_num * fat->sb->bytes_sec,
         rootdir_sec_count * fat->sb->bytes_sec, rootdir_sec);
 
     if (r < 0) {
         kerror("fat: couldn't read root directory from device %s", dev->devname);
         return 0;
-        kfree(rootdir_sec);
+        vmm_dealloc_page(rootdir_sec, pages);
     } else if (r == 0) {
         kerror("fat: empty root directory from device %s", dev->devname);
         return 0;
-        kfree(rootdir_sec);
+        vmm_dealloc_page(rootdir_sec, pages);
     }
 
     knotice("Directories... ");
@@ -391,7 +392,7 @@ int fat_get_root_dir(device_t* dev, vfs_node_t** root_childs)
     _fat_read_directories(rootdir_sec, rootdir_sec_count,
         root_childs, NULL, NULL);
 
-    kfree(rootdir_sec);
+    vmm_dealloc_page(rootdir_sec, pages);
 
     return 1;
 }
@@ -415,7 +416,8 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
     /* Get cluster number and offset */
     sec = FAT_GET_FIRST_SECTOR_CLUSTER(fs->sb, clus);
 
-    void* clus_buf = kcalloc(fs->sb->bytes_sec, fs->sb->sec_clus);
+    size_t pages = (fs->sb->bytes_sec * FAT_GET_ROOT_SECTOR_COUNT(fs->sb) / 4096 + 1);
+    void* clus_buf = (void*)vmm_alloc_page(VMM_AREA_KERNEL, pages);
     // knotice("%d %d %d", clus, sec, fs->sb->sec_clus*fs->sb->bytes_sec);
     // knotice("%x %s ~~~", d, d->devname);
 
@@ -425,12 +427,12 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
     if (r < 0) {
         kerror("fat: couldn't read dir %s directory from device %s",
             parent->name, d->devname);
-        kfree(clus_buf);
+        vmm_dealloc_page(clus_buf, pages);
         return 0;
     } else if (r == 0) {
         kerror("fat: empty directory %s from device %s",
             parent->name, d->devname);
-        kfree(clus_buf);
+        vmm_dealloc_page(clus_buf, pages);
         return 0;
     }
 
@@ -462,12 +464,12 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
             if (r < 0) {
                 kerror("fat: couldn't read dir %s directory from device %s",
                     parent->name, d->devname);
-                kfree(clus_buf);
+                vmm_dealloc_page(clus_buf, pages);
                 return 0;
             } else if (r == 0) {
                 kerror("fat: empty directory %s from device %s",
                     parent->name, d->devname);
-                kfree(clus_buf);
+                vmm_dealloc_page(clus_buf, pages);
                 return 0;
             }
 
@@ -511,7 +513,7 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
 
 read_end:
 //    knotice("é 13 porha");
-    kfree(clus_buf);
+    vmm_dealloc_page(clus_buf, pages);
 //    knotice("BIRR");
     return 1;
 }
@@ -534,7 +536,8 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
     /* Get cluster number and offset */
     sec = FAT_GET_FIRST_SECTOR_CLUSTER(fs->sb, clus);
 
-    char* clus_buf = kcalloc(fs->sb->bytes_sec, fs->sb->sec_clus);
+    size_t pages = (fs->sb->bytes_sec * FAT_GET_ROOT_SECTOR_COUNT(fs->sb) / 4096 + 1);
+    char* clus_buf = (char*)vmm_alloc_page(VMM_AREA_KERNEL, pages);
 
     int r = device_read(d, sec * fs->sb->bytes_sec, fs->sb->sec_clus * fs->sb->bytes_sec,
         clus_buf);
@@ -542,19 +545,19 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
     if (r < 0) {
         kerror("fat: couldn't read file %s from device %s",
             node->name, d->devname);
-        kfree(clus_buf);
+        vmm_dealloc_page(clus_buf, pages);
         return 0;
 
     } else if (r == 0) {
         kerror("fat: empty file %s from device %s",
             node->name, d->devname);
-        kfree(clus_buf);
+        vmm_dealloc_page(clus_buf, pages);
         return 0;
     }
 
     if (off > node->size) {
         kwarn("fat: trying to read %s past its length", node->name);
-        kfree(clus_buf);
+        vmm_dealloc_page(clus_buf, pages);
         return 0;
     }
 
@@ -633,7 +636,7 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
         r = device_read(d, sec * fs->sb->bytes_sec, bytes_per_clus, clus_buf);
         if (r <= 0) {
             kerror("fat: error while reading cluster %d", clus);
-            kfree(clus_buf);
+            vmm_dealloc_page(clus_buf, pages);
             return r;
         }
 
@@ -641,7 +644,7 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
 
     } while (len_read < (len-off));
 
-    kfree(clus_buf);
+    vmm_dealloc_page(clus_buf, pages);
 
     return len_read;
 }

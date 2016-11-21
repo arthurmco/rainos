@@ -5,6 +5,9 @@
 
 #include "vfs.h"
 
+//for allocating big blocks directly from the mm
+#include "../arch/i386/vmm.h"
+
 #include <kstring.h>
 #include <kstdlib.h>
 #include <kstdlog.h>
