@@ -79,7 +79,7 @@ virtaddr_t vmm_alloc_page(unsigned int vmm_area, size_t count)
     physaddr_t p;
     virtaddr_t v = vmm_alloc_physical(vmm_area, &p, count, PMM_REG_DEFAULT);
     areas[vmm_area].first_free_addr = v + (count * VMM_PAGE_SIZE);
-    knotice("VMM: Allocated %x -> %x", v, p);
+    //knotice("VMM: Allocated %x -> %x", v, p);
     return v;
 }
 
@@ -123,7 +123,7 @@ virtaddr_t vmm_alloc_physical(unsigned int vmm_area,
         pdir = GET_DIR(addr);
         ptbl = GET_TABLE(addr);
 
-        knotice("Allocating at pdir %d ptbl %d", pdir, ptbl);
+        //knotice("Allocating at pdir %d ptbl %d", pdir, ptbl);
 
         /* Tries to allocate until we cross the area boundary */
         while (!vmm_check_if_page_allocated(pdir, ptbl, count, vmm_area)) {
@@ -145,8 +145,8 @@ virtaddr_t vmm_alloc_physical(unsigned int vmm_area,
         *phys = 0;
         physaddr_t ph = pmm_alloc(count, pmm_type);
 
-        knotice("Allocated at directory/table %x:%x to physaddr 0x%x",
-            pdir, ptbl, ph);
+        //knotice("Allocated at directory/table %x:%x to physaddr 0x%x",
+        //    pdir, ptbl, ph);
 
         size_t page = 0;
         for (unsigned int d = pdir; d < 1024; d++) {
@@ -173,8 +173,8 @@ virtaddr_t vmm_alloc_physical(unsigned int vmm_area,
                         areas[vmm_area].first_free_addr = nfree;
                     }
 
-                    knotice("VMM: allocated address 0x%x, first free is %x",
-                        naddr, nfree);
+                    //knotice("VMM: allocated address 0x%x, first free is %x",
+                    //    naddr, nfree);
                     return naddr;
                 }
             }
@@ -214,8 +214,8 @@ virtaddr_t vmm_map_physical(unsigned int vmm_area,
         }
 
 
-        knotice("Allocated %d pages at directory/table %x:%x to physaddr 0x%x",
-            count, pdir, ptbl, phys);
+        //knotice("Allocated %d pages at directory/table %x:%x to physaddr 0x%x",
+        //    count, pdir, ptbl, phys);
 
         physaddr_t ph = phys;
 

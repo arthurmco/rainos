@@ -201,7 +201,7 @@ static physaddr_t _pmm_set_addr(physaddr_t addr, size_t pages, struct MMAPRegion
     int force_addr) {
     uint32_t startpage = (addr - reg->start) / PMM_PAGE_SIZE;
     uint32_t limit = startpage + (reg->len / PMM_PAGE_SIZE);
-    knotice("<<%x>>",addr);
+    //knotice("<<%x>>",addr);
 
     while (startpage < limit) {
         if (BITSET_ISSET(reg->region_bitset, startpage/8, startpage%8)) {
@@ -247,7 +247,7 @@ static physaddr_t _pmm_set_addr(physaddr_t addr, size_t pages, struct MMAPRegion
     if (!force_addr)
         reg->first_free_addr = addr + (pages * PMM_PAGE_SIZE);
 
-    knotice("[%x]", addr);
+    //knotice("[%x]", addr);
     return addr;
 }
 
