@@ -4,6 +4,66 @@ static struct task_list tasklist;
 static size_t taskID = 0;
 
 static struct task_list_item* task_curr_item = NULL;
+static int switched = 0;
+
+void task_irq_handler(regs_t* regs) {
+    if (!switched) return;
+
+    /*  Save this register set into the old task structure and
+        put the registers from the next task */
+
+    /* Emulate a circular list */
+    struct task_list_item* old = task_curr_item;
+    struct task_list_item* new = old->next ? old->next : tasklist.first;
+
+    if (!new) {
+        panic("Task list corruption! 'next' task shouldn't be NULL");
+    }
+
+    /* Same task? Return. */
+    /* TODO: Go idle */
+    //if (old == new) return;
+
+    old->item->regs.eax = regs->eax;
+    old->item->regs.ebx = regs->ebx;
+    old->item->regs.ecx = regs->ecx;
+    old->item->regs.edx = regs->edx;
+    old->item->regs.esi = regs->esi;
+    old->item->regs.edi = regs->edi;
+    old->item->regs.esp = regs->old_esp;
+    old->item->regs.ebp = regs->ebp;
+    old->item->regs.eip = regs->eip;
+    old->item->regs.eflags = regs->eflags;
+    asm volatile("mov %%cr3, %%eax" : "=a"(old->item->regs.cr3));
+
+    knotice("\teax: %08x\t ebx: %08x\t ecx: %08x\t edx:%08x", regs->eax, regs->ebx, regs->ecx, regs->edx);
+    knotice("\tesi: %08x\t edi: %08x\t esp: %08x\t ebp:%08x", regs->esi, regs->edi, regs->old_esp, regs->ebp);
+    knotice("\teip: %08x\t eflags: %08x\t cr3: %08x", regs->eip, regs->eflags, old->item->regs.cr3);
+
+    knotice("\n----");
+
+    regs->eax = new->item->regs.eax;
+    regs->ebx = new->item->regs.ebx;
+    regs->ecx = new->item->regs.ecx;
+    regs->edx = new->item->regs.edx;
+    regs->esi = new->item->regs.esi;
+    regs->edi = new->item->regs.edi;
+    regs->old_esp = new->item->regs.esp;
+    regs->ebp = new->item->regs.ebp;
+    regs->eip = new->item->regs.eip;
+    regs->eflags = new->item->regs.eflags;
+    asm volatile("mov %%eax, %%cr3" : : "a"(new->item->regs.cr3));
+
+    knotice("\teax: %08x\t ebx: %08x\t ecx: %08x\t edx:%08x", regs->eax, regs->ebx, regs->ecx, regs->edx);
+    knotice("\tesi: %08x\t edi: %08x\t esp: %08x\t ebp:%08x", regs->esi, regs->edi, regs->old_esp, regs->ebp);
+    knotice("\teip: %08x\t eflags: %08x\t cr3: %08x", regs->eip, regs->eflags, new->item->regs.cr3);
+
+    task_curr_item = new;
+    switched = 0;
+
+    /*  Return. The iret in the final of this irq handler will
+        take care of returning to the right place */
+}
 
 /* Init the tasking subsystem */
 void task_init()
@@ -20,7 +80,9 @@ void task_init()
     task_t* tKernel = task_create((uint32_t)&task_init, pagedir, eflags);
     task_curr_item = tasklist.first;
 
-    knotice("task: Task system initialised");
+    irq_add_handler(0, &task_irq_handler);
+
+    knotice("task: Task system initialised. Kernel task is %x", task_curr_item);
 }
 
 /* Creates a task.
@@ -39,7 +101,9 @@ task_t* task_create(uint32_t pc, uint32_t pagedir, uint32_t pflags)
         tasklist.first = tli;
 
     tli->prev->next = tli;
-    tli->next = NULL;
+    tli->next = tasklist.first;
+    tasklist.first->prev = tli;
+
     tasklist.last = tli;
     tasklist.count++;
 
@@ -51,7 +115,8 @@ task_t* task_create(uint32_t pc, uint32_t pagedir, uint32_t pflags)
     tsk->regs.eip = pc;
     tsk->regs.cr3 = pagedir;
     tsk->regs.eflags = pflags;
-    tsk->regs.esp = vmm_alloc_page(VMM_AREA_KERNEL, 1) + 0xff0;
+    tsk->regs.esp = vmm_alloc_page(VMM_AREA_KERNEL, 1) + 0xf00;
+    tsk->regs.ebp = tsk->regs.esp;
 
     knotice("task: Task created, id %x, new stack at %08x",
         tsk->id, tsk->regs.esp-0xff0);
@@ -60,6 +125,7 @@ task_t* task_create(uint32_t pc, uint32_t pagedir, uint32_t pflags)
     return tsk;
 }
 
+
 void task_remove(task_t* task)
 {
 
@@ -67,6 +133,8 @@ void task_remove(task_t* task)
 
 void task_switch()
 {
+    asm volatile("cli");
+
     /* Emulate a circular list */
     struct task_list_item* old = task_curr_item;
     struct task_list_item* new = old->next ? old->next : tasklist.first;
@@ -75,8 +143,11 @@ void task_switch()
         old->item->id, old->item, old, old->item->regs.eip,
         new->item->id, new->item, new, new->item->regs.eip);
 
-    task_true_switch(&old->item->regs, &new->item->regs);
+    switched = 1;
+
+    asm("sti; hlt");
 }
+
 
 /* Returns the current task */
 task_t* task_get_current()

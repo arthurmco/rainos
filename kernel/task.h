@@ -34,6 +34,7 @@ void task_init();
 */
 task_t* task_create(uint32_t pc, uint32_t pagedir, uint32_t pflags);
 void task_remove(task_t* task);
+void task_push_regs(task_regs_t* regs);
 
 void task_switch();
 

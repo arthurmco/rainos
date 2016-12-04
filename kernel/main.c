@@ -72,13 +72,19 @@ extern uintptr_t _kernel_start[];
 extern uintptr_t _kernel_end[];
 
 static void taskA() {
-    kprintf("A");
-    task_switch();
+    while (1) {
+        kprintf("A");
+        sleep(2000);
+        task_switch();
+    }
 }
 
 static void taskB() {
-    kprintf("B");
-    task_switch();
+    while (1) {
+        kprintf("B");
+        sleep(2000);
+        task_switch();
+    }
 }
 
 void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
@@ -410,9 +416,9 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     asm volatile("movl %%cr3, %%eax; movl %%eax, %0;":"=m"(pagedir)::"%eax");
     asm volatile("pushfl; movl (%%esp), %%eax; movl %%eax, %0; popfl;":"=m"(eflags)::"%eax");
     task_create(&taskA, pagedir, eflags);
-    task_create(&taskB, pagedir, eflags);
+    //task_create(&taskB, pagedir, eflags);
 
-    //while (1) task_switch();
+    while (1) {kprintf("[SELF] "); task_switch(); sleep(10);}
 
     kshell_init();
 }

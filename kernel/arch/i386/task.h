@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #include "vmm.h"
+#include "irq.h"
 
 #ifndef TASK_H
 #define TASK_H
