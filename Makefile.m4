@@ -47,6 +47,9 @@ qemu: all initrd
 qemu-serial: all initrd
 	qemu-system-i386 -kernel $(OUT) -initrd initrd.rain -m 8 -serial stdio
 
+qemu-gdb: all initrd
+	qemu-system-i386 -kernel $(OUT) -initrd initrd.rain -m 8 -serial stdio -S -s
+
 clean: *.o
 	rm -f *.o
 	rm -f *.iso
