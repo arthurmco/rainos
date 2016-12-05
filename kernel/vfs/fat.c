@@ -51,10 +51,21 @@ int fat_mount(device_t* dev)
         (FAT_GET_SECTORS(fat) - FAT_GET_FIRST_DATA_SECTOR(fat)) / fat->sec_clus,
         fattype, volname);
 
+    size_t fat_sz = FAT_GET_FAT_SIZE(fat);
+    knotice("FAT: fat has %d sectors ", fat_sz);
+
+    /* Here we'll read the fat */
+    uint32_t* fat_buf = (uint32_t*)vmm_alloc_page(VMM_AREA_KERNEL, 1);
+
+    /* FAT starts right after the reserved sectors */
+    device_read(dev, fat->rsvd_secs * fat->bytes_sec, fat_sz,
+        fat_buf);
+
     struct fat_fs f;
     f.dev = dev;
     f.sb = fat;
     f.fat_type = fattype;
+    f.fat = fat_buf;
     fats[fat_count++] = f;
     return 1;
 }
@@ -459,8 +470,7 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
             knotice(">>> clus %d, nextsec: %d, nextoff: %d, buf %x",
              clus, next_clus_sec, next_clus_off, clus_buf);
             /* Don't mind reusing buffers */
-            r = device_read(d, next_clus_sec * fs->sb->bytes_sec, fs->sb->bytes_sec,
-                clus_buf);
+            memcpy(fs->fat, clus_buf, fs->sb->bytes_sec);
             if (r < 0) {
                 kerror("fat: couldn't read dir %s directory from device %s",
                     parent->name, d->devname);
@@ -495,6 +505,7 @@ int fat_readdir(vfs_node_t* parent, vfs_node_t** childs)
                     break;
             }
 
+            /* Now clus_buf is used to store cluster content again */
             sec = FAT_GET_FIRST_SECTOR_CLUSTER(fs->sb, clus);
 
             r = device_read(d, sec * fs->sb->bytes_sec, fs->sb->sec_clus * fs->sb->bytes_sec,

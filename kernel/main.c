@@ -415,10 +415,10 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     uint32_t pagedir, eflags;
     asm volatile("movl %%cr3, %%eax; movl %%eax, %0;":"=m"(pagedir)::"%eax");
     asm volatile("pushfl; movl (%%esp), %%eax; movl %%eax, %0; popfl;":"=m"(eflags)::"%eax");
-    task_create(&taskA, pagedir, eflags);
+    //task_create(&taskA, pagedir, eflags);
     //task_create(&taskB, pagedir, eflags);
 
-    while (1) {kprintf("[SELF] "); task_switch(); sleep(10);}
+    //while (1) {kprintf("[SELF] "); task_switch(); sleep(10);}
 
     kshell_init();
 }

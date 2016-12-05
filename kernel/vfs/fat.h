@@ -146,6 +146,7 @@ struct fat_fs {
     device_t* dev;
     struct fat_superblock* sb;
     uint8_t fat_type; //12, 16 or 32.
+    void* fat;  //The content of the fat
 };
 
 void fat_init();
