@@ -15,6 +15,7 @@
 #include "arch/i386/devices/pci.h"
 #include "arch/i386/devices/floppy.h"
 #include "arch/i386/devices/ata.h"
+#include "arch/i386/devices/rtc.h"
 #include "arch/i386/multiboot.h"
 #include "arch/i386/vmm.h"
 #include "arch/i386/tss.h"
@@ -396,6 +397,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     t.month = 0;
     t.year = 0;
     time_init(t);
+    rtc_init();
 
     knotice("BIOS: Extended BDA is at addr 0x%x", ebda_get_base());
     uintptr_t rsdptr;
