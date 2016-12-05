@@ -597,8 +597,13 @@ static int kheap_show(int argc, char** argv) {
     }
 
     size_t umem = 0;
-    kprintf("Heap: %d to %d\n", start, end);
 
+    if (start < 0 || start > end || start > hUsed.count) {
+        kprintf("Invalid range - try %d to %d", start+1, end);
+        return;
+    }
+
+    kprintf("Heap: %d to %d\n", start, end);
 
     for (size_t i = 0; i < start; i++) {
         if (it) { it = it->next; }
