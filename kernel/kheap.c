@@ -173,8 +173,9 @@ virtaddr_t kheap_allocate(size_t bytes)
 
      knotice("ZZZ %x %d", item->addr, item->bytes); */
 
-    if (((uintptr_t)item_reserve_top - (uintptr_t)item_reserve_bottom) <=
+    if (((uintptr_t)item_reserve_bottom + item_alloc_size) - ((uintptr_t)item_reserve_top)  <=
         sizeof(heap_item_t)) {
+        knotice("%x %x", item_reserve_top, item_reserve_bottom);
         kheap_get_more_descriptors();
     }
 
