@@ -612,15 +612,8 @@ static int fat_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
         fat_get_fat_cluster_entry(fs->sb, clus, &next_clus_sec, &next_clus_off);
 
         /* Don't mind reusing buffers */
-        r = device_read(d, next_clus_sec * fs->sb->bytes_sec, fs->sb->bytes_sec,
-            clus_buf);
-
-        if (r <= 0) {
-            kerror("fat: couldn't read cluster entry on FAT for clus %d", clus);
-            kfree(clus_buf);
-            return 0;
-        }
-
+        memcpy(fs->fat, clus_buf, fs->sb->bytes_sec);
+        
         r = fat_get_next_cluster(clus_buf, next_clus_off, fs->fat_type);
         knotice("fat: next cluster is %d", r);
 
