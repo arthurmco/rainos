@@ -421,6 +421,14 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     //task_create(&taskB, pagedir, eflags);
 
     //while (1) {kprintf("[SELF] "); task_switch(); sleep(10);}
+    struct time_tm tt;
+    time_gettime(&tt);
+    uint32_t utime = (uint32_t)(time_to_unix(&tt) & 0xffffffff);
+    kprintf("Unix time: %d\n", utime);
+    memset(&tt, 0, sizeof(struct time_tm));
+    time_from_unix(utime, &tt);
+    kprintf("Value: %02d:%02d:%02d %02d/%02d/%04d\n",
+        tt.hour, tt.minute, tt.second, tt.day, tt.month, tt.year);
 
     kshell_init();
 }
