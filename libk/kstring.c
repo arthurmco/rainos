@@ -66,7 +66,10 @@ void vsprintf(char* str, const char* fmt, va_list vl) {
                 case 'd': {
                     char num[16];
                     int32_t i = va_arg(vl, int32_t);
-                    itoa_s(i, num, 10);
+                    if (padding > 0)
+                        itoa_s_pad(i, num, 10, padding, padchar);
+                    else
+                        itoa_s(i, num, 10);
                     *str = 0;
                     str = strcat(str, num);
                     str++;
