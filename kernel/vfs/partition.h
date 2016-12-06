@@ -9,6 +9,7 @@
 #include <kstdlog.h>
 
 #include "../dev.h"
+#include "../dev_ioctl.h"
 
 #ifndef _PARTITION_H
 #define _PARTITION_H
@@ -26,6 +27,19 @@ struct partition {
     uint32_t lba_size;
 } __attribute__((packed));
 
+struct vfs_partition {
+    uint64_t lba_start, lba_size;
+    uint64_t lba_used_space;
+    char devname[8];
+    char fsname[16];
+    char name[32];
+    device_t* dev;
+    int mounted;
+};
+
+
+/* Functions ****************/
+
 /* Initialize partition parsing system */
 void partitions_init();
 
@@ -42,9 +56,8 @@ void partitions_init();
 */
 int partitions_retrieve(device_t* dev);
 
-
-
-
-
+/* Retrieve the device of the corresponding partition number
+    (usually disk0p{num}), or NULL if partition doesn't exist */
+device_t* partitions_get_device(device_t* disk, int num);
 
 #endif /* end of include guard: _PARTITION_H */

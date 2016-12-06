@@ -4,6 +4,8 @@
 */
 
 #include "vfs.h"
+#include "../dev_ioctl.h"
+#include "../dev.h"
 #include "../time.h"
 
 //for allocating big blocks directly from the mm

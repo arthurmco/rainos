@@ -51,6 +51,9 @@ int fat_mount(device_t* dev)
         (FAT_GET_SECTORS(fat) - FAT_GET_FIRST_DATA_SECTOR(fat)) / fat->sec_clus,
         fattype, volname);
 
+    device_ioctl(dev, IOCTL_SET_LABEL, NULL, (uint32_t)volname, strlen(volname));
+    device_ioctl(dev, IOCTL_SET_FSNAME, NULL, (uint32_t)"fatfs", 5);
+
     size_t fat_sz = FAT_GET_FAT_SIZE(fat);
     knotice("FAT: fat has %d sectors ", fat_sz);
     fat_sz = 32;

@@ -93,6 +93,7 @@ int vfs_mount(vfs_node_t* node, device_t* dev, struct vfs_filesystem* fs)
         node_childs = node_childs->next;
     }
 
+    device_ioctl(dev, IOCTL_SET_MOUNTED, NULL, 1, NULL);
     knotice("VFS: mounted filesystem %s at device %s on %s",
         fs->fsname, dev->devname, node->name);
     return 1;

@@ -38,7 +38,7 @@ typedef struct device {
     int (*__dev_seek)(struct device*, uint64_t off);
 
     /* fill this in any case */
-    int (*__dev_ioctl)(struct device*, uint32_t op, uint32_t* ret,
+    int (*__dev_ioctl)(struct device*, uint32_t op, uint64_t* ret,
         uint32_t data1,  uint64_t data2);
 
     struct device* next;
@@ -63,6 +63,6 @@ device_t* device_create(uint64_t id, const char* name,
 void device_destroy(device_t* dev);
 
 int device_read(device_t* dev, uint64_t off, size_t len, void* buf);
-int device_ioctl(device_t* dev, uint32_t op, uint32_t* ret, uint32_t data1, uint64_t data2);
+int device_ioctl(device_t* dev, uint32_t op, uint64_t* ret, uint32_t data1, uint64_t data2);
 
 #endif /* end of include guard: _DEV_H */
