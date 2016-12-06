@@ -337,13 +337,18 @@ static int _fat_read_directories(void* clusterbuf, unsigned int dir_sec_count,
         node->parent = parent;
 
         struct time_tm dc, dm;
+        dc.second = (rootdir[i].create_time & 0x1f) * 2;
+        dc.minute = (rootdir[i].create_time >> 5) & 0x3f;
+        dc.hour = (rootdir[i].create_time >> 11) & 0x1f;
         dc.day = rootdir[i].create_date & 0x1f;
-        dc.month = (rootdir[i].create_date >> 5) & 0x3f;
-        dc.year = (rootdir[i].create_date >> 11) & 0x1f;
-        dc.hour = rootdir[i].create_time & 0x7f;
-        dc.minute = (rootdir[i].create_date >> 7) & 0x0f;
-        dc.second = (rootdir[i].create_date >> 11) & 0x1f;
+        dc.month = (rootdir[i].create_date >> 5) & 0x0f;
+        dc.year = 1980+((rootdir[i].create_date >> 9) & 0x7f);
+
         node->date_creation = time_to_unix(&dc);
+        knotice("%s: %d:%d:%d %d/%d/%d (%x)",
+            node->name, dc.hour, dc.minute, dc.second,
+            dc.day, dc.month, dc.year,
+            (uint32_t)(node->date_creation & 0xffffffff));
 
         if (parent) {
             node->mount = parent->mount;
