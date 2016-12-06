@@ -120,6 +120,9 @@ FAT_ATTR_LONG_NAME  =
 
 };
 
+#define FAT_CLUSTER_COUNT(sb) \
+    (FAT_GET_SECTORS(sb) - FAT_GET_FIRST_DATA_SECTOR(sb)) / sb->sec_clus
+
 #define FAT_GET_SECTORS(sb) \
     ((sb->tot_sec_16) ? sb->tot_sec_16 : sb->tot_sec_32)
 

@@ -53,9 +53,11 @@ int fat_mount(device_t* dev)
 
     size_t fat_sz = FAT_GET_FAT_SIZE(fat);
     knotice("FAT: fat has %d sectors ", fat_sz);
-
+    fat_sz = 32;
     /* Here we'll read the fat */
-    uint32_t* fat_buf = (uint32_t*)vmm_alloc_page(VMM_AREA_KERNEL, 1);
+    uint64_t pagecnt = (fat_sz*512) / VMM_PAGE_SIZE;
+    uint32_t* fat_buf = (uint32_t*)vmm_alloc_page(VMM_AREA_KERNEL,
+        ((uint32_t)pagecnt & 0xffffffff) + 1);
 
     /* FAT starts right after the reserved sectors */
     device_read(dev, fat->rsvd_secs * fat->bytes_sec, fat_sz,
