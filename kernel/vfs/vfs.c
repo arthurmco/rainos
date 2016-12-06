@@ -63,6 +63,15 @@ int vfs_mount(vfs_node_t* node, device_t* dev, struct vfs_filesystem* fs)
         return 0;
     }
 
+    /* Check if isn't mounted already */
+    for (size_t i = 0; i < mount_count; i++) {
+        if (mounts[i].fs == fs && mounts[i].dev == dev &&
+            mounts[i].root_dir == node) {
+                kerror("VFS: this filesystem is already mounted here.");
+                return 0;
+            }
+    }
+
     //knotice("%s %x %x", fs->fsname, fs->__vfs_mount, fs->__vfs_get_root_dir);
     if (!fs->__vfs_mount(dev)) {
         kerror("VFS: couldn't mount fs %s into dev %s", fs->fsname, dev->devname );
