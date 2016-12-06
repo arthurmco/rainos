@@ -23,11 +23,14 @@ ISO=rainos.iso
 LIBK=kstdio.o kstdlib.o kstring.o kstdlog.o
 ARCH_DEP=start.o idt.o idt_asm.o fault.o vga.o ioport.o serial.o 8259.o 8042.o \
  ps2_kbd.o pit.o pci.o ata.o irq.o irq_asm.o pages.o vmm.o tss.o usermode.o \
- specifics.o vbe.o floppy.o ebda.o
+ specifics.o floppy.o ebda.o taskswitch.o rtc.o \
+ vbe.o
 
 all: $(ARCH_DEP) stackguard.o main.o terminal.o ttys.o pmm.o kheap.o dev.o \
- disk.o vfs.o partition.o fat.o initrd.o keyboard.o kshell.o framebuffer.o \
- fbcon.o sfs.o elf.o time.o $(LIBK)
+ disk.o vfs.o partition.o fat.o sfs.o initrd.o keyboard.o kshell.o elf.o \
+ time.o task.o \
+ framebuffer.o fbcon.o \
+ $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
 initrd: initrd.rain
@@ -45,6 +48,9 @@ qemu: all initrd
 
 qemu-serial: all initrd
 	qemu-system-i386 -kernel $(OUT) -initrd initrd.rain -m 8 -serial stdio
+
+qemu-gdb: all initrd
+	qemu-system-i386 -kernel $(OUT) -initrd initrd.rain -m 8 -serial stdio -S -s
 
 clean: *.o
 	rm -f *.o
@@ -65,6 +71,7 @@ C_SOURCE_WITH_H(kernel/arch/i386/devices/,8259)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,8042)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,ps2_kbd)
 C_SOURCE_WITH_H(kernel/arch/i386/devices/,ata)
+C_SOURCE_WITH_H(kernel/arch/i386/devices/,rtc)
 C_SOURCE_WITH_H(kernel/arch/i386/,specifics)
 C_SOURCE_WITH_H(kernel/arch/i386/,tss)
 C_SOURCE_WITH_H(kernel/arch/i386/,idt)
@@ -77,6 +84,7 @@ C_SOURCE_WITH_H(kernel/,pmm)
 ASM_SOURCE(kernel/arch/i386/,idt_asm)
 ASM_SOURCE(kernel/arch/i386/,usermode)
 ASM_SOURCE(kernel/arch/i386/,irq_asm)
+ASM_SOURCE(kernel/arch/i386/,taskswitch)
 C_SOURCE_WITH_H(kernel/arch/i386/,fault)
 C_SOURCE_WITH_H(kernel/vfs/,vfs)
 C_SOURCE_WITH_H(kernel/vfs/,partition)
@@ -92,6 +100,7 @@ C_SOURCE_WITH_H(kernel/,initrd)
 C_SOURCE_WITH_H(kernel/,keyboard)
 C_SOURCE_WITH_H(kernel/,time)
 C_SOURCE_WITH_H(kernel/,kshell)
+C_SOURCE_WITH_H(kernel/,task)
 C_SOURCE_WITH_H(kernel/,framebuffer)
 C_SOURCE_WITH_H(kernel/,fbcon)
 C_SOURCE(kernel/,main)

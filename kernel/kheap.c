@@ -173,8 +173,9 @@ virtaddr_t kheap_allocate(size_t bytes)
 
      knotice("ZZZ %x %d", item->addr, item->bytes); */
 
-    if (((uintptr_t)item_reserve_top - (uintptr_t)item_reserve_bottom) <=
+    if (((uintptr_t)item_reserve_bottom + item_alloc_size) - ((uintptr_t)item_reserve_top)  <=
         sizeof(heap_item_t)) {
+        knotice("%x %x", item_reserve_top, item_reserve_bottom);
         kheap_get_more_descriptors();
     }
 
@@ -596,8 +597,13 @@ static int kheap_show(int argc, char** argv) {
     }
 
     size_t umem = 0;
-    kprintf("Heap: %d to %d\n", start, end);
 
+    if (start < 0 || start > end || start > hUsed.count) {
+        kprintf("Invalid range - try %d to %d", start+1, end);
+        return;
+    }
+
+    kprintf("Heap: %d to %d\n", start, end);
 
     for (size_t i = 0; i < start; i++) {
         if (it) { it = it->next; }

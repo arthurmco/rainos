@@ -4,6 +4,10 @@
 */
 
 #include "vfs.h"
+#include "../time.h"
+
+//for allocating big blocks directly from the mm
+#include "../arch/i386/vmm.h"
 
 #include <kstring.h>
 #include <kstdlib.h>
@@ -143,6 +147,7 @@ struct fat_fs {
     device_t* dev;
     struct fat_superblock* sb;
     uint8_t fat_type; //12, 16 or 32.
+    void* fat;  //The content of the fat
 };
 
 void fat_init();

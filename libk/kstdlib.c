@@ -101,6 +101,31 @@ void utoa_s_pad(uint32_t i, char* str, int base, int pad, char padchar)
     strrev(strb, str);
 }
 
+void itoa_s_pad(int32_t i, char* str, int base, int pad, char padchar)
+{
+    int index = 0;
+    char strb[sizeof(i)*8];
+    int32_t num;
+    int len = 0;
+    int neg = i < 0;
+    i = neg ? ((i ^ 0xffffffff)+1) : i;
+
+    do {
+        num = i % base;
+        strb[index++] = num2str[num];
+        i /= base;
+        len++;
+    } while (i > 0);
+
+    while (len < pad) {
+        strb[index++] = padchar;
+        len++;
+    }
+
+    strb[index] = 0;
+    strrev(strb, str);
+}
+
 void memset(void* ptr, uint8_t val, size_t num)
 {
     if ((num % 4) == 0)

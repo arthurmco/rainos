@@ -57,6 +57,9 @@ typedef struct vfs_node {
     /* Physical file size */
     uint64_t size;
 
+    /* Unix epoch timestamps for creation and last modification */
+    uint64_t date_creation, date_modification;
+
     /* A pointer to the mount point.
         Held as void to avoid circular reference errors */
     void* mount;

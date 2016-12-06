@@ -15,6 +15,7 @@
 #include "arch/i386/devices/pci.h"
 #include "arch/i386/devices/floppy.h"
 #include "arch/i386/devices/ata.h"
+#include "arch/i386/devices/rtc.h"
 #include "arch/i386/multiboot.h"
 #include "arch/i386/vmm.h"
 #include "arch/i386/tss.h"
@@ -40,10 +41,7 @@
 #include "vfs/fat.h"
 #include "vfs/sfs.h"
 
-volatile int _timer = 0;
-void timer(regs_t* regs) {
-    kprintf("Timer: %d\n", _timer++);
-}
+#include "task.h"
 
 extern void jump_usermode(uintptr_t stack, uintptr_t usermode_function);
 
@@ -75,6 +73,22 @@ extern void jump_usermode(uintptr_t stack, uintptr_t usermode_function);
 
 extern uintptr_t _kernel_start[];
 extern uintptr_t _kernel_end[];
+
+static void taskA() {
+    while (1) {
+        kprintf("A");
+        sleep(2000);
+        task_switch();
+    }
+}
+
+static void taskB() {
+    while (1) {
+        kprintf("B");
+        sleep(2000);
+        task_switch();
+    }
+}
 
 void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     static terminal_t term_stdio;
@@ -415,6 +429,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     t.month = 0;
     t.year = 0;
     time_init(t);
+    rtc_init();
 
     knotice("BIOS: Extended BDA is at addr 0x%x", ebda_get_base());
     uintptr_t rsdptr;
@@ -429,6 +444,23 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     if (rsdptr) {
         knotice("BIOS: running on Bochs/QEMU (%x)", rsdptr);
     }
+
+    task_init();
+    uint32_t pagedir, eflags;
+    asm volatile("movl %%cr3, %%eax; movl %%eax, %0;":"=m"(pagedir)::"%eax");
+    asm volatile("pushfl; movl (%%esp), %%eax; movl %%eax, %0; popfl;":"=m"(eflags)::"%eax");
+    //task_create(&taskA, pagedir, eflags);
+    //task_create(&taskB, pagedir, eflags);
+
+    //while (1) {kprintf("[SELF] "); task_switch(); sleep(10);}
+    struct time_tm tt;
+    time_gettime(&tt);
+    uint32_t utime = (uint32_t)(time_to_unix(&tt) & 0xffffffff);
+    kprintf("Unix time: %d\n", utime);
+    memset(&tt, 0, sizeof(struct time_tm));
+    time_from_unix(utime, &tt);
+    kprintf("Value: %02d:%02d:%02d %02d/%02d/%04d\n",
+        tt.hour, tt.minute, tt.second, tt.day, tt.month, tt.year);
 
     kshell_init();
 }
