@@ -82,9 +82,7 @@ void time_from_unix(uint64_t utime, struct time_tm* t) {
     utime %= 86400;
 
     for (int i = 0; i <= 12; i++) {
-        knotice(".<%d|%d>", day, month_day_sum[i]);
         if (day < month_day_sum[i]) {
-            knotice("%d", i);
             mon = i;
             day -= month_day_sum[i-1];
             break;

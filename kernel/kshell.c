@@ -35,9 +35,17 @@ static int kshell_ls(int argc, char** argv) {
         char csize[16];
         while (childs) {
             sprintf(csize, "%d bytes", (uint32_t)childs->size & 0xffffffff);
-            kprintf("(%x) %s\t\t%s\n", childs->flags, childs->name,
+            kprintf("%s\t\t%s", childs->name,
                 childs->flags & VFS_FLAG_FOLDER ? "[DIR]" : csize);
+
             bytes += (size_t)childs->size;
+
+            struct time_tm cdate = {0};
+            time_from_unix(childs->date_creation, &cdate);
+            kprintf("\t\t%d/%d/%d %d:%d:%d\n",
+                    cdate.day, cdate.month, cdate.year,
+                    cdate.hour, cdate.minute, cdate.second);
+
             childs = childs->next;
             chcount++;
 

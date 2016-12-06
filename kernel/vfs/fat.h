@@ -4,6 +4,7 @@
 */
 
 #include "vfs.h"
+#include "../time.h"
 
 //for allocating big blocks directly from the mm
 #include "../arch/i386/vmm.h"

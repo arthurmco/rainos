@@ -41,6 +41,7 @@ struct tar_block_header
 struct initrd_file {
     char name[64];
     size_t size;
+    uint32_t cdate;
     uintptr_t addr;
     int flags;
     struct initrd_file* next;

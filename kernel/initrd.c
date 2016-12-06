@@ -39,6 +39,7 @@ int initrd_mount() {
         node->block = file->addr;
         node->inode = (uintptr_t)file;
         node->flags = file->flags;
+        node->date_creation = file->cdate;
 
         node->prev = prev;
         if (prev) {
@@ -93,6 +94,7 @@ static int initrd_readdir(vfs_node_t* parent, vfs_node_t** childs)
         node->block = fchild->addr;
         node->inode = (uintptr_t)fchild;
         node->flags = fchild->flags;
+        node->date_creation = fchild->cdate;
 
         node->prev = prev;
         if (prev) {
@@ -134,7 +136,8 @@ static int initrd_read(vfs_node_t* node, uint64_t off, size_t len, void* buf)
     return len;
 }
 
-/*  Initialize the initrd
+/*  Initialize the initrd, parses the tar file content to a more
+    tree-like format.
     Returns 1 if succeded, 0 if not */
 int initrd_init(uintptr_t start, uintptr_t end)
 {
@@ -189,6 +192,7 @@ int initrd_init(uintptr_t start, uintptr_t end)
 
 
         size_t size = atoi(blk->size, 8);
+        uint32_t cdate = atoi(blk->mtime, 8);
 
         /*  On tar files, file data always come after the definition,
             even on directories */
@@ -206,6 +210,7 @@ int initrd_init(uintptr_t start, uintptr_t end)
         file->addr = addr;
         file->name[63] = 0;
         file->size = size;
+        file->cdate = cdate;
 
         if (slash_count > prev_slash_count) {
             /* Previous directory was a parent directory */
