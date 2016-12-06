@@ -77,6 +77,21 @@ void vsprintf(char* str, const char* fmt, va_list vl) {
                 }
                     break;
 
+                    //unsigned integer
+                case 'u': {
+                    char num[16];
+                    int32_t i = va_arg(vl, int32_t);
+                    if (padding > 0)
+                        utoa_s_pad(i, num, 10, padding, padchar);
+                    else
+                        utoa_s(i, num, 10);
+                    *str = 0;
+                    str = strcat(str, num);
+                    str++;
+
+                }
+                break;
+
                 //hex
                 case 'x': {
                     char num[8];
@@ -96,6 +111,17 @@ void vsprintf(char* str, const char* fmt, va_list vl) {
                     char* s = va_arg(vl, char*);
                     *str = 0;
                     str = strcat(str, s);
+                    int truepad = padding-strlen(s);
+                    if (truepad > 0) {
+                        for (int i = 0; i < truepad; i++) {
+                            str++;
+                            *str = ' ';
+
+                        }
+                        str++;
+                        *str = 0;
+                        str--;
+                    }
                     str++;
 
                 }

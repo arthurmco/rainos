@@ -35,7 +35,7 @@ static int kshell_ls(int argc, char** argv) {
         char csize[16];
         while (childs) {
             sprintf(csize, "%d bytes", (uint32_t)childs->size & 0xffffffff);
-            kprintf("%s\t\t%s", childs->name,
+            kprintf("%20s\t\t%10s", childs->name,
                 childs->flags & VFS_FLAG_FOLDER ? "[DIR]" : csize);
 
             bytes += (size_t)childs->size;
