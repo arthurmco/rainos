@@ -119,8 +119,28 @@ int device_ioctl(device_t* dev, uint32_t op, uint64_t* ret, uint32_t data1, uint
 {
     if (!dev) return 0;
     if (!dev->__dev_ioctl) {
-        kwarn("DEV: No ioctl support for %s", dev->devname);
+        kwarn("DEV: No ioctl support for %s (op %x)", dev->devname, op);
         return 0;
+    }
+
+    int ioctl_handlers = 0;
+    for (unsigned i = 0; i < dev->ioctl_handler_count; i++) {
+        /*  Check for the operation and call every function that claims this op
+            Stops on the first error
+            TODO: On the first error but UNSUPPORTED IOCTL.
+        */
+        for (unsigned j = 0; j < dev->ioctls[i].op_count; j++) {
+            if (dev->ioctls[i].ops[j] == op) {
+                int r = dev->ioctls[i].fun(dev, op, ret, data1, data2);
+                ioctl_handlers++;
+                if (r <= 0) return r;
+            }
+        }
+
+    }
+
+    if (ioctl_handlers <= 0) {
+        kwarn("DEV: no ioctl handlers for %s op %x", dev->devname, op);
     }
     return dev->__dev_ioctl(dev, op, ret, data1, data2);
 }
@@ -132,4 +152,38 @@ void device_set_description(device_t* dev, const char* desc)
     char* d = kmalloc(l);
     memcpy(desc, d, l);
     dev->devdesc = d;
+}
+
+/* Add ioctl handler for operation op */
+int device_add_ioctl_handler(device_t* dev, dev_ioctl_handler_f fun, uint32_t op)
+{
+    if (dev->ioctl_handler_count+1 == MAX_IOCTL_HANDLERS) {
+        kerror("dev: can't add more ioctl handlers to device %s", dev->devname);
+        return 0;
+    }
+
+    for (unsigned i = 0; i < dev->ioctl_handler_count; i++) {
+        /* Check for an ioctl handler with this function that isn't fully
+            filled */
+        for (unsigned j = 0; j < dev->ioctls[i].op_count; j++) {
+            if (dev->ioctls[i].op_count+1 == MAX_IOCTL_HANDLERS) {
+                continue;
+            }
+
+            if ( dev->ioctls[i].fun == fun) {
+                /* Yes, add our ioctl handler here */
+                dev->ioctls[i].ops[dev->ioctls[i].op_count++] = op;
+                knotice("dev: added handler @0x%x for device %s slot %d pos %d "
+                    "operation 0x%x", fun, dev->devname, i, j, op);
+                return 0;
+            }
+        }
+    }
+
+    dev->ioctls[dev->ioctl_handler_count].op_count = 0;
+    dev->ioctls[dev->ioctl_handler_count].ops[0] = op;
+    dev->ioctls[dev->ioctl_handler_count].fun = fun;
+    knotice("dev: added handler @0x%x for device %s slot %d pos 0 "
+        "operation 0x%x", fun, dev->devname, dev->ioctl_handler_count, op);
+    return 0;
 }

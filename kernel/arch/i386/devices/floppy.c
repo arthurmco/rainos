@@ -62,7 +62,7 @@ static int dev_floppy_read(device_t* dev, uint64_t off, size_t len, void* buf)
 
 static int is_media;            // Set to 1 if there's media on the drive.
 static int sector0chksum;       // Sum off all bytes of sector 0.
-static int dev_floppy_ioctl(device_t* dev, uint32_t op, uint32_t* ret,
+static int dev_floppy_ioctl(device_t* dev, uint32_t op, uint64_t* ret,
     uint32_t data1,  uint64_t data2)
     {
         /* TODO: Put a lock here */
@@ -99,7 +99,7 @@ static int dev_floppy_ioctl(device_t* dev, uint32_t op, uint32_t* ret,
                 }
 
             default:
-                kerror("floppy: unsupported ioctl");
+                kerror("floppy: unsupported ioctl (%x)", op);
                 return 0;
         }
     }
