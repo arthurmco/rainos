@@ -60,6 +60,15 @@ struct sfs_index {
     } entry_data;
 } __attribute__((packed));
 
+/*  Structure to help tree-fy the sfs file system
+    We'll use similar code to the initrd file system.
+*/
+struct sfs_file {
+    struct sfs_file *prev, *next, *parent, *child;
+    char* name;
+    uint64_t timestamp, bstart, bend, file_size;
+};
+
 enum SFSEntryType {
     SFS_ENTRY_VOLUMEID = 0x01,
     SFS_ENTRY_STARTMARKER = 0x02,

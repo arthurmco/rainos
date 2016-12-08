@@ -116,12 +116,15 @@ int sfs_parse_index_area(struct sfs_fs* fs, vfs_node_t** root)
         sizeof(struct sfs_index));
     struct sfs_index* indices = (struct sfs_index*) fs->index_area;
 
+
     *root = NULL;
     vfs_node_t* prev = NULL;
     for (size_t i = 0; i < index_count; i++) {
         if (!indices[i].entry_type) continue;
         knotice("\t entry type %02x", indices[i].entry_type);
+
         vfs_node_t* node = NULL;
+
 
         /* We must convert them to the vfs format */
         switch (indices[i].entry_type) {
