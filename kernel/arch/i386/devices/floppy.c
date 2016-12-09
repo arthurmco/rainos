@@ -47,9 +47,18 @@ static int dev_floppy_read(device_t* dev, uint64_t off, size_t len, void* buf)
         size_t rcount = (readcount > (f->sectors-sec+1)) ? (f->sectors-sec+1) : readcount;
         knotice("floppy:  sec=%d cyl=%d head=%d count=%d from lba %d",
             sec, cyl+count, head, rcount, roff);
-        int r =  floppy_read(f, sec, head, cyl+count, rcount,
-            &tmp_buf[count * (f->sectors * 512)]);
-        if (!r) return r;
+        int timeout = 5, r;
+
+        while (timeout > 0) {
+            r =  floppy_read(f, sec, head, cyl+count, rcount,
+                &tmp_buf[count * (f->sectors * 512)]);
+            if (r) break;
+            timeout--;
+            kwarn("floppy read error, retrying more %d times", timeout);
+        }
+
+        if (timeout <= 0) return r;
+
         readcount -= rcount;
         sec = 0;
     } while (readcount > 0);
