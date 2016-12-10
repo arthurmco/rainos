@@ -15,9 +15,9 @@
 #define MAX_IOCTL_HANDLERS 8
 
 enum DeviceType {
-    DEVTYPE_BLOCK = 0x0,
-    DEVTYPE_CHAR = 0x1,
-    DEVTYPE_SEEKABLE = 0x2,
+    DEVTYPE_BLOCK = 0x1,
+    DEVTYPE_CHAR = 0x2,
+    DEVTYPE_SEEKABLE = 0x4,
 };
 
 typedef int (*dev_ioctl_handler_f)(struct device*, uint16_t op, uint64_t* ret,
