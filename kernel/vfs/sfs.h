@@ -66,6 +66,7 @@ struct sfs_index {
 */
 struct sfs_file {
     struct sfs_file *prev, *next, *parent, *child;
+    struct sfs_fs* fs;
     char* name;
     uint64_t timestamp, bstart, bend, file_size;
     int isDir, index;
@@ -87,6 +88,8 @@ void sfs_init();
 int sfs_mount(device_t*);
 int sfs_get_root_dir(device_t* dev, vfs_node_t** root_childs);
 
+int sfs_readdir(vfs_node_t* node, vfs_node_t** childs);
+int sfs_read(vfs_node_t* node, uint64_t off, size_t len, void* buffer);
 /*  Parse index area, returns a sfs_file object representing the first
     item of root directory */
 struct sfs_file* sfs_parse_index_area(struct sfs_fs* fs);

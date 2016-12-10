@@ -118,6 +118,8 @@ int sfs_get_root_dir(device_t* dev, vfs_node_t** root_childs)
         node->inode = (uint64_t)file;
         node->date_creation = file->timestamp;
         node->date_modification = file->timestamp;
+        node->__vfs_readdir = &sfs_readdir;
+        node->__vfs_read = &sfs_read;
 
         if (first){
             prev->next = node;
@@ -198,9 +200,10 @@ struct sfs_file* sfs_parse_index_area(struct sfs_fs* fs)
             file->file_size = indexarea[i].entry_data.fileentry.file_size;
             file->bstart = indexarea[i].entry_data.fileentry.starting_block;
             file->bend = indexarea[i].entry_data.fileentry.ending_block;
+            file->fs = fs;
             file->index = i;
             /* Convert it to the RainOS format, ie the normal unix time */
-            file->timestamp = (indexarea[i].entry_data.fileentry.timestamp/655);
+            file->timestamp = (indexarea[i].entry_data.fileentry.timestamp/65536);
 
             knotice("%d: %s size %d blocks %d-%d timestamp %u",
                 i, file->name, (uint32_t)file->file_size,
@@ -245,6 +248,7 @@ struct sfs_file* sfs_parse_index_area(struct sfs_fs* fs)
         file->timestamp = indexarea[i].entry_data.direntry.timestamp;
         file->isDir = 1;
         file->index = i;
+        file->fs = fs;
         knotice("%d: %s dir timestamp %u",
             i, file->name, (uint32_t)file->file_size,
             (uint32_t)file->bstart, (uint32_t)file->bend,
@@ -263,4 +267,69 @@ struct sfs_file* sfs_parse_index_area(struct sfs_fs* fs)
 
     end_loop:
     return root_file;
+}
+
+int sfs_readdir(vfs_node_t* node, vfs_node_t** childs)
+{
+    struct sfs_file* fdir = (struct sfs_file*)(node->inode & 0xffffffff);
+    struct sfs_file* file = fdir->child;
+
+    *childs = NULL;
+    vfs_node_t* prev = NULL;
+
+    while (file) {
+        vfs_node_t* node = kcalloc(sizeof(vfs_node_t),1);
+        if (!*childs)   *childs = node;
+
+        memcpy(file->name, node->name, 63);
+        if (file->isDir) node->flags |= VFS_FLAG_FOLDER;
+        node->size = file->file_size;
+        node->block = file->bstart;
+        node->inode = (uint64_t)file;
+        node->date_creation = file->timestamp;
+        node->date_modification = file->timestamp;
+        node->__vfs_readdir = &sfs_readdir;
+        node->__vfs_read = &sfs_read;
+
+        if (prev)
+            prev->next = node;
+
+        node->prev = prev;
+        prev = node;
+
+        file = file->next;
+    }
+
+    return 1;
+}
+
+int sfs_read(vfs_node_t* node, uint64_t off, size_t len, void* buffer)
+{
+    struct sfs_file* file = (struct sfs_file*)(node->inode & 0xffffffff);
+    if (!file) {
+        kerror("sfs: invalid file");
+        return 0;
+    }
+
+    int blk_size = 1 << (7+file->fs->sb->block_size);
+    int data_area_start = (file->fs->sb->rsvd_block_count * blk_size);
+
+    if (!buffer) {
+        kerror("sfs: (%s) buffer is null", node->name);
+        return 0;
+    }
+
+    int block_offset = (file->bstart-1)*blk_size;
+    knotice("sfs: reading %s, block %d (data area off %x, disk off %x) "
+        ", %u bytes",
+        file->name, (uint32_t)(file->bstart), block_offset,
+        block_offset+data_area_start, len);
+
+    if (!device_read(file->fs->dev, (uint64_t)(data_area_start+block_offset),
+        len, buffer)) {
+        kerror("sfs: device error while reading %s", node->name);
+        return 0;
+    }
+
+    return 1;
 }

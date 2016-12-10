@@ -348,6 +348,10 @@ int vfs_read(struct vfs_node* node, uint64_t off, size_t len,
     void* buffer)
     {
         if (node) {
+            if ((int)len < 0) {
+                len = (uint32_t)node->size;
+            }
+
             if (!(node->flags & VFS_FLAG_FOLDER)) {
                 if (!node->__vfs_read) {
                     kerror("You can't read a file");
@@ -403,30 +407,3 @@ void vfs_get_full_path(vfs_node_t* n, char* buf)
     } while (!notok);
     buf[strlen(tmp)-1] = 0;
 }
-
-/* Utility conversion for unix timestamp to normal date */
-void vfs_unix_to_day(int64_t timestamp,
-    signed* year, unsigned* month, unsigned* day,
-    unsigned* hour, unsigned* minute, unsigned* second)
-    {
-
-        *second = timestamp % 60;
-        *minute = (timestamp % 3600) / 60;
-        *hour = (timestamp % (3600*24)) / 3600;
-        *day = (timestamp % (3600*24*30)) / (3600*24);
-        *month = (timestamp % (3600*24*365)) / (3600*24*30);
-        *year = 1970 + (timestamp / (3600*24*365));
-
-        /* Correction for leap years */
-        *day += ((*year-1968)/4);   //1972 is the first UNIX leap year
-        if (*day > 31) {
-            *day = *day - 31;
-            *month = *month + 1;
-        }
-        if (*month > 12) {
-            *month = *month - 12;
-            *year = *year + 1;
-        }
-        /* Correction for different day-count months */
-
-    }
