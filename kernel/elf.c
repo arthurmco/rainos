@@ -159,7 +159,7 @@ int elf_parse_sections(elf_exec_t* elf)
          elf->sections[i].name_off, elf->sections[i].type, types,
          elf->sections[i].flags, flags, elf->sections[i].addr,
          elf->sections[i].off, elf->sections[i].size);
-         elf_load_section(&elf->sections[i], elf->sections[i].addr);
+         //elf_load_section(&elf->sections[i], elf->sections[i].addr);
     }
 
 

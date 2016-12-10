@@ -63,6 +63,15 @@ int vfs_mount(vfs_node_t* node, device_t* dev, struct vfs_filesystem* fs)
         return 0;
     }
 
+    /* Check if isn't mounted already */
+    for (size_t i = 0; i < mount_count; i++) {
+        if (mounts[i].fs == fs && mounts[i].dev == dev &&
+            mounts[i].root_dir == node) {
+                kerror("VFS: this filesystem is already mounted here.");
+                return 0;
+            }
+    }
+
     //knotice("%s %x %x", fs->fsname, fs->__vfs_mount, fs->__vfs_get_root_dir);
     if (!fs->__vfs_mount(dev)) {
         kerror("VFS: couldn't mount fs %s into dev %s", fs->fsname, dev->devname );
@@ -93,6 +102,7 @@ int vfs_mount(vfs_node_t* node, device_t* dev, struct vfs_filesystem* fs)
         node_childs = node_childs->next;
     }
 
+    device_ioctl(dev, IOCTL_SET_MOUNTED, NULL, 1, NULL);
     knotice("VFS: mounted filesystem %s at device %s on %s",
         fs->fsname, dev->devname, node->name);
     return 1;
@@ -229,8 +239,14 @@ int vfs_readdir(vfs_node_t* node, vfs_node_t** childs)
         /* If node, return the childs pointer */
 
         if (!node->child) {
-            if (!node->__vfs_readdir(node, childs))
+            if (node->__vfs_readdir) {
+                if (!node->__vfs_readdir(node, childs))
+                    return 0;
+            } else {
+                kerror("vfs_readdir() unsupported by this file");
+                *childs = NULL;
                 return 0;
+            }
 
             node->child = *childs;
         } else {
@@ -332,6 +348,10 @@ int vfs_read(struct vfs_node* node, uint64_t off, size_t len,
     void* buffer)
     {
         if (node) {
+            if ((int)len < 0) {
+                len = (uint32_t)node->size;
+            }
+
             if (!(node->flags & VFS_FLAG_FOLDER)) {
                 if (!node->__vfs_read) {
                     kerror("You can't read a file");
@@ -387,30 +407,3 @@ void vfs_get_full_path(vfs_node_t* n, char* buf)
     } while (!notok);
     buf[strlen(tmp)-1] = 0;
 }
-
-/* Utility conversion for unix timestamp to normal date */
-void vfs_unix_to_day(int64_t timestamp,
-    signed* year, unsigned* month, unsigned* day,
-    unsigned* hour, unsigned* minute, unsigned* second)
-    {
-
-        *second = timestamp % 60;
-        *minute = (timestamp % 3600) / 60;
-        *hour = (timestamp % (3600*24)) / 3600;
-        *day = (timestamp % (3600*24*30)) / (3600*24);
-        *month = (timestamp % (3600*24*365)) / (3600*24*30);
-        *year = 1970 + (timestamp / (3600*24*365));
-
-        /* Correction for leap years */
-        *day += ((*year-1968)/4);   //1972 is the first UNIX leap year
-        if (*day > 31) {
-            *day = *day - 31;
-            *month = *month + 1;
-        }
-        if (*month > 12) {
-            *month = *month - 12;
-            *year = *year + 1;
-        }
-        /* Correction for different day-count months */
-
-    }

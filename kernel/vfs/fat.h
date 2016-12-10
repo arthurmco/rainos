@@ -4,6 +4,8 @@
 */
 
 #include "vfs.h"
+#include "../dev_ioctl.h"
+#include "../dev.h"
 #include "../time.h"
 
 //for allocating big blocks directly from the mm
@@ -119,6 +121,9 @@ FAT_ATTR_LONG_NAME  =
     FAT_ATTR_READ_ONLY | FAT_ATTR_HIDDEN | FAT_ATTR_SYSTEM | FAT_ATTR_VOLUME_ID
 
 };
+
+#define FAT_CLUSTER_COUNT(sb) \
+    (FAT_GET_SECTORS(sb) - FAT_GET_FIRST_DATA_SECTOR(sb)) / sb->sec_clus
 
 #define FAT_GET_SECTORS(sb) \
     ((sb->tot_sec_16) ? sb->tot_sec_16 : sb->tot_sec_32)

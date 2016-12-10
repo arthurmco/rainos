@@ -120,8 +120,10 @@ static int kshell_mount(int argc, char* argv[]) {
         return -1;
     }
 
-    if (odev->devtype != DEVTYPE_BLOCK) {
+    if (!(odev->devtype & DEVTYPE_BLOCK)) {
         kprintf("Device %s isn't a block device!\n", dev);
+        knotice("%s devtype: 0x%02x, required 0x%02x", odev->devname,
+            odev->devtype, DEVTYPE_BLOCK);
         return -1;
     }
 

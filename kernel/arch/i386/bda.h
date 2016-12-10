@@ -29,7 +29,7 @@ struct BDA {
     uint8_t kbd_last_state;
 } __attribute__((packed));
 
-static volatile struct BDA* const bda_ptr = (volatile struct BDA* const)0x400;
+static volatile struct BDA* const bda_ptr = (volatile struct BDA* const)0xc0000400;
 
 
 

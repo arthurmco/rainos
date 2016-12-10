@@ -63,6 +63,7 @@ int sfs_mount(device_t* dev)
     return 1;
 }
 
+static struct sfs_file* root_file = NULL;
 int sfs_get_root_dir(device_t* dev, vfs_node_t** root_childs)
 {
     /*  This filesystem stores metadata in a way much similar to the tar format
@@ -91,9 +92,9 @@ int sfs_get_root_dir(device_t* dev, vfs_node_t** root_childs)
             (1+(fs->sb->index_area_bytes) / (1 << (7 + fs->sb->block_size))));
     knotice("sfs: index area starts at block %d", index_area_start);
 
-    unsigned index_area_off = index_area_start * (1 << (7 + fs->sb->block_size));
+    unsigned index_area_off = (index_area_start) * (1 << (7 + fs->sb->block_size));
     unsigned index_area_len = (fs->sb->total_block_count - index_area_start) * (1 << (7 + fs->sb->block_size));
-    index_area_len--;
+    //index_area_len--;
 
     void* index_area = kcalloc(index_area_len, 1);
     fs->index_area = index_area;
@@ -102,78 +103,233 @@ int sfs_get_root_dir(device_t* dev, vfs_node_t** root_childs)
         kerror("sfs: could not read index area from %s", dev->devname);
         return 0;
     }
+    knotice("sfs: index area loaded at 0x%08x", index_area);
 
-    return sfs_parse_index_area(fs, root_childs);
+    sfs_parse_index_area(fs);
+
+    struct sfs_file* file = root_file;
+    vfs_node_t *first=NULL, *prev=NULL;
+    while (file) {
+        vfs_node_t* node = kcalloc(sizeof(vfs_node_t),1);
+        memcpy(file->name, node->name, 63);
+        if (file->isDir) node->flags |= VFS_FLAG_FOLDER;
+        node->size = file->file_size;
+        node->block = file->bstart;
+        node->inode = (uint64_t)file;
+        node->date_creation = file->timestamp;
+        node->date_modification = file->timestamp;
+        node->__vfs_readdir = &sfs_readdir;
+        node->__vfs_read = &sfs_read;
+
+        if (first){
+            prev->next = node;
+            node->prev = prev;
+        } else {
+            first = node;
+        }
+        prev = node;
+
+        file = file->next;
+    }
+
+    *root_childs = first;
+    return 1;
 }
 
-int sfs_parse_index_area(struct sfs_fs* fs, vfs_node_t** root)
+
+
+/*  Parse index area, returns a sfs_file object representing the first
+    item of root directory */
+struct sfs_file* sfs_parse_index_area(struct sfs_fs* fs)
 {
-    unsigned index_count = (1+(fs->sb->index_area_bytes) / (1 << (7 + fs->sb->block_size)));
-    index_count *= (1 << (7 + fs->sb->block_size));
-    index_count /= sizeof(struct sfs_index);
+    unsigned index_blkcount = 1+(fs->sb->index_area_bytes / (1 << (7 + fs->sb->block_size)));
+    unsigned index_count = (fs->sb->index_area_bytes / sizeof(struct sfs_index));
 
-    knotice("sfs: %d total index entries (%d entry size)", index_count,
-        sizeof(struct sfs_index));
-    struct sfs_index* indices = (struct sfs_index*) fs->index_area;
+    knotice("sfs: we have %d items, occupying %d blocks",
+        index_count, index_blkcount);
 
-    *root = NULL;
+    struct sfs_file *parent = NULL, *prev = NULL;
+    struct sfs_index* indexarea = (struct sfs_index*)fs->index_area;
+    /* Read the index area */
+    for (int i = (index_blkcount * (512/sizeof(struct sfs_index)))-1; i >= 0; i--) {
+        knotice("entry type %02x", indexarea[i].entry_type);
+        switch (indexarea[i].entry_type) {
+        case SFS_ENTRY_VOLUMEID:
+            {
+            size_t vlen = strlen(indexarea[i].entry_data.volumeid.volume_name)+1;
+            char* vol = kmalloc(vlen);
+            memcpy(indexarea[i].entry_data.volumeid.volume_name, vol, vlen);
+            fs->volname = vol;
+            knotice("sfs: volume name is %s", vol);
+        } break;
+
+        case SFS_ENTRY_FILE:
+        {
+            struct sfs_file* file = kcalloc(sizeof(struct sfs_file),1);
+
+            /* Check if parent is still parent */
+            if (parent) {
+                if (!strncmp(indexarea[i].entry_data.fileentry.dirname,
+                            indexarea[parent->index].entry_data.direntry.dirname,
+                            strlen(indexarea[parent->index].entry_data.direntry.dirname)-1)) {
+                    knotice("childs of %s", parent->name);
+
+                    if (!parent->child) {
+                        parent->child = file;
+                    }
+                } else {
+                    /* No parent anymore */
+                    prev = parent;
+                    parent = NULL;
+                }
+            }
+
+            if (!root_file) {
+                root_file = file;
+                prev = file;
+            } else {
+                if (prev)
+                    prev->next = file;
+                file->prev = prev;
+            }
+
+            /* Hide the dir name, plus the slash */
+            size_t pName = (parent) ? strlen(parent->name)+1 : 0;
+
+            file->name = &(indexarea[i].entry_data.fileentry.dirname[pName]);
+            file->file_size = indexarea[i].entry_data.fileentry.file_size;
+            file->bstart = indexarea[i].entry_data.fileentry.starting_block;
+            file->bend = indexarea[i].entry_data.fileentry.ending_block;
+            file->fs = fs;
+            file->index = i;
+            /* Convert it to the RainOS format, ie the normal unix time */
+            file->timestamp = (indexarea[i].entry_data.fileentry.timestamp/65536);
+
+            knotice("%d: %s size %d blocks %d-%d timestamp %u",
+                i, file->name, (uint32_t)file->file_size,
+                (uint32_t)file->bstart, (uint32_t)file->bend,
+                (uint32_t)file->timestamp);
+
+            file->parent = parent;
+            prev = file;
+        }
+            break;
+
+        case SFS_ENTRY_DIRECTORY:
+        {
+        struct sfs_file* file = kcalloc(sizeof(struct sfs_file),1);
+
+        /* Check if parent is still parent */
+        if (parent) {
+            if (!strncmp(indexarea[i].entry_data.fileentry.dirname,
+                        parent->name, strlen(parent->name)-1)) {
+                knotice("childs of %s",
+                indexarea[i].entry_data.fileentry.dirname);
+            } else {
+                /* No parent anymore */
+                prev = parent;
+                parent = NULL;
+            }
+        }
+
+        if (!root_file) {
+            root_file = file;
+            prev = file;
+        } else {
+            prev->next = file;
+            file->prev = prev;
+        }
+
+
+        size_t pName = parent ? strlen(parent->name)+1 : 0;
+
+        /* Hide the dir name, plus the slash */
+        file->name = &indexarea[i].entry_data.direntry.dirname[pName];
+        file->timestamp = indexarea[i].entry_data.direntry.timestamp;
+        file->isDir = 1;
+        file->index = i;
+        file->fs = fs;
+        knotice("%d: %s dir timestamp %u",
+            i, file->name, (uint32_t)file->file_size,
+            (uint32_t)file->bstart, (uint32_t)file->bend,
+            (uint32_t)file->timestamp);
+
+        parent = file;
+        prev = NULL;
+
+        } break;
+        case SFS_ENTRY_STARTMARKER:
+            knotice("starting marker here, ending...");
+            goto end_loop;
+            break;
+        }
+    }
+
+    end_loop:
+    return root_file;
+}
+
+int sfs_readdir(vfs_node_t* node, vfs_node_t** childs)
+{
+    struct sfs_file* fdir = (struct sfs_file*)(node->inode & 0xffffffff);
+    struct sfs_file* file = fdir->child;
+
+    *childs = NULL;
     vfs_node_t* prev = NULL;
-    for (size_t i = 0; i < index_count; i++) {
-        if (!indices[i].entry_type) continue;
-        knotice("\t entry type %02x", indices[i].entry_type);
-        vfs_node_t* node = NULL;
 
-        /* We must convert them to the vfs format */
-        switch (indices[i].entry_type) {
-            case SFS_ENTRY_DIRECTORY:
-                knotice("\t\tdir name: %s",
-                    indices[i].entry_data.direntry.dirname);
+    while (file) {
+        vfs_node_t* node = kcalloc(sizeof(vfs_node_t),1);
+        if (!*childs)   *childs = node;
 
-                node = kcalloc(sizeof(vfs_node_t), 1);
-                node->flags = VFS_FLAG_FOLDER;
-                memcpy(indices[i].entry_data.direntry.dirname, node->name,
-                    54);
-                node->block = ((uint32_t)fs->index_area) & 0xffffffff;
+        memcpy(file->name, node->name, 63);
+        if (file->isDir) node->flags |= VFS_FLAG_FOLDER;
+        node->size = file->file_size;
+        node->block = file->bstart;
+        node->inode = (uint64_t)file;
+        node->date_creation = file->timestamp;
+        node->date_modification = file->timestamp;
+        node->__vfs_readdir = &sfs_readdir;
+        node->__vfs_read = &sfs_read;
 
-                if (prev) prev->next = node;
-                node->prev = prev;
-                prev = node;
+        if (prev)
+            prev->next = node;
 
-                goto sfs_map_list;
-                break;
-            case SFS_ENTRY_FILE:
-                knotice("\t\tfile name: %s, blocks %d to %d, %d bytes",
-                    indices[i].entry_data.fileentry.dirname,
-                    (uint32_t) indices[i].entry_data.fileentry.starting_block,
-                    (uint32_t) indices[i].entry_data.fileentry.ending_block,
-                    (uint32_t) indices[i].entry_data.fileentry.file_size);
+        node->prev = prev;
+        prev = node;
 
-                node = kcalloc(sizeof(vfs_node_t), 1);
-                memcpy(indices[i].entry_data.fileentry.dirname, node->name,
-                    54);
-                node->size = indices[i].entry_data.fileentry.file_size;
-                node->block = indices[i].entry_data.fileentry.starting_block;
-
-                if (prev) prev->next = node;
-                node->prev = prev;
-                prev = node;
-
-                goto sfs_map_list;
-                break;
-            case SFS_ENTRY_VOLUMEID:
-                knotice("\t\tvolume: %s",
-                    indices[i].entry_data.volumeid.volume_name);
-                break;
-        }
-
-        sfs_map_list:
-        if (!*root) {
-            *root = prev;
-        }
-
-
+        file = file->next;
     }
 
     return 1;
+}
 
+int sfs_read(vfs_node_t* node, uint64_t off, size_t len, void* buffer)
+{
+    struct sfs_file* file = (struct sfs_file*)(node->inode & 0xffffffff);
+    if (!file) {
+        kerror("sfs: invalid file");
+        return 0;
+    }
+
+    int blk_size = 1 << (7+file->fs->sb->block_size);
+    int data_area_start = (file->fs->sb->rsvd_block_count * blk_size);
+
+    if (!buffer) {
+        kerror("sfs: (%s) buffer is null", node->name);
+        return 0;
+    }
+
+    int block_offset = (file->bstart-1)*blk_size;
+    knotice("sfs: reading %s, block %d (data area off %x, disk off %x) "
+        ", %u bytes",
+        file->name, (uint32_t)(file->bstart), block_offset,
+        block_offset+data_area_start, len);
+
+    if (!device_read(file->fs->dev, (uint64_t)(data_area_start+block_offset),
+        len, buffer)) {
+        kerror("sfs: device error while reading %s", node->name);
+        return 0;
+    }
+
+    return 1;
 }

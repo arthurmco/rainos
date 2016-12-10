@@ -12,10 +12,22 @@
 #ifndef _DEV_H
 #define _DEV_H
 
+#define MAX_IOCTL_HANDLERS 8
+
 enum DeviceType {
-    DEVTYPE_BLOCK = 0x0,
-    DEVTYPE_CHAR = 0x1,
-    DEVTYPE_SEEKABLE = 0x2,
+    DEVTYPE_BLOCK = 0x1,
+    DEVTYPE_CHAR = 0x2,
+    DEVTYPE_SEEKABLE = 0x4,
+};
+
+typedef int (*dev_ioctl_handler_f)(struct device*, uint16_t op, uint64_t* ret,
+    uint32_t data1,  uint64_t data2);
+
+/* The ioctl handler */
+struct ioctl_handler {
+    uint32_t ops[MAX_IOCTL_HANDLERS]; /* ops that will be sent to that ioctl */
+    unsigned op_count;
+    dev_ioctl_handler_f fun;    /* The ioctl function of the driver */
 };
 
 typedef struct device {
@@ -38,8 +50,13 @@ typedef struct device {
     int (*__dev_seek)(struct device*, uint64_t off);
 
     /* fill this in any case */
-    int (*__dev_ioctl)(struct device*, uint32_t op, uint32_t* ret,
+    int (*__dev_ioctl)(struct device*, uint32_t op, uint64_t* ret,
         uint32_t data1,  uint64_t data2);
+
+    /*  The new ioctl infrastructure.
+        Better for drivers and me */
+    struct ioctl_handler ioctls[MAX_IOCTL_HANDLERS];
+    unsigned int ioctl_handler_count;
 
     struct device* next;
     struct device* prev;
@@ -63,6 +80,12 @@ device_t* device_create(uint64_t id, const char* name,
 void device_destroy(device_t* dev);
 
 int device_read(device_t* dev, uint64_t off, size_t len, void* buf);
-int device_ioctl(device_t* dev, uint32_t op, uint32_t* ret, uint32_t data1, uint64_t data2);
+int device_ioctl(device_t* dev, uint32_t op, uint64_t* ret, uint32_t data1, uint64_t data2);
+
+/* Add ioctl handler for operation op */
+int device_add_ioctl_handler(device_t* dev, dev_ioctl_handler_f fun, uint32_t op);
+
+//int device_add_ioctl_handler_multi(device_t* dev, dev_ioctl_handler_f fun, ...);
+
 
 #endif /* end of include guard: _DEV_H */

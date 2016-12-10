@@ -55,6 +55,9 @@ static int _disk_dev_read_wrapper(device_t* dev,
 }
 
 int disk_cmd_added = 0;
+
+extern int partitions_cmd(device_t* dev);
+
 static int disk_cmd(int argc, char** argv)
 {
     kprintf("Disks:\n");
@@ -65,6 +68,7 @@ static int disk_cmd(int argc, char** argv)
         kprintf("%s: %s \n", disks[i].sysname, disks[i].disk_name);
         kprintf("\t %d sectors, %d bytes/sector\n", disks[i].b_count, disks[i].b_size);
         kprintf("\t %d MB\n\n", (uint32_t)(disk_mb & 0xffffffff));
+        partitions_cmd(disks[i].dev);
     }
 
     return 1;
@@ -83,7 +87,7 @@ int disk_add(struct disk* d)
     device_t* dev = device_create(0x8000 | d->id, d->sysname,
         DEVTYPE_BLOCK | DEVTYPE_SEEKABLE, NULL);
     d->dev = dev;
-    
+
     device_set_description(dev, d->disklabel);
 
     d->b_size = (d->b_size == 0) ? 512 : d->b_size;

@@ -27,6 +27,7 @@ struct sfs_superblock {
 struct sfs_fs {
     device_t* dev;
     struct sfs_superblock* sb;
+    char* volname;
     void* index_area;
 };
 
@@ -60,6 +61,17 @@ struct sfs_index {
     } entry_data;
 } __attribute__((packed));
 
+/*  Structure to help tree-fy the sfs file system
+    We'll use similar code to the initrd file system.
+*/
+struct sfs_file {
+    struct sfs_file *prev, *next, *parent, *child;
+    struct sfs_fs* fs;
+    char* name;
+    uint64_t timestamp, bstart, bend, file_size;
+    int isDir, index;
+};
+
 enum SFSEntryType {
     SFS_ENTRY_VOLUMEID = 0x01,
     SFS_ENTRY_STARTMARKER = 0x02,
@@ -76,8 +88,11 @@ void sfs_init();
 int sfs_mount(device_t*);
 int sfs_get_root_dir(device_t* dev, vfs_node_t** root_childs);
 
-/* Parse index area, returns root directories */
-int sfs_parse_index_area(struct sfs_fs* fs, vfs_node_t** root);
+int sfs_readdir(vfs_node_t* node, vfs_node_t** childs);
+int sfs_read(vfs_node_t* node, uint64_t off, size_t len, void* buffer);
+/*  Parse index area, returns a sfs_file object representing the first
+    item of root directory */
+struct sfs_file* sfs_parse_index_area(struct sfs_fs* fs);
 
 
 #endif /* end of include guard: _SFS_H */

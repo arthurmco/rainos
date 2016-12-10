@@ -416,7 +416,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         int s = elf_parse_sections(elf_exec);
         int p = elf_parse_phs(elf_exec);
         kprintf("\t %d sections and %d program segments found", s, p);
-        elf_execute_file(elf_exec);
+        //elf_execute_file(elf_exec);
     }
 
     WRITE_FAIL();
@@ -428,7 +428,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     t.day = 0;
     t.month = 0;
     t.year = 0;
-    time_init(t);
+    time_init(t);if (!addr) addr += 0x1000;
     rtc_init();
 
     knotice("BIOS: Extended BDA is at addr 0x%x", ebda_get_base());

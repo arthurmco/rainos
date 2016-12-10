@@ -84,6 +84,9 @@ typedef struct vfs_node {
     int (*__vfs_write)(struct vfs_node* node, uint64_t off, size_t len,
         void* buffer);
 
+    /* Writes file metadata */
+    int (*__vfs_write_meta)(struct vfs_node* node);
+
 
     /* Pointer to the first child */
     struct vfs_node* child;

@@ -44,12 +44,21 @@ static int dev_floppy_read(device_t* dev, uint64_t off, size_t len, void* buf)
     int readcount = (readcount > (f->sectors-sec)) ? (f->sectors-sec) : seccount;
     int count = 0;
     do {
-        size_t rcount = (readcount > (f->sectors-sec+1)) ? (f->sectors-sec+1) : readcount;
+        size_t rcount = (readcount >= (f->sectors-sec+1)) ? (f->sectors-sec+1) : readcount;
         knotice("floppy:  sec=%d cyl=%d head=%d count=%d from lba %d",
             sec, cyl+count, head, rcount, roff);
-        int r =  floppy_read(f, sec, head, cyl+count, rcount,
-            &tmp_buf[count * (f->sectors * 512)]);
-        if (!r) return r;
+        int timeout = 5, r;
+
+        while (timeout > 0) {
+            r =  floppy_read(f, sec, head, cyl+count, rcount,
+                &tmp_buf[count * (f->sectors * 512)]);
+            if (r) break;
+            timeout--;
+            kwarn("floppy read error, retrying more %d times", timeout);
+        }
+
+        if (timeout <= 0) return r;
+
         readcount -= rcount;
         sec = 0;
     } while (readcount > 0);
@@ -62,7 +71,7 @@ static int dev_floppy_read(device_t* dev, uint64_t off, size_t len, void* buf)
 
 static int is_media;            // Set to 1 if there's media on the drive.
 static int sector0chksum;       // Sum off all bytes of sector 0.
-static int dev_floppy_ioctl(device_t* dev, uint32_t op, uint32_t* ret,
+static int dev_floppy_ioctl(device_t* dev, uint32_t op, uint64_t* ret,
     uint32_t data1,  uint64_t data2)
     {
         /* TODO: Put a lock here */
@@ -99,7 +108,7 @@ static int dev_floppy_ioctl(device_t* dev, uint32_t op, uint32_t* ret,
                 }
 
             default:
-                kerror("floppy: unsupported ioctl");
+                kerror("floppy: unsupported ioctl (%x)", op);
                 return 0;
         }
     }
