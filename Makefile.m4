@@ -50,7 +50,7 @@ qemu-serial: all initrd
 qemu-gdb: all initrd
 	qemu-system-i386 -kernel $(OUT) -initrd initrd.rain -m 8 -serial stdio -S -s
 
-clean: *.o
+clean: 
 	rm -f *.o
 	rm -f *.iso
 	rm -f initrd.rain
