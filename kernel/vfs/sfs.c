@@ -180,13 +180,14 @@ struct sfs_file* sfs_parse_index_area(struct sfs_fs* fs)
                     prev = parent;
                     parent = NULL;
                 }
-            } 
+            }
 
             if (!root_file) {
                 root_file = file;
                 prev = file;
             } else {
-                prev->next = file;
+                if (prev)
+                    prev->next = file;
                 file->prev = prev;
             }
 

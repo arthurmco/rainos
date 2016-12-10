@@ -10,13 +10,16 @@ void vmm_init(uintptr_t kernel_start, uintptr_t kernel_end,
         /* TODO: remove this when you go to higher half */
         kernel_virt_offset = 0xc0000000;
 
-        areas[VMM_AREA_USER].min_addr = 0;
+        areas[VMM_AREA_USER].min_addr = 0x1000;
         areas[VMM_AREA_USER].max_addr = kernel_virt_offset-1;
         areas[VMM_AREA_USER].first_free_addr = (kernel_end + 0x1000) & ~0xfff;
 
         areas[VMM_AREA_KERNEL].min_addr = kernel_virt_offset;
         areas[VMM_AREA_KERNEL].max_addr = 0xffffffff;
         areas[VMM_AREA_KERNEL].first_free_addr = kernel_end + kernel_virt_offset;
+
+        /* Deallocate page of vaddr 0, to get null pointer references */
+        vmm_dealloc_page(0, 1);
 
     }
 
@@ -259,6 +262,8 @@ virtaddr_t vmm_map_physical(unsigned int vmm_area,
 /*  Map 'count' pages to 'addr' and return 'addr' or 0 on fail */
 virtaddr_t vmm_map_page(virtaddr_t addr, unsigned int vmm_area, size_t count)
 {
+    if (!addr) panic("You can't allocate the null pointer trapzone");
+
     unsigned int pdir, ptbl;
     pdir = GET_DIR(addr);
     ptbl = GET_TABLE(addr);

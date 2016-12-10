@@ -100,7 +100,9 @@ task_t* task_create(uint32_t pc, uint32_t pagedir, uint32_t pflags)
     if (!tasklist.first)
         tasklist.first = tli;
 
-    tli->prev->next = tli;
+    if (tli->prev)
+        tli->prev->next = tli;
+        
     tli->next = tasklist.first;
     tasklist.first->prev = tli;
 

@@ -239,8 +239,14 @@ int vfs_readdir(vfs_node_t* node, vfs_node_t** childs)
         /* If node, return the childs pointer */
 
         if (!node->child) {
-            if (!node->__vfs_readdir(node, childs))
+            if (node->__vfs_readdir) {
+                if (!node->__vfs_readdir(node, childs))
+                    return 0;
+            } else {
+                kerror("vfs_readdir() unsupported by this file");
+                *childs = NULL;
                 return 0;
+            }
 
             node->child = *childs;
         } else {

@@ -124,6 +124,7 @@ virtaddr_t kheap_allocate(size_t bytes)
         signed sz = addr_alloc_size;
         sz -= item->bytes;
         if ((signed)(addr_reserve_top - addr_reserve_bottom) >= sz) {
+            knotice("HEAP: too short to get %d bytes, getting more from vmm");
             // knotice("HEAP: more space needed. %x %x %d", addr_reserve_bottom, addr_reserve_top,
                 // item->bytes);
             /* We will need */
