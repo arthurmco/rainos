@@ -27,6 +27,7 @@ struct sfs_superblock {
 struct sfs_fs {
     device_t* dev;
     struct sfs_superblock* sb;
+    char* volname;
     void* index_area;
 };
 
@@ -67,6 +68,7 @@ struct sfs_file {
     struct sfs_file *prev, *next, *parent, *child;
     char* name;
     uint64_t timestamp, bstart, bend, file_size;
+    int isDir, index;
 };
 
 enum SFSEntryType {
@@ -85,8 +87,9 @@ void sfs_init();
 int sfs_mount(device_t*);
 int sfs_get_root_dir(device_t* dev, vfs_node_t** root_childs);
 
-/* Parse index area, returns root directories */
-int sfs_parse_index_area(struct sfs_fs* fs, vfs_node_t** root);
+/*  Parse index area, returns a sfs_file object representing the first
+    item of root directory */
+struct sfs_file* sfs_parse_index_area(struct sfs_fs* fs);
 
 
 #endif /* end of include guard: _SFS_H */

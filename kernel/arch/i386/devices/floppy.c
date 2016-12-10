@@ -44,7 +44,7 @@ static int dev_floppy_read(device_t* dev, uint64_t off, size_t len, void* buf)
     int readcount = (readcount > (f->sectors-sec)) ? (f->sectors-sec) : seccount;
     int count = 0;
     do {
-        size_t rcount = (readcount > (f->sectors-sec+1)) ? (f->sectors-sec+1) : readcount;
+        size_t rcount = (readcount >= (f->sectors-sec+1)) ? (f->sectors-sec+1) : readcount;
         knotice("floppy:  sec=%d cyl=%d head=%d count=%d from lba %d",
             sec, cyl+count, head, rcount, roff);
         int timeout = 5, r;
