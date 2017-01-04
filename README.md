@@ -8,11 +8,11 @@ To run it, you need a cross compiler for the i686 target. [Here](http://wiki.osd
 To compile it, just type
 
 ```
-$ sh configure.sh
 $ make
 ```
 
 The makefile assumes your cross-compiler folder is in the PATH.
+Out-of-tree builds aren't tested.
 
 You can also type ```make iso``` to create an ISO with the system or ```make qemu``` to launch it on QEMU.
 
