@@ -1,4 +1,4 @@
-#include "tss.h"
+#include <arch/i386/tss.h>
 
 extern gdt_tss_t dTSS[];
 extern volatile uintptr_t stack_top[];

@@ -1,4 +1,4 @@
-#include "initrd.h"
+#include <initrd.h>
 
 /*  The initrd is, essencially, a tar archive in memory.
     So this is nothing more than a tar file parser that expect

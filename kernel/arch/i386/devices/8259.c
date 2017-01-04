@@ -1,4 +1,4 @@
-#include "8259.h"
+#include <arch/i386/devices/8259.h>
 #include <kstdlog.h>
 
 void pic_init()

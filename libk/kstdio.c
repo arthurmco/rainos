@@ -1,7 +1,8 @@
 #include <kstdio.h>
 #include <kstring.h>
-#include "../kernel/terminal.h"
-#include "../kernel/keyboard.h"
+
+#include <terminal.h>
+#include <keyboard.h>
 
 void putc(char c)
 {

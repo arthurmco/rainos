@@ -1,4 +1,4 @@
-#include "specifics.h"
+#include <arch/i386/specifics.h>
 
 void _memset_8(void* ptr, uint8_t val, size_t num)
 {

@@ -1,4 +1,4 @@
-#include "keyboard.h"
+#include <keyboard.h>
 #include "arch/i386/devices/ps2_kbd.h"
 
 /* Map of pressed/released keys by keycode.

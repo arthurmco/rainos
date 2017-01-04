@@ -1,4 +1,4 @@
-#include "floppy.h"
+#include <arch/i386/devices/floppy.h>
 
 static volatile int wait_recalibration = 0, wait_on_irq = 0;
 static struct floppy_data floppies[MAX_FLOPPIES];

@@ -1,4 +1,4 @@
-#include "serial.h"
+#include <arch/i386/devices/serial.h>
 
 enum SERIAL_REGISTERS {
     SREG_DATA   = 0,

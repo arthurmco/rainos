@@ -1,5 +1,5 @@
-#include "ata.h"
-#include "atapi.h"
+#include <arch/i386/devices/ata.h>
+#include <arch/i386/devices/atapi.h>
 
 #include <kstring.h>
 

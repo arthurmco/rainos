@@ -1,4 +1,4 @@
-#include "vfs.h"
+#include <vfs/vfs.h>
 #include <kstdlog.h>
 
 static vfs_node_t* root;

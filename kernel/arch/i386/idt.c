@@ -1,4 +1,4 @@
-#include "idt.h"
+#include <arch/i386/idt.h>
 #include <kstdlog.h>
 
 static struct idt_ptr idt_pointer;

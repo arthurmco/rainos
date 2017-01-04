@@ -1,4 +1,4 @@
-#include "rtc.h"
+#include <arch/i386/devices/rtc.h>
 
 /* Initialize the system clock by getting rtc values */
 void rtc_init()

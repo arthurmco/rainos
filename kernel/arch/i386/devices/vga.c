@@ -1,5 +1,5 @@
-#include "vga.h"
-#include "../bda.h"
+#include <arch/i386/devices/vga.h>
+#include <arch/i386/ebda.h>
 
 static volatile uint16_t* vga_addr = (uint16_t*) VGA_BASE;
 static uint16_t xPos = 0;

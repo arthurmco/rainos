@@ -1,4 +1,4 @@
-#include "pages.h"
+#include <arch/i386/pages.h>
 
 static pdir_t* dir_table;
 static uintptr_t dir_table_phys;

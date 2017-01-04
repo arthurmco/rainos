@@ -1,4 +1,4 @@
-#include "irq.h"
+#include <arch/i386/irq.h>
 #include <kstdlog.h>
 
 /* Init IRQ handlers, setup IRQ sources (PIC or APIC) */

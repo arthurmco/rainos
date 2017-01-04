@@ -1,4 +1,4 @@
-#include "fat.h"
+#include <vfs/fat.h>
 
 static struct fat_fs fats[MAX_MOUNTS];
 static unsigned fat_count = 0;

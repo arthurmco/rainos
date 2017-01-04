@@ -1,4 +1,4 @@
-#include "fault.h"
+#include <arch/i386/fault.h>
 #include <kstdio.h>
 
 void fault_init() {

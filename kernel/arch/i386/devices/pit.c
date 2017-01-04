@@ -1,4 +1,4 @@
-#include "pit.h"
+#include <arch/i386/devices/pit.h>
 
 void pit_setspeed(unsigned hz)
 {

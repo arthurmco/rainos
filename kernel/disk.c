@@ -1,4 +1,4 @@
-#include "disk.h"
+#include <disk.h>
 #include <kstdio.h>
 
 static disk_t disks[MAX_DISKS];

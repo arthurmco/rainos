@@ -1,11 +1,11 @@
-#include "kshell.h"
+#include <kshell.h>
 
 #include <kstdio.h>
 #include <kstring.h>
 #include <kstdlib.h>
 #include <kstdlog.h>
-#include "terminal.h"
-#include "time.h"
+#include <terminal.h>
+#include <time.h>
 
 static struct kernel_shell_cmd kcmds[MAX_SHELL_CMD];
 static size_t kcmd_count = 0;

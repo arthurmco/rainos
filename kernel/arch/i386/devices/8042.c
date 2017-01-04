@@ -1,4 +1,4 @@
-#include "8042.h"
+#include <arch/i386/devices/8042.h>
 
 static int iHead = 0, iTail = 0;
 static uint8_t i8042Buffer[64];

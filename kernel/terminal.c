@@ -1,4 +1,4 @@
-#include "terminal.h"
+#include <terminal.h>
 
 /* The actual terminal, which the operations are made */
 static terminal_t* term = NULL;

@@ -1,4 +1,4 @@
-#include "time.h"
+#include <time.h>
 
 static struct time_tm t;
 static void time_hook(regs_t* registers);

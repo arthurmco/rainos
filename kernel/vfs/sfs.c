@@ -1,4 +1,4 @@
-#include "sfs.h"
+#include <vfs/sfs.h>
 
 static struct sfs_fs filesystems[MAX_SFS];
 static unsigned fs_count = 0;

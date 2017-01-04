@@ -1,4 +1,4 @@
-#include "ebda.h"
+#include <arch/i386/ebda.h>
 #include <kstring.h>
 
 /* Get the EBDA base address */

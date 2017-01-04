@@ -1,4 +1,4 @@
-#include "partition.h"
+#include <vfs/partition.h>
 
 static device_t* devices[MAX_DEVICES];
 static unsigned dev_count;

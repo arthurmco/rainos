@@ -1,4 +1,4 @@
-#include "elf.h"
+#include <elf.h>
 
 static int elf_check_ident(struct ELFHeader* ehdr);
 

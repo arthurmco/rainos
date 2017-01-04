@@ -1,4 +1,4 @@
-#include "vmm.h"
+#include <arch/i386/vmm.h>
 
 /* Stores the maximum address allocated for these areas */
 static struct virt_region_t areas[VMM_AREA_COUNT];

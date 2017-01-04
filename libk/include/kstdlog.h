@@ -3,7 +3,7 @@
     Copyright (C) 2016 Arthur M */
 
 #include <stdarg.h>
-#include "../../kernel/terminal.h"
+#include <terminal.h>
 
 #ifndef _KSTDLOG_H
 #define _KSTDLOG_H

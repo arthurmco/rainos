@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include "../../kernel/arch/i386/specifics.h"
+#include <arch/i386/specifics.h>
 
 #ifndef _KSTDLIB_H
 #define _KSTDLIB_H

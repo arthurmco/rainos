@@ -1,8 +1,8 @@
 #include <kstdlib.h>
 #include <kstring.h>
 
-#include "../kernel/kheap.h"
-#include "../kernel/arch/i386/devices/pit.h"
+#include <kheap.h>
+#include <arch/i386/devices/pit.h>
 
 static const char num2str[] = "0123456789ABCDEFGHIJ\0\0\0";
 

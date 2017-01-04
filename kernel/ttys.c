@@ -1,4 +1,4 @@
-#include "ttys.h"
+#include <ttys.h>
 
 static uint8_t* default_color_ptr = 0;
 static uint16_t x, y;

@@ -1,4 +1,4 @@
-#include "ps2_kbd.h"
+#include <arch/i386/devices/ps2_kbd.h>
 
 static unsigned kbd_port = 0;
 

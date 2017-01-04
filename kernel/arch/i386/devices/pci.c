@@ -1,4 +1,4 @@
-#include "pci.h"
+#include <arch/i386/devices/pci.h>
 
 uint16_t pci_read_conf_data_word(uint8_t bus, uint8_t dev, uint8_t fun,
     uint8_t offset)

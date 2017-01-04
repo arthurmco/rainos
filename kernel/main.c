@@ -24,22 +24,22 @@
 #include "arch/i386/pages.h"
 #include "arch/i386/fault.h"
 #include "arch/i386/ebda.h"
-#include "terminal.h"
-#include "time.h"
-#include "ttys.h"
-#include "mmap.h"
-#include "pmm.h"
-#include "kheap.h"
-#include "initrd.h"
-#include "keyboard.h"
-#include "kshell.h"
-#include "elf.h"
+#include <terminal.h>
+#include <time.h>
+#include <ttys.h>
+#include <mmap.h>
+#include <pmm.h>
+#include <kheap.h>
+#include <initrd.h>
+#include <keyboard.h>
+#include <kshell.h>
+#include <elf.h>
 #include "vfs/vfs.h"
 #include "vfs/partition.h"
 #include "vfs/fat.h"
 #include "vfs/sfs.h"
 
-#include "task.h"
+#include <task.h>
 
 extern void jump_usermode(uintptr_t stack, uintptr_t usermode_function);
 
