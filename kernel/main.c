@@ -106,7 +106,6 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     fault_init();
     irq_init();
 
-
     terminal_clear();
     terminal_setx(20);
     terminal_setcolor(0x9f);
@@ -390,12 +389,8 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     WRITE_FAIL();
 
     struct time_tm t;
-    t.second = 0;
-    t.minute = 0;
-    t.hour = 0;
-    t.day = 0;
-    t.month = 0;
-    t.year = 0;
+    memset(&t, 0, sizeof(struct time_tm));
+    
     time_init(t);if (!addr) addr += 0x1000;
     rtc_init();
 
@@ -408,27 +403,9 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
         knotice("BIOS: RSDP not found, no ACPI support");
     }
 
-    rsdptr = ebda_search_string("SeaBIOS", 1);
-    if (rsdptr) {
-        knotice("BIOS: running on Bochs/QEMU (%x)", rsdptr);
-    }
-
     task_init();
     uint32_t pagedir, eflags;
     asm volatile("movl %%cr3, %%eax; movl %%eax, %0;":"=m"(pagedir)::"%eax");
     asm volatile("pushfl; movl (%%esp), %%eax; movl %%eax, %0; popfl;":"=m"(eflags)::"%eax");
-    //task_create(&taskA, pagedir, eflags);
-    //task_create(&taskB, pagedir, eflags);
-
-    //while (1) {kprintf("[SELF] "); task_switch(); sleep(10);}
-    struct time_tm tt;
-    time_gettime(&tt);
-    uint32_t utime = (uint32_t)(time_to_unix(&tt) & 0xffffffff);
-    kprintf("Unix time: %d\n", utime);
-    memset(&tt, 0, sizeof(struct time_tm));
-    time_from_unix(utime, &tt);
-    kprintf("Value: %02d:%02d:%02d %02d/%02d/%04d\n",
-        tt.hour, tt.minute, tt.second, tt.day, tt.month, tt.year);
-
     kshell_init();
 }

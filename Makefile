@@ -1,6 +1,6 @@
 # RainOS makefile
 # Copyright (C) 2016-2017 Arthur M
-   
+
 CC=/opt/cross/bin/i686-elf-gcc
 AS=/opt/cross/bin/i686-elf-as
 CFLAGS= -std=gnu99 -ffreestanding -fstack-protector-all -nostdlib -nostartfiles -Wall
@@ -24,9 +24,10 @@ I386_ARCH_DEP=kernel/arch/i386/start.o kernel/arch/i386/idt.o \
  kernel/arch/i386/devices/rtc.o
 
 KERNEL_DEP=kernel/stackguard.o kernel/main.o kernel/terminal.o kernel/ttys.o \
- kernel/pmm.o kernel/kheap.o kernel/dev.o kernel/disk.o kernel/vfs/vfs.o \
- kernel/vfs/partition.o kernel/vfs/fat.o kernel/vfs/sfs.o kernel/initrd.o \
- kernel/keyboard.o kernel/kshell.o kernel/elf.o kernel/time.o kernel/task.o
+ kernel/pmm.o kernel/kheap.o kernel/dev.o kernel/disk.o kernel/vfs/vfs_fs.o \
+ kernel/vfs/vfs.o kernel/vfs/partition.o kernel/vfs/fat.o kernel/vfs/sfs.o \
+ kernel/initrd.o kernel/keyboard.o kernel/kshell.o kernel/elf.o kernel/time.o \
+ kernel/task.o
 
 all: $(I386_ARCH_DEP) $(KERNEL_DEP) $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
@@ -50,7 +51,7 @@ qemu-serial: all initrd
 qemu-gdb: all initrd
 	qemu-system-i386 -kernel $(OUT) -initrd initrd.rain -m 8 -serial stdio -S -s
 
-clean: 
+clean:
 	find . -name "*.o" -type f -delete
 	rm -f *.iso
 	rm -f initrd.rain
@@ -63,4 +64,3 @@ clean:
 
 %.o: %.c
 	$(CC) -o $@ -c $< $(CFLAGS) $(CINCLUDES) $(LDFLAGS)
-
