@@ -103,7 +103,7 @@ jmp setup_paging
 setup_paging:
 mov $page_dir_table, %ebx
 
-#Setup the identity directory
+# Setup the identity directory
 mov $page_table_identity, %edx
 orl $0x3, %edx
 mov %edx, (%ebx)

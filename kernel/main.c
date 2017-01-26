@@ -24,6 +24,7 @@
 #include "arch/i386/pages.h"
 #include "arch/i386/fault.h"
 #include "arch/i386/ebda.h"
+#include <arch/i386/syscall.h>
 #include <terminal.h>
 #include <time.h>
 #include <ttys.h>
@@ -388,9 +389,13 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     WRITE_FAIL();
 
+    WRITE_STATUS("Setting up syscalls");
+    syscall_init();
+    WRITE_SUCCESS();
+
     struct time_tm t;
     memset(&t, 0, sizeof(struct time_tm));
-    
+
     time_init(t);if (!addr) addr += 0x1000;
     rtc_init();
 

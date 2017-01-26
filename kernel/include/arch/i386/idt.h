@@ -36,7 +36,7 @@ enum IDT_ATTRIBUTES {
 /*  A trap gate does not save and restore EFLAGS
     A task gate is used for task switching */
 
-#define IDT_MAX_DESCRIPTORS 64
+#define IDT_MAX_DESCRIPTORS 0x90
 
 /* The IDT functions goes */
 void idt_init();

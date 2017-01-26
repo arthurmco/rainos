@@ -21,7 +21,7 @@ I386_ARCH_DEP=kernel/arch/i386/start.o kernel/arch/i386/idt.o \
  kernel/arch/i386/irq_asm.o kernel/arch/i386/pages.o kernel/arch/i386/vmm.o \
  kernel/arch/i386/tss.o kernel/arch/i386/usermode.o kernel/arch/i386/specifics.o \
  kernel/arch/i386/devices/floppy.o kernel/arch/i386/ebda.o kernel/arch/i386/taskswitch.o \
- kernel/arch/i386/devices/rtc.o
+ kernel/arch/i386/devices/rtc.o kernel/arch/i386/syscall.o kernel/arch/i386/syscall_asm.o
 
 KERNEL_DEP=kernel/stackguard.o kernel/main.o kernel/terminal.o kernel/ttys.o \
  kernel/pmm.o kernel/kheap.o kernel/dev.o kernel/disk.o kernel/vfs/vfs_fs.o \
