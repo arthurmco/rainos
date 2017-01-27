@@ -15,7 +15,7 @@ jmp short label_3
 label_2:
 mov ebx, 0xdeadb00b
 mov edx, (esp)
-ret
+jmp short label_4
 
 label_3:
 mov ebx, 0xcafebabe
@@ -24,5 +24,15 @@ push ecx
 xor ecx, ecx
 call label_2
 
+label_4:
+mov eax, 1
+mov esi, _text
+mov ebx, 0xbadca11
+int 0x80
+jmp infinite
+
+
 infinite:
 jmp short infinite	; HLT is prohibited
+
+_text: db "Hello User World!",13,10,0

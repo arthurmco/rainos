@@ -6,20 +6,46 @@ extern void syscall_stub();
 
 /*  asm-allocated functions.
     The syscalls will be called inside the stub. */
-extern syscall_func* _syscalls;
-extern int _get_max_syscalls();
+extern volatile syscall_func _syscalls[];
+extern volatile int _get_max_syscalls();
+
+/* kprintf test.
+    ptr-> string to be printed.
+
+    returns 0
+    */
+static int syscall_kprintf_test(int n, int p1, int p2, uint64_t p3, uintptr_t ptr)
+{
+    knotice("syscall: n=%d, p1=0x%08x, p2=0x%08x, p3=(%x_%x), ptr=0x%08x",
+        n, p1, p2, (unsigned int)(p3 >> 32), (unsigned int)(p3 & 0xffffffff),
+        ptr);
+
+    if (!ptr) return -1;
+    /* XXX: dirty hack.
+        bintest.bin thinks it is at 0x0. This hack adds the address where it is
+        loaded to the pointer value so it can find data.
+        Remove this and you get a page fault */
+    ptr += 0x134000;    
+
+    char* s = (char*)ptr;
+    kprintf(s);
+
+    return 1;
+}
+
 
 /* Create syscall vector. Return 1 on success, 0 on error. */
 int syscall_init()
 {
-    idt_addentry(SYSCALL_INT, 0x18, &syscall_stub, IDTA_INTERRUPT | IDTA_USERMODE);
+    idt_addentry(SYSCALL_INT, 0x08, &syscall_stub, IDTA_INTERRUPT | IDTA_USERMODE);
     knotice("syscall: added syscall handler to vector %x", SYSCALL_INT);
+    syscall_add(1, &syscall_kprintf_test);
 }
 
 /* Add syscall vector. Return 1 on success, 0 if the vector already exists */
 int syscall_add(int num, syscall_func f)
 {
-    if (num < _get_max_syscalls()) {
+    if (num > _get_max_syscalls()) {
         kerror("syscall: tried to add syscall #%d, but maximum syscall num is #%d",
             num, _get_max_syscalls());
         return 0;
@@ -37,7 +63,7 @@ int syscall_add(int num, syscall_func f)
 /* Remove syscall vector. Return 1 on success, 0 if vector doesn't exist */
 int syscall_remove(int num, syscall_func f)
 {
-    if (num < _get_max_syscalls()) {
+    if (num > _get_max_syscalls()) {
         kerror("syscall: tried to remove syscall #%d, but maximum syscall is %d",
             num, _get_max_syscalls());
         return 0;

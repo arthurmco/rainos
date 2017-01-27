@@ -2,13 +2,15 @@
 #
 #   Copyright (C) 2017 Arthur M
 #
-
+.section .data
 .global _syscalls
+.align 4
 _syscalls:  # the syscall "array"
 .rept 256
     .long 0
 .endr
 
+.section .text
 .global _get_max_syscalls
 _get_max_syscalls:
     # Prototype: int get_max_syscalls()
@@ -44,13 +46,33 @@ jg .syscall_bad_num
 # Get syscall offset (something like _syscalls + (syscall_num*4))
 # Since this code is arch-dependant, i don't worry about portability
 # (x86-64, ARM and other might use other registers )
-mov 4(%ebx), %eax
+shl $2, %ebx
+mov %ebx, %eax
 add %edx, %eax
+movl $0xca11, %ecx
+
+# Check if syscall pointer is null
+cmp $0, (%eax)
+je .syscall_bad_num
+
 call (%eax)
 
+pop %ebx    # maintain eax
+pop %ebx
+pop %ecx
+pop %edx
+pop %edi
+pop %esi
 iret
 
 .syscall_bad_num:
+
+    pop %eax
+    pop %ebx
+    pop %ecx
+    pop %edx
+    pop %edi
+    pop %esi
     # bad syscall number (> 256)
     mov $0, %eax
     iret
