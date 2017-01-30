@@ -219,7 +219,6 @@ vfs_node_t* vfs_find_node_relative(vfs_node_t* base, const char* path_rel)
         int node_found = 0;
 
         while (node) {
-            knotice("%s", node->name);
 
             if (!strncmp(node->name, n_start, len)) {
                 node_found = 1;
@@ -310,7 +309,6 @@ void vfs_get_full_path(vfs_node_t* n, char* buf)
             notok = 1;
         }
         memcpy(&tmp[soff], &buf[idx], (eoff - soff));
-        knotice("<%s>", tmp);
         idx += (eoff-soff);
         if (notok) buf[idx++] = '/';
         eoff = soff;

@@ -332,7 +332,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
 
     tss_init(page_dir_phys);
 
-    uint8_t* newfunc = (uint8_t*)vmm_alloc_page(VMM_AREA_USER, 3);
+    uint8_t* newfunc = (uint8_t*)vmm_map_page(0x400000, VMM_AREA_USER, 2);
     void* newstack = (vmm_alloc_page(VMM_AREA_USER, 1) + (VMM_PAGE_SIZE)-16);
     knotice("opening bintest.bin at %x", newfunc);
 
