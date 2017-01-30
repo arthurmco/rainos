@@ -21,11 +21,6 @@ static int syscall_kprintf_test(int n, int p1, int p2, uint64_t p3, uintptr_t pt
         ptr);
 
     if (!ptr) return -1;
-    /* XXX: dirty hack.
-        bintest.bin thinks it is at 0x0. This hack adds the address where it is
-        loaded to the pointer value so it can find data.
-        Remove this and you get a page fault */
-    ptr += 0x134000;    
 
     char* s = (char*)ptr;
     kprintf(s);

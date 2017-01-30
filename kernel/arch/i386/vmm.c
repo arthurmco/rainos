@@ -294,7 +294,6 @@ virtaddr_t vmm_map_page(virtaddr_t addr, unsigned int vmm_area, size_t count)
     /* Allocate physical addresses */
     for (int i = 0; i < count; i++) {
         physaddr_t ph = pmm_alloc(1, PMM_REG_DEFAULT);
-		knotice(">> %x (%d %d)", ph, pdir, ptbl+i);
 
         ptable_t* pt = page_table_get(pd, ptbl+i);
         if (!pt) {
@@ -307,9 +306,6 @@ virtaddr_t vmm_map_page(virtaddr_t addr, unsigned int vmm_area, size_t count)
 
         if (vmm_area = VMM_AREA_USER)
             pt->options.user = 1;
-
-				
-		knotice("<> %x", *pt);
 
     }
 

@@ -1,6 +1,8 @@
 
 ; bintest.asm - true test of our kernel real mode
 
+ORG 0x400000
+
 [BITS 32]
 
 start:

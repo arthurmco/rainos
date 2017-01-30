@@ -32,10 +32,13 @@ KERNEL_DEP=kernel/stackguard.o kernel/main.o kernel/terminal.o kernel/ttys.o \
 all: $(I386_ARCH_DEP) $(KERNEL_DEP) $(LIBK)
 	$(CC) -T linker.ld -o $(OUT) $(CFLAGS) $(CINCLUDES) -lgcc $^ $(LDFLAGS)
 
+usermode: initrd/*
+	nasm -f bin initrd/dir/bintest.asm -o initrd/dir/bintest.bin
+
 initrd: initrd.rain
 	cp initrd.rain iso/boot
 
-initrd.rain: initrd/*
+initrd.rain: initrd/* usermode
 	tar -cf initrd.rain initrd/
 
 iso: all initrd
@@ -53,6 +56,7 @@ qemu-gdb: all initrd
 
 clean:
 	find . -name "*.o" -type f -delete
+	find . -name "*.bin" -type f -delete
 	rm -f *.iso
 	rm -f initrd.rain
 	rm -f iso/boot/initrd.rain

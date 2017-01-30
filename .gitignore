@@ -4,6 +4,7 @@
 *.elf
 *.iso
 *.swp
+*.bin
 bochs_serial.txt
 initrd.rain
 
