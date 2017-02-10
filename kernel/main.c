@@ -374,7 +374,7 @@ void kernel_main(multiboot_t* mboot, uintptr_t page_dir_phys) {
     char buf[64];
     vfs_get_full_path(node_file, buf);
     kprintf("File: %s <0x%x 0x%x>\n\n", buf, newfunc, newstack);
-    jump_usermode((uintptr_t)newstack, (uintptr_t)newfunc);
+    //jump_usermode((uintptr_t)newstack, (uintptr_t)newfunc);
 
     vfs_node_t* elfnode = vfs_find_node("/dir/bintest.elf");
     if (!elfnode) {

@@ -73,7 +73,7 @@ int kbd_init()
     if (ret != 0xFA) {
         kerror("ps2_kbd: Keyboard returned unexpected value %x", ret);
         return 0;
-    }
+	}
 
     /* Set to scancode set 2 */
     scancode_sec:

@@ -118,10 +118,10 @@ int device_read(device_t* dev, uint64_t off, size_t len, void* buf)
 int device_ioctl(device_t* dev, uint32_t op, uint64_t* ret, uint32_t data1, uint64_t data2)
 {
     if (!dev) return 0;
-    if (!dev->__dev_ioctl) {
+    /*if (!dev->__dev_ioctl) {
         kwarn("DEV: No ioctl support for %s (op %x)", dev->devname, op);
         return 0;
-    }
+    }*/
 
     int ioctl_handlers = 0;
     for (unsigned i = 0; i < dev->ioctl_handler_count; i++) {
@@ -142,7 +142,8 @@ int device_ioctl(device_t* dev, uint32_t op, uint64_t* ret, uint32_t data1, uint
     if (ioctl_handlers <= 0) {
         kwarn("DEV: no ioctl handlers for %s op %x", dev->devname, op);
     }
-    return dev->__dev_ioctl(dev, op, ret, data1, data2);
+	return 0;
+    //return dev->__dev_ioctl(dev, op, ret, data1, data2);
 }
 
 /* Set a device description */
